@@ -385,6 +385,17 @@ namespace TombLib.LevelData
                 if (oldLookup.Count != 0)
                     RemoveTextures(texture => oldLookup.ContainsKey(texture.UniqueID));
             }
+
+            {
+                List<ImportedRoomGeometrySettings> importedRoomSettings = newSettings.ImportedRoomGeometryPaths;
+                for (int i = 0; i < this.Rooms.Length;i++)
+                {
+                    for (int j = 0; j < importedRoomSettings.Count; j++)
+                    {
+                        ImportedRoomGeometrySettings importedRoomSettingsEntry = importedRoomSettings[j];
+                    }
+                }
+            }
         }
         public void ApplyNewLevelSettings(LevelSettings newSettings) => ApplyNewLevelSettings(newSettings, s => { });
 

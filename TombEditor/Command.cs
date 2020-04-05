@@ -1834,6 +1834,11 @@ namespace TombEditor
                 EditorActions.MakeQuickItemGroup(args.Window);
             });
 
+            AddCommand("RefreshImportedRoomGeometry", "Refresh imported room geometry", CommandType.Rooms, delegate (CommandArgs args)
+            {
+                EditorActions.ReloadImportedRooms();
+            });
+
             _commands = _commands.OrderBy(o => o.Type).ToList();
         }
     }

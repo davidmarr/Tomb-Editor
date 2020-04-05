@@ -29,7 +29,47 @@ namespace TombLib.LevelData
         [Description("The sound engine (Outputs TR4 for the 'TRNG' engine).")]
         SoundEngineVersion
     }
+    public class ImportedRoomGeometrySettings : ICloneable
+    {
+        public ImportedRoomGeometrySettings()
+        {
+        }
 
+        public ImportedRoomGeometrySettings(string path, bool vertexColorsLocked, bool build)
+        {
+            Path = path;
+            VertexColorsLocked = vertexColorsLocked;
+            Build = build;
+        }
+        public string Path { get; set; }
+        public bool VertexColorsLocked { get; set; }
+        public bool Build { get; set; }
+        //List of cached RoomNames this ImportedRoomGeometry replaces
+        public string CachedRoomNames { get; set; }
+
+        public ImportedRoomGeometrySettings Clone()
+        {
+            return (ImportedRoomGeometrySettings)MemberwiseClone();
+        }
+        object ICloneable.Clone()
+        {
+            return Clone();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is ImportedRoomGeometrySettings)
+            {
+                ImportedRoomGeometrySettings other = (ImportedRoomGeometrySettings)obj;
+                if (other.Path == Path && other.VertexColorsLocked == VertexColorsLocked && other.Build == Build)
+                {
+                    return true;
+                }
+                return false;
+            }
+            return false;
+        }
+    }
     public class AutoStaticMeshMergeEntry : ICloneable
     {
         public string StaticMesh
@@ -102,7 +142,6 @@ namespace TombLib.LevelData
             return Clone();
         }
     }
-
     public class LevelSettings : ICloneable
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
@@ -172,8 +211,6 @@ namespace TombLib.LevelData
         public List<AnimatedTextureSet> AnimatedTextureSets { get; set; } = new List<AnimatedTextureSet>();
         public List<ImportedGeometry> ImportedGeometries { get; set; } = new List<ImportedGeometry>();
         public Vector3 DefaultAmbientLight { get; set; } = new Vector3(0.25f, 0.25f, 0.25f);
-        public List<ImportedGeometry> ImportedRooms { get; set; } = new List<ImportedGeometry>();
-        public bool InterpretStaticMeshVertexDataForMerge { get; set; } = false;
         public List<AutoStaticMeshMergeEntry> AutoStaticMeshMerges { get; set; } = new List<AutoStaticMeshMergeEntry>();
         // Compiler options
         public bool AgressiveFloordataPacking { get; set; } = false;
@@ -183,7 +220,8 @@ namespace TombLib.LevelData
         // For TR5 only
         public Tr5LaraType Tr5LaraType { get; set; } = Tr5LaraType.Normal;
         public Tr5WeatherType Tr5WeatherType { get; set; } = Tr5WeatherType.Normal;
-
+        // Imported Room Geometry
+        public List<ImportedRoomGeometrySettings> ImportedRoomGeometryPaths = new List<ImportedRoomGeometrySettings>();
         public LevelSettings Clone()
         {
             LevelSettings result = (LevelSettings)MemberwiseClone();
@@ -194,6 +232,7 @@ namespace TombLib.LevelData
             result.AnimatedTextureSets = AnimatedTextureSets.ConvertAll(set => set.Clone());
             result.ImportedGeometries = ImportedGeometries.ConvertAll(geometry => geometry.Clone());
             result.AutoStaticMeshMerges = AutoStaticMeshMerges.ConvertAll(entry => entry.Clone());
+            result.ImportedRoomGeometryPaths = ImportedRoomGeometryPaths.ConvertAll(entry => entry.Clone());
             return result;
         }
 

@@ -269,9 +269,24 @@ namespace TombLib.LevelData.IO
                         }
                     chunkIO.WriteChunkEnd();
                 }
+                using (var chunkImportedRoomGeometries = chunkIO.WriteChunk(Prj2Chunks.ImportedRoomGeometries, UInt32.MaxValue))
+                {
+                    foreach (var entry in settings.ImportedRoomGeometryPaths)
+                    {
+                        using (var chunkImportedRoomGeoEntry = chunkIO.WriteChunk(Prj2Chunks.ImportedRoomGeometry))
+                        {
+                            chunkIO.WriteChunkString(Prj2Chunks.ImportedRoomGeometryPath, entry.Path);
+                            chunkIO.WriteChunkBool(Prj2Chunks.ImportedRoomGeometryVertexColors, entry.VertexColorsLocked);
+                            chunkIO.WriteChunkBool(Prj2Chunks.ImportedRoomGeometryBuild, entry.Build);
+                            chunkIO.WriteChunkEnd();
+                        }
+                    }
+                    chunkIO.WriteChunkEnd();
+                }
                 chunkIO.WriteChunkEnd();
-            };
 
+                
+            };
             return levelSettingIds;
         }
 

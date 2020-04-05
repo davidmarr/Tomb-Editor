@@ -54,6 +54,8 @@ namespace TombEditor.Controls
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool ShowLightMeshes { get; set; } = true;
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public bool ShowImportedRoomGeometry { get; set; } = false;
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool ShowOtherObjects { get; set; } = true;
         private bool _drawSlideDirections = false;
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]

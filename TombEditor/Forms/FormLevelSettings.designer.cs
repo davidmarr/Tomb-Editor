@@ -54,9 +54,21 @@
             this.panel7 = new System.Windows.Forms.Panel();
             this.comboGameVersion = new DarkUI.Controls.DarkComboBox();
             this.darkLabel14 = new DarkUI.Controls.DarkLabel();
+            this.tabRoomGeometry = new System.Windows.Forms.TabPage();
+            this.importedRoomsDataGridView = new DarkUI.Controls.DarkDataGridView();
+            this.importedRoomsControls = new TombLib.Controls.DarkDataGridViewControls();
+            this.darkLabel22 = new DarkUI.Controls.DarkLabel();
             this.tabTextures = new System.Windows.Forms.TabPage();
             this.textureFileDataGridViewControls = new TombLib.Controls.DarkDataGridViewControls();
             this.textureFileDataGridView = new DarkUI.Controls.DarkDataGridView();
+            this.textureFileDataGridViewPreviewColumn = new System.Windows.Forms.DataGridViewImageColumn();
+            this.textureFileDataGridViewPathColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.textureFileDataGridViewSearchColumn = new DarkUI.Controls.DarkDataGridViewButtonColumn();
+            this.textureFileDataGridViewShowColumn = new DarkUI.Controls.DarkDataGridViewButtonColumn();
+            this.textureFileDataGridViewMessageColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.textureFileDataGridViewSizeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn = new DarkUI.Controls.DarkDataGridViewCheckBoxColumn();
+            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn = new DarkUI.Controls.DarkDataGridViewCheckBoxColumn();
             this.darkLabel4 = new DarkUI.Controls.DarkLabel();
             this.tabObjects = new System.Windows.Forms.TabPage();
             this.objectFileDataGridViewControls = new TombLib.Controls.DarkDataGridViewControls();
@@ -168,14 +180,11 @@
             this.SelectedSoundsCatalogColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.SelectedSoundsGameColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.SelectedSoundsOriginalIdColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.textureFileDataGridViewPreviewColumn = new System.Windows.Forms.DataGridViewImageColumn();
-            this.textureFileDataGridViewPathColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.textureFileDataGridViewSearchColumn = new DarkUI.Controls.DarkDataGridViewButtonColumn();
-            this.textureFileDataGridViewShowColumn = new DarkUI.Controls.DarkDataGridViewButtonColumn();
-            this.textureFileDataGridViewMessageColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.textureFileDataGridViewSizeColumn = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn = new DarkUI.Controls.DarkDataGridViewCheckBoxColumn();
-            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn = new DarkUI.Controls.DarkDataGridViewCheckBoxColumn();
+            this.colImportedRoomGeoIndex = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colImportedRoomGeoPath = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.colImportedRoomGeoPathBrowse = new DarkUI.Controls.DarkDataGridViewButtonColumn();
+            this.colImportedRoomGeoLockVtxCol = new DarkUI.Controls.DarkDataGridViewCheckBoxColumn();
+            this.colImportedRoomGeoBuild = new DarkUI.Controls.DarkDataGridViewCheckBoxColumn();
             this.pathVariablesDataGridViewContextMenu.SuspendLayout();
             this.darkSectionPanel1.SuspendLayout();
             this.tabbedContainer.SuspendLayout();
@@ -184,6 +193,8 @@
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
             this.panel7.SuspendLayout();
+            this.tabRoomGeometry.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.importedRoomsDataGridView)).BeginInit();
             this.tabTextures.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.textureFileDataGridView)).BeginInit();
             this.tabObjects.SuspendLayout();
@@ -408,6 +419,7 @@
             // tabbedContainer
             // 
             this.tabbedContainer.Controls.Add(this.tabGame);
+            this.tabbedContainer.Controls.Add(this.tabRoomGeometry);
             this.tabbedContainer.Controls.Add(this.tabTextures);
             this.tabbedContainer.Controls.Add(this.tabObjects);
             this.tabbedContainer.Controls.Add(this.tabImportedGeometry);
@@ -627,6 +639,66 @@
             this.darkLabel14.TabIndex = 1;
             this.darkLabel14.Text = "Game version to target:";
             // 
+            // tabRoomGeometry
+            // 
+            this.tabRoomGeometry.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(63)))), ((int)(((byte)(65)))));
+            this.tabRoomGeometry.Controls.Add(this.importedRoomsDataGridView);
+            this.tabRoomGeometry.Controls.Add(this.importedRoomsControls);
+            this.tabRoomGeometry.Controls.Add(this.darkLabel22);
+            this.tabRoomGeometry.Location = new System.Drawing.Point(4, 22);
+            this.tabRoomGeometry.Name = "tabRoomGeometry";
+            this.tabRoomGeometry.Padding = new System.Windows.Forms.Padding(3);
+            this.tabRoomGeometry.Size = new System.Drawing.Size(778, 505);
+            this.tabRoomGeometry.TabIndex = 9;
+            this.tabRoomGeometry.Text = "Imported Rooms";
+            // 
+            // importedRoomsDataGridView
+            // 
+            this.importedRoomsDataGridView.AllowUserToAddRows = false;
+            this.importedRoomsDataGridView.AllowUserToDeleteRows = false;
+            this.importedRoomsDataGridView.AllowUserToDragDropRows = false;
+            this.importedRoomsDataGridView.AllowUserToOrderColumns = true;
+            this.importedRoomsDataGridView.AllowUserToPasteCells = false;
+            this.importedRoomsDataGridView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.importedRoomsDataGridView.AutoGenerateColumns = false;
+            this.importedRoomsDataGridView.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.importedRoomsDataGridView.ColumnHeadersHeight = 17;
+            this.importedRoomsDataGridView.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.colImportedRoomGeoIndex,
+            this.colImportedRoomGeoPath,
+            this.colImportedRoomGeoPathBrowse,
+            this.colImportedRoomGeoLockVtxCol,
+            this.colImportedRoomGeoBuild});
+            this.importedRoomsDataGridView.Location = new System.Drawing.Point(7, 19);
+            this.importedRoomsDataGridView.MultiSelect = false;
+            this.importedRoomsDataGridView.Name = "importedRoomsDataGridView";
+            this.importedRoomsDataGridView.RowHeadersWidth = 41;
+            this.importedRoomsDataGridView.Size = new System.Drawing.Size(735, 480);
+            this.importedRoomsDataGridView.TabIndex = 4;
+            // 
+            // importedRoomsControls
+            // 
+            this.importedRoomsControls.AlwaysInsertAtZero = false;
+            this.importedRoomsControls.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.importedRoomsControls.Enabled = false;
+            this.importedRoomsControls.Location = new System.Drawing.Point(748, 19);
+            this.importedRoomsControls.MinimumSize = new System.Drawing.Size(24, 24);
+            this.importedRoomsControls.Name = "importedRoomsControls";
+            this.importedRoomsControls.Size = new System.Drawing.Size(24, 114);
+            this.importedRoomsControls.TabIndex = 3;
+            // 
+            // darkLabel22
+            // 
+            this.darkLabel22.Dock = System.Windows.Forms.DockStyle.Top;
+            this.darkLabel22.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.darkLabel22.Location = new System.Drawing.Point(3, 3);
+            this.darkLabel22.Name = "darkLabel22";
+            this.darkLabel22.Size = new System.Drawing.Size(772, 12);
+            this.darkLabel22.TabIndex = 1;
+            this.darkLabel22.Text = "Select files that should replace room geometries";
+            // 
             // tabTextures
             // 
             this.tabTextures.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(63)))), ((int)(((byte)(65)))));
@@ -682,6 +754,75 @@
             this.textureFileDataGridView.TabIndex = 6;
             this.textureFileDataGridView.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.textureFileDataGridView_CellContentClick);
             this.textureFileDataGridView.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.textureFileDataGridView_CellFormatting);
+            // 
+            // textureFileDataGridViewPreviewColumn
+            // 
+            this.textureFileDataGridViewPreviewColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None;
+            this.textureFileDataGridViewPreviewColumn.HeaderText = "Preview";
+            this.textureFileDataGridViewPreviewColumn.Name = "textureFileDataGridViewPreviewColumn";
+            this.textureFileDataGridViewPreviewColumn.ReadOnly = true;
+            this.textureFileDataGridViewPreviewColumn.Width = 60;
+            // 
+            // textureFileDataGridViewPathColumn
+            // 
+            this.textureFileDataGridViewPathColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.textureFileDataGridViewPathColumn.DataPropertyName = "Path";
+            this.textureFileDataGridViewPathColumn.HeaderText = "Path";
+            this.textureFileDataGridViewPathColumn.Name = "textureFileDataGridViewPathColumn";
+            // 
+            // textureFileDataGridViewSearchColumn
+            // 
+            this.textureFileDataGridViewSearchColumn.HeaderText = "";
+            this.textureFileDataGridViewSearchColumn.Name = "textureFileDataGridViewSearchColumn";
+            this.textureFileDataGridViewSearchColumn.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.textureFileDataGridViewSearchColumn.Text = "Browse";
+            this.textureFileDataGridViewSearchColumn.Width = 60;
+            // 
+            // textureFileDataGridViewShowColumn
+            // 
+            this.textureFileDataGridViewShowColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None;
+            this.textureFileDataGridViewShowColumn.FillWeight = 45F;
+            this.textureFileDataGridViewShowColumn.HeaderText = "Show";
+            this.textureFileDataGridViewShowColumn.Name = "textureFileDataGridViewShowColumn";
+            this.textureFileDataGridViewShowColumn.Text = "◀";
+            this.textureFileDataGridViewShowColumn.Width = 45;
+            // 
+            // textureFileDataGridViewMessageColumn
+            // 
+            this.textureFileDataGridViewMessageColumn.DataPropertyName = "Message";
+            this.textureFileDataGridViewMessageColumn.HeaderText = "Message";
+            this.textureFileDataGridViewMessageColumn.Name = "textureFileDataGridViewMessageColumn";
+            this.textureFileDataGridViewMessageColumn.ReadOnly = true;
+            this.textureFileDataGridViewMessageColumn.Width = 150;
+            // 
+            // textureFileDataGridViewSizeColumn
+            // 
+            this.textureFileDataGridViewSizeColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
+            this.textureFileDataGridViewSizeColumn.DataPropertyName = "Size";
+            this.textureFileDataGridViewSizeColumn.HeaderText = "Size";
+            this.textureFileDataGridViewSizeColumn.Name = "textureFileDataGridViewSizeColumn";
+            this.textureFileDataGridViewSizeColumn.ReadOnly = true;
+            this.textureFileDataGridViewSizeColumn.Width = 51;
+            // 
+            // textureFileDataGridViewReplaceMagentaWithTransparencyColumn
+            // 
+            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
+            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn.DataPropertyName = "ReplaceMagentaWithTransparency";
+            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn.HeaderText = "Magenta to alpha";
+            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn.Name = "textureFileDataGridViewReplaceMagentaWithTransparencyColumn";
+            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn.ReadOnly = true;
+            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn.Width = 95;
+            // 
+            // textureFileDataGridViewConvert512PixelsToDoubleRowsColumn
+            // 
+            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
+            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn.DataPropertyName = "Convert512PixelsToDoubleRows";
+            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn.HeaderText = "Set width of 512 to 256";
+            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn.Name = "textureFileDataGridViewConvert512PixelsToDoubleRowsColumn";
+            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn.ReadOnly = true;
+            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn.Width = 122;
             // 
             // darkLabel4
             // 
@@ -1939,74 +2080,44 @@
             this.SelectedSoundsOriginalIdColumn.ToolTipText = "Original sound ID derived from TRNG extended soundmap";
             this.SelectedSoundsOriginalIdColumn.Width = 80;
             // 
-            // textureFileDataGridViewPreviewColumn
+            // colImportedRoomGeoIndex
             // 
-            this.textureFileDataGridViewPreviewColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None;
-            this.textureFileDataGridViewPreviewColumn.HeaderText = "Preview";
-            this.textureFileDataGridViewPreviewColumn.Name = "textureFileDataGridViewPreviewColumn";
-            this.textureFileDataGridViewPreviewColumn.ReadOnly = true;
-            this.textureFileDataGridViewPreviewColumn.Width = 60;
+            this.colImportedRoomGeoIndex.FillWeight = 60F;
+            this.colImportedRoomGeoIndex.HeaderText = "Rooms";
+            this.colImportedRoomGeoIndex.Name = "colImportedRoomGeoIndex";
+            this.colImportedRoomGeoIndex.ReadOnly = true;
+            this.colImportedRoomGeoIndex.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.colImportedRoomGeoIndex.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             // 
-            // textureFileDataGridViewPathColumn
+            // colImportedRoomGeoPath
             // 
-            this.textureFileDataGridViewPathColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.textureFileDataGridViewPathColumn.DataPropertyName = "Path";
-            this.textureFileDataGridViewPathColumn.HeaderText = "Path";
-            this.textureFileDataGridViewPathColumn.Name = "textureFileDataGridViewPathColumn";
+            this.colImportedRoomGeoPath.DataPropertyName = "Path";
+            this.colImportedRoomGeoPath.HeaderText = "Path";
+            this.colImportedRoomGeoPath.Name = "colImportedRoomGeoPath";
+            this.colImportedRoomGeoPath.ReadOnly = true;
             // 
-            // textureFileDataGridViewSearchColumn
+            // colImportedRoomGeoPathBrowse
             // 
-            this.textureFileDataGridViewSearchColumn.HeaderText = "";
-            this.textureFileDataGridViewSearchColumn.Name = "textureFileDataGridViewSearchColumn";
-            this.textureFileDataGridViewSearchColumn.Resizable = System.Windows.Forms.DataGridViewTriState.True;
-            this.textureFileDataGridViewSearchColumn.Text = "Browse";
-            this.textureFileDataGridViewSearchColumn.Width = 60;
+            this.colImportedRoomGeoPathBrowse.FillWeight = 35F;
+            this.colImportedRoomGeoPathBrowse.HeaderText = "";
+            this.colImportedRoomGeoPathBrowse.Name = "colImportedRoomGeoPathBrowse";
+            this.colImportedRoomGeoPathBrowse.Text = "Browse";
             // 
-            // textureFileDataGridViewShowColumn
+            // colImportedRoomGeoLockVtxCol
             // 
-            this.textureFileDataGridViewShowColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None;
-            this.textureFileDataGridViewShowColumn.FillWeight = 45F;
-            this.textureFileDataGridViewShowColumn.HeaderText = "Show";
-            this.textureFileDataGridViewShowColumn.Name = "textureFileDataGridViewShowColumn";
-            this.textureFileDataGridViewShowColumn.Text = "◀";
-            this.textureFileDataGridViewShowColumn.Width = 45;
+            this.colImportedRoomGeoLockVtxCol.DataPropertyName = "VertexColorsLocked";
+            this.colImportedRoomGeoLockVtxCol.FillWeight = 30F;
+            this.colImportedRoomGeoLockVtxCol.HeaderText = "Lock Lighting";
+            this.colImportedRoomGeoLockVtxCol.Name = "colImportedRoomGeoLockVtxCol";
+            this.colImportedRoomGeoLockVtxCol.ReadOnly = true;
             // 
-            // textureFileDataGridViewMessageColumn
+            // colImportedRoomGeoBuild
             // 
-            this.textureFileDataGridViewMessageColumn.DataPropertyName = "Message";
-            this.textureFileDataGridViewMessageColumn.HeaderText = "Message";
-            this.textureFileDataGridViewMessageColumn.Name = "textureFileDataGridViewMessageColumn";
-            this.textureFileDataGridViewMessageColumn.ReadOnly = true;
-            this.textureFileDataGridViewMessageColumn.Width = 150;
-            // 
-            // textureFileDataGridViewSizeColumn
-            // 
-            this.textureFileDataGridViewSizeColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
-            this.textureFileDataGridViewSizeColumn.DataPropertyName = "Size";
-            this.textureFileDataGridViewSizeColumn.HeaderText = "Size";
-            this.textureFileDataGridViewSizeColumn.Name = "textureFileDataGridViewSizeColumn";
-            this.textureFileDataGridViewSizeColumn.ReadOnly = true;
-            this.textureFileDataGridViewSizeColumn.Width = 51;
-            // 
-            // textureFileDataGridViewReplaceMagentaWithTransparencyColumn
-            // 
-            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
-            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn.DataPropertyName = "ReplaceMagentaWithTransparency";
-            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn.HeaderText = "Magenta to alpha";
-            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn.Name = "textureFileDataGridViewReplaceMagentaWithTransparencyColumn";
-            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn.ReadOnly = true;
-            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn.Resizable = System.Windows.Forms.DataGridViewTriState.True;
-            this.textureFileDataGridViewReplaceMagentaWithTransparencyColumn.Width = 104;
-            // 
-            // textureFileDataGridViewConvert512PixelsToDoubleRowsColumn
-            // 
-            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
-            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn.DataPropertyName = "Convert512PixelsToDoubleRows";
-            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn.HeaderText = "Set width of 512 to 256";
-            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn.Name = "textureFileDataGridViewConvert512PixelsToDoubleRowsColumn";
-            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn.ReadOnly = true;
-            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn.Resizable = System.Windows.Forms.DataGridViewTriState.True;
-            this.textureFileDataGridViewConvert512PixelsToDoubleRowsColumn.Width = 131;
+            this.colImportedRoomGeoBuild.DataPropertyName = "Build";
+            this.colImportedRoomGeoBuild.FillWeight = 15F;
+            this.colImportedRoomGeoBuild.HeaderText = "Build";
+            this.colImportedRoomGeoBuild.Name = "colImportedRoomGeoBuild";
+            this.colImportedRoomGeoBuild.ReadOnly = true;
             // 
             // FormLevelSettings
             // 
@@ -2038,6 +2149,8 @@
             this.panel2.ResumeLayout(false);
             this.panel2.PerformLayout();
             this.panel7.ResumeLayout(false);
+            this.tabRoomGeometry.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.importedRoomsDataGridView)).EndInit();
             this.tabTextures.ResumeLayout(false);
             this.tabTextures.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.textureFileDataGridView)).EndInit();
@@ -2242,5 +2355,14 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn textureFileDataGridViewSizeColumn;
         private DarkUI.Controls.DarkDataGridViewCheckBoxColumn textureFileDataGridViewReplaceMagentaWithTransparencyColumn;
         private DarkUI.Controls.DarkDataGridViewCheckBoxColumn textureFileDataGridViewConvert512PixelsToDoubleRowsColumn;
+        private System.Windows.Forms.TabPage tabRoomGeometry;
+        private DarkUI.Controls.DarkLabel darkLabel22;
+        private TombLib.Controls.DarkDataGridViewControls importedRoomsControls;
+        private DarkUI.Controls.DarkDataGridView importedRoomsDataGridView;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colImportedRoomGeoIndex;
+        private System.Windows.Forms.DataGridViewTextBoxColumn colImportedRoomGeoPath;
+        private DarkUI.Controls.DarkDataGridViewButtonColumn colImportedRoomGeoPathBrowse;
+        private DarkUI.Controls.DarkDataGridViewCheckBoxColumn colImportedRoomGeoLockVtxCol;
+        private DarkUI.Controls.DarkDataGridViewCheckBoxColumn colImportedRoomGeoBuild;
     }
 }

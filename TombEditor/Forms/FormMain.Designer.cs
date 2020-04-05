@@ -199,6 +199,8 @@ namespace TombEditor.Forms
             this.statusLastCompilation = new System.Windows.Forms.ToolStripStatusLabel();
             this.dockArea = new DarkUI.Docking.DarkDockPanel();
             this.panelDockArea = new System.Windows.Forms.Panel();
+            this.refreshImportedRoomGeometryToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator8 = new System.Windows.Forms.ToolStripSeparator();
             this.menuStrip.SuspendLayout();
             this.statusStrip.SuspendLayout();
             this.panelDockArea.SuspendLayout();
@@ -596,6 +598,8 @@ namespace TombEditor.Forms
             this.toolStripMenuItem1,
             this.exportRoomToolStripMenuItem,
             this.importRoomsToolStripMenuItem,
+            this.refreshImportedRoomGeometryToolStripMenuItem,
+            this.toolStripSeparator8,
             this.toolStripMenuItem2,
             this.applyCurrentAmbientLightToAllRoomsToolStripMenuItem});
             this.roomsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
@@ -2066,6 +2070,24 @@ namespace TombEditor.Forms
             this.panelDockArea.Size = new System.Drawing.Size(913, 416);
             this.panelDockArea.TabIndex = 26;
             // 
+            // refreshImportedRoomGeometryToolStripMenuItem
+            // 
+            this.refreshImportedRoomGeometryToolStripMenuItem.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(63)))), ((int)(((byte)(65)))));
+            this.refreshImportedRoomGeometryToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.refreshImportedRoomGeometryToolStripMenuItem.Image = global::TombEditor.Properties.Resources.actions_refresh_16;
+            this.refreshImportedRoomGeometryToolStripMenuItem.Name = "refreshImportedRoomGeometryToolStripMenuItem";
+            this.refreshImportedRoomGeometryToolStripMenuItem.Size = new System.Drawing.Size(271, 22);
+            this.refreshImportedRoomGeometryToolStripMenuItem.Tag = "RefreshImportedRoomGeometry";
+            this.refreshImportedRoomGeometryToolStripMenuItem.Text = "RefreshImportedRoomGeometry";
+            // 
+            // toolStripSeparator8
+            // 
+            this.toolStripSeparator8.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(63)))), ((int)(((byte)(65)))));
+            this.toolStripSeparator8.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.toolStripSeparator8.Margin = new System.Windows.Forms.Padding(0, 0, 0, 1);
+            this.toolStripSeparator8.Name = "toolStripSeparator8";
+            this.toolStripSeparator8.Size = new System.Drawing.Size(268, 6);
+            // 
             // FormMain
             // 
             this.AllowDrop = true;
@@ -2274,5 +2296,7 @@ namespace TombEditor.Forms
         private System.Windows.Forms.ToolStripMenuItem addImportedGeometryToolStripMenuItem;
         private ToolStripMenuItem searchAndReplaceToolStripMenuItem;
         private ToolStripMenuItem findUntexturedToolStripMenuItem;
+        private ToolStripMenuItem refreshImportedRoomGeometryToolStripMenuItem;
+        private ToolStripSeparator toolStripSeparator8;
     }
 }

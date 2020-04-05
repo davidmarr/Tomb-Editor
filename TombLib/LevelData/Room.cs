@@ -63,14 +63,16 @@ namespace TombLib.LevelData
         public bool FlagExcludeFromPathFinding { get; set; }
         public Reverberation Reverberation { get; set; }
         public bool Locked { get; set; }
-        public ImportedGeometryMesh ExternalRoomMesh { get; set; }
-
         public List<string> Tags { get; set; } = new List<string>();
-
+        public GeometryIO.IOMesh GeometryReplacement { get; set; } = null;
         public Level Level { get; set; }
 
         // Internal data structures
         public RoomGeometry RoomGeometry { get; set; }
+        public int VertexCount { get => GeometryReplacement != null ? GeometryReplacement.Positions.Count : RoomGeometry.VertexPositions.Count; }
+        public List<Vector3> VertexPositions { get => GeometryReplacement != null ? GetReplacementVertexPositions() : RoomGeometry.VertexPositions; }
+        public List<Vector2> VertexUVs { get => GeometryReplacement != null ? GetReplacementVertexUVs() : RoomGeometry.VertexEditorUVs; }
+        public List<Vector3> VertexColors { get => GeometryReplacement != null ? GetReplacementVertexColors() : RoomGeometry.VertexColors; }
 
         public Room(Level level, int numXSectors, int numZSectors, Vector3 ambientLight, string name = "Unnamed", short ceiling = DefaultHeight)
         {
@@ -1539,17 +1541,25 @@ namespace TombLib.LevelData
 
         bool IEquatable<ITriggerParameter>.Equals(ITriggerParameter other) => this == other;
 
-        /* public bool HasExternalRoomGeometry
-         {
-            / get
-             {
-                 foreach (var obj in Objects)
-                     if (obj is ImportedGeometryInstance)
-                     {
-                         var imported = obj as ImportedGeometryInstance;
-                         if (imported.Model.)
-                     }
-             }
-         }*/
+        private List<Vector3> GetReplacementVertexPositions()
+        {
+            return GeometryReplacement.Positions;
+        }
+
+        private List<Vector2> GetReplacementVertexUVs()
+        {
+            return GeometryReplacement.UV;
+        }
+
+        private List<Vector3> GetReplacementVertexNormals()
+        {
+            return GeometryReplacement.Normals;
+        }
+
+        private List<Vector3> GetReplacementVertexColors()
+        {
+            //Geometry VertexColors are Vec4, but TR only has Vec3.
+            return GeometryReplacement.Colors.Select(x => new Vector3(x.X, x.Y, x.Z)).ToList();
+        }
     }
 }

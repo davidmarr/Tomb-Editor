@@ -35,6 +35,7 @@ namespace TombLib.LevelData
         public int DoubleSidedTriangleCount { get; private set; } = 0;
         public List<Vector3> VertexPositions { get; } = new List<Vector3>(); // one for each vertex
         public List<Vector2> VertexEditorUVs { get; } = new List<Vector2>(); // one for each vertex (ushort to save (GPU) memory and bandwidth)
+        //TODO: Vector4 in the Future!
         public List<Vector3> VertexColors { get; } = new List<Vector3>(); // one for each vertex
 
         public List<TextureArea> TriangleTextureAreas { get; } = new List<TextureArea>(); // one for each triangle
@@ -308,10 +309,8 @@ namespace TombLib.LevelData
                     SharedVertices.Add(position, list = new List<int>());
                 list.Add(i);
             }
-
             // Build color array
             VertexColors.Resize(VertexPositions.Count, room.AmbientLight);
-
             // Lighting
             Relight(room);
         }

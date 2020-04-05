@@ -106,6 +106,7 @@ namespace TombLib.LevelData.IO
         /******/public static readonly ChunkId RoomTags = ChunkId.FromString("TeTags");
         /**********/public static readonly ChunkId ObjectMovable = ChunkId.FromString("TeMov");
         /**********/public static readonly ChunkId ObjectMovable2 = ChunkId.FromString("TeMov2");
+        /**********/public static readonly ChunkId ObjectMovable3 = ChunkId.FromString("TeMov3");
         /**********/public static readonly ChunkId ObjectItemLuaId = ChunkId.FromString("TeItLuaId");
         /**********/public static readonly ChunkId ObjectStatic = ChunkId.FromString("TeSta");
         /**********/public static readonly ChunkId ObjectStatic2 = ChunkId.FromString("TeSta2");
@@ -139,12 +140,16 @@ namespace TombLib.LevelData.IO
         /************/public static readonly ChunkId ObjectTrigger2CodeBits = ChunkId.FromString("TeCo");
         /************/public static readonly ChunkId ObjectTrigger2OneShot = ChunkId.FromString("TeOS");
         /************/public static readonly ChunkId ObjectTrigger2LuaScript = ChunkId.FromString("TeTrLua");
-        /****/public static readonly ChunkId AutoMergeStaticMeshes = ChunkId.FromString("TeMergeStatics");
+        /**/public static readonly ChunkId AutoMergeStaticMeshes = ChunkId.FromString("TeMergeStatics");
         /****/public static readonly ChunkId AutoMergeStaticMeshEntry = ChunkId.FromString("TeMergeStaticsEntry");
         /****/public static readonly ChunkId AutoMergeStaticMeshEntry2 = ChunkId.FromString("TeMergeStaticsEntry2");
         /****/public static readonly ChunkId AutoMergeStaticMeshEntry3 = ChunkId.FromString("TeMergeStaticsEntry3");
-        public static readonly ChunkId EmbeddedSoundInfoWad = ChunkId.FromString("TeEmbeddedSoundInfoWad");
-        /**********/public static readonly ChunkId ObjectMovable3 = ChunkId.FromString("TeMov3");
-        
+        /**/public static readonly ChunkId EmbeddedSoundInfoWad = ChunkId.FromString("TeEmbeddedSoundInfoWad");
+        /**/public static readonly ChunkId ImportedRoomGeometries = ChunkId.FromString("TeImportedRoomGeometries");
+        /****/public static readonly ChunkId ImportedRoomGeometry = ChunkId.FromString("TeImportedRoomGeometry");
+        /******/public static readonly ChunkId ImportedRoomGeometryIndex = ChunkId.FromString("TeImportedRoomGeometryIndex");
+        /******/public static readonly ChunkId ImportedRoomGeometryPath = ChunkId.FromString("TeImportedRoomGeometryPath");
+        /******/public static readonly ChunkId ImportedRoomGeometryVertexColors = ChunkId.FromString("TeImportedRoomGeometryLockedVtxCol");
+        /******/public static readonly ChunkId ImportedRoomGeometryBuild = ChunkId.FromString("TeImportedRoomGeometryBuild");
     }
 }

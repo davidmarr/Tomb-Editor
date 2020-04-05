@@ -19,9 +19,11 @@ using System.Threading;
 using TombLib.Wad;
 using TombLib.Wad.Catalog;
 using static TombEditor.Editor;
+using TombLib.GeometryIO;
 
 namespace TombEditor.Forms
 {
+
     public partial class FormLevelSettings : DarkForm
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
@@ -256,6 +258,7 @@ namespace TombEditor.Forms
         private readonly BindingList<ReferencedTextureWrapper> _textureFileDataGridViewDataSource = new BindingList<ReferencedTextureWrapper>();
         private readonly BindingList<WadSoundPath> _soundDataGridViewDataSource = new BindingList<WadSoundPath>();
         private readonly BindingList<AutoStaticMeshMergeEntry> _staticMeshMergeGridViewDataSource = new BindingList<AutoStaticMeshMergeEntry>();
+        private readonly BindingList<ImportedRoomGeometrySettings> _importedRoomGeometryGridViewDataSource = new BindingList<ImportedRoomGeometrySettings>();
         private readonly Cache<TextureCachePreviewKey, Bitmap> _texturePreviewCache;
         private FormPreviewWad _previewWad = null;
         private FormPreviewTexture _previewTexture = null;
@@ -393,6 +396,8 @@ namespace TombEditor.Forms
                     _staticMeshMergeGridViewDataSource.Add(new AutoStaticMeshMergeEntry(staticMesh.Value.Id.TypeId, false, false,false,false, _levelSettings));
             }
             staticMeshMergeDataGridView.DataSource = _staticMeshMergeGridViewDataSource;
+            initializeImportedRoomsDataGridView();
+
 
             // Initialize controls
             UpdateDialog();
@@ -729,7 +734,11 @@ namespace TombEditor.Forms
                 UpdateDialog();
             }
         }
-
+        private ImportedRoomGeometrySettings importedRoomsDataGridViewCreateNewRow()
+        {
+            string result = LevelFileDialog.BrowseFile(this, _levelSettings, _levelSettings.LevelFilePath, "Choose Room Geometry File", BaseGeometryImporter.FileExtensions, VariableType.LevelDirectory, false);
+            return new ImportedRoomGeometrySettings(result, false, true);
+        }
         // Sound list
         private WadSoundPath soundDataGridViewCreateNewRow()
         {
@@ -758,7 +767,6 @@ namespace TombEditor.Forms
                 soundDataGridView.Rows[e.RowIndex].Cells[e.ColumnIndex].ToolTipText = absolutePath;
             }
         }
-
         private void soundDataGridView_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0 || e.RowIndex >= _soundDataGridViewDataSource.Count)
@@ -1144,6 +1152,9 @@ namespace TombEditor.Forms
                 if (entry.Merge)
                     settings.AutoStaticMeshMerges.Add(entry);
             }
+            settings.ImportedRoomGeometryPaths.Clear();
+            foreach (var entry in _importedRoomGeometryGridViewDataSource)
+                settings.ImportedRoomGeometryPaths.Add(entry);
 
             _editor.UpdateLevelSettings(settings);
             Close();
