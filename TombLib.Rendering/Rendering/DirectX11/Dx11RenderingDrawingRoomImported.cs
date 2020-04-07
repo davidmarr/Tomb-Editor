@@ -1,4 +1,6 @@
-﻿using SharpDX.Direct3D11;
+﻿using SharpDX;
+using SharpDX.Direct3D;
+using SharpDX.Direct3D11;
 using System;
 using System.Collections.Generic;
 using TombLib.GeometryIO;
@@ -19,6 +21,8 @@ namespace TombLib.Rendering.DirectX11
         public readonly VertexBufferBinding[] VertexBufferBindings;
         public readonly int VertexCount;
         public readonly int VertexBufferSize;
+        public Buffer IndexBuffer;
+        public int numIndices;
         public bool TexturesInvalidated = false;
         public bool TexturesInvalidatedRetried = false;
 
@@ -74,6 +78,14 @@ namespace TombLib.Rendering.DirectX11
                 VertexBuffer.SetDebugName("Room " + (description.Room.Name ?? ""));
             }
             TextureAllocator.GarbageCollectionCollectEvent.Add(GarbageCollectTexture);
+            UInt32[] indexArray = roomGeometry.Indices.ToArray();
+            numIndices = indexArray.Length;
+            BufferDescription indexDesc = new BufferDescription(sizeof(UInt32) * numIndices, ResourceUsage.Immutable, BindFlags.IndexBuffer,
+                CpuAccessFlags.None, ResourceOptionFlags.None,0);
+            var iStream = new DataStream(sizeInBytes: numIndices * sizeof(UInt32), canRead: false, canWrite: true);
+            iStream.Position = 0;
+            IndexBuffer = Buffer.Create(device.Device, indexArray, indexDesc);
+            IndexBuffer.SetDebugName("Room " + (description.Room.Name ?? "") + " Index Buffer ");
         }
 
         public override void Dispose()
@@ -81,6 +93,10 @@ namespace TombLib.Rendering.DirectX11
             TextureAllocator.GarbageCollectionCollectEvent.Remove(GarbageCollectTexture);
             if (VertexBuffer != null)
                 VertexBuffer.Dispose();
+            if(IndexBuffer != null)
+            {
+                IndexBuffer.Dispose();
+            }
         }
 
         public unsafe RenderingTextureAllocator.GarbageCollectionAdjustDelegate GarbageCollectTexture(RenderingTextureAllocator allocator,
@@ -161,9 +177,9 @@ namespace TombLib.Rendering.DirectX11
             context.PixelShader.SetSampler(0, Device.SamplerDefault);
             context.PixelShader.SetShaderResources(0, TextureView, Device.SectorTextureArrayView);
             context.InputAssembler.SetVertexBuffers(0, VertexBufferBindings);
-
+            context.InputAssembler.SetIndexBuffer(IndexBuffer,SharpDX.DXGI.Format.R32_UInt,0);
             // Render
-            context.Draw(VertexCount, 0);
+            context.DrawIndexed(numIndices,0,0);
         }
     }
 }

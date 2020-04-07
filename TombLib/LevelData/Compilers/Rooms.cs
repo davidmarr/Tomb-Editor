@@ -1,13 +1,15 @@
-﻿using System;
+﻿using SharpDX.Toolkit.Graphics;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using TombLib.GeometryIO;
 using TombLib.Utils;
 using TombLib.Wad;
-
+using static TombLib.Utils.VectorUtils;
 namespace TombLib.LevelData.Compilers
 {
     public sealed partial class LevelCompilerClassicTR
@@ -528,7 +530,7 @@ namespace TombLib.LevelData.Compilers
                         }
                     }
                 }
-
+                if(room.GeometryReplacement == null)
                 for (int z = 0; z < room.NumZSectors; ++z)
                     for (int x = 0; x < room.NumXSectors; ++x)
                         for (BlockFace face = 0; face < BlockFace.Count; ++face)
@@ -600,7 +602,34 @@ namespace TombLib.LevelData.Compilers
                                 }
                             }
                         }
-
+                else
+                {
+                    IOMesh mesh = room.GeometryReplacement;
+                    int vertexIndex = 0;
+                    foreach(var submesh in mesh.Submeshes)
+                        foreach(var poly in submesh.Value.Polygons)
+                            if(poly.Shape == IOPolygonShape.Triangle)
+                            {
+                               var vertex0Index = GetOrAddVertex(room, roomVerticesDictionary, roomVertices, mesh.Positions[vertexIndex], ToVector3(mesh.Colors[vertexIndex]));
+                               var vertex1Index = GetOrAddVertex(room, roomVerticesDictionary, roomVertices, mesh.Positions[vertexIndex+1], ToVector3(mesh.Colors[vertexIndex+1]));
+                               var vertex2Index = GetOrAddVertex(room, roomVerticesDictionary, roomVertices, mesh.Positions[vertexIndex+2], ToVector3(mesh.Colors[vertexIndex+2]));
+                                tr_face3 triangle = new tr_face3();
+                                triangle.Vertices = new ushort[] { vertex0Index, vertex1Index, vertex2Index };
+                                roomTriangles.Add(triangle);
+                                vertexIndex += 3;
+                            }
+                            else if (poly.Shape == IOPolygonShape.Quad)
+                            {
+                                var vertex0Index = GetOrAddVertex(room, roomVerticesDictionary, roomVertices, mesh.Positions[vertexIndex], ToVector3(mesh.Colors[vertexIndex]));
+                                var vertex1Index = GetOrAddVertex(room, roomVerticesDictionary, roomVertices, mesh.Positions[vertexIndex + 1], ToVector3(mesh.Colors[vertexIndex + 1]));
+                                var vertex2Index = GetOrAddVertex(room, roomVerticesDictionary, roomVertices, mesh.Positions[vertexIndex + 2], ToVector3(mesh.Colors[vertexIndex + 2]));
+                                var vertex3Index = GetOrAddVertex(room, roomVerticesDictionary, roomVertices, mesh.Positions[vertexIndex + 3], ToVector3(mesh.Colors[vertexIndex + 3]));
+                                tr_face4 quad = new tr_face4();
+                                quad.Vertices = new ushort[] { vertex0Index, vertex1Index, vertex2Index,vertex3Index };
+                                roomQuads.Add(quad);
+                                vertexIndex += 4;
+                            }
+                }
                 for (int i = 0; i < roomVertices.Count; ++i)
                 {
                     var trVertex = roomVertices[i];
