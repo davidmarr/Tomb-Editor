@@ -737,7 +737,9 @@ namespace TombEditor.Forms
         private ImportedRoomGeometrySettings importedRoomsDataGridViewCreateNewRow()
         {
             string result = LevelFileDialog.BrowseFile(this, _levelSettings, _levelSettings.LevelFilePath, "Choose Room Geometry File", BaseGeometryImporter.FileExtensions, VariableType.LevelDirectory, false);
-            return new ImportedRoomGeometrySettings(result, false, true);
+            if (result != null)
+                return new ImportedRoomGeometrySettings(result, false, true);
+            else return null;
         }
         // Sound list
         private WadSoundPath soundDataGridViewCreateNewRow()
