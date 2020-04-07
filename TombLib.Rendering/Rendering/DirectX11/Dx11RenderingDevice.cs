@@ -17,6 +17,7 @@ using Format = SharpDX.DXGI.Format;
 using SampleDescription = SharpDX.DXGI.SampleDescription;
 using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
+using Vector4 = System.Numerics.Vector4;
 
 namespace TombLib.Rendering.DirectX11
 {
@@ -294,6 +295,14 @@ namespace TombLib.Rendering.DirectX11
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint CompressColor(Vector4 color, bool average = true)
+        {
+            float multiplier = average ? 128.0f : 255.0f;
+            color = Vector4.Max(new Vector4(), Vector4.Min(new Vector4(255.0f), color * multiplier + new Vector4(0.5f)));
+            return ((uint)color.X) | (((uint)color.Y) << 8) | (((uint)color.Z) << 16) | (((uint)color.W) << 24);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong CompressUvw(VectorInt3 position, Vector2 textureScaling, Vector2 uv, uint highestBits = 0)
         {
             uint blendMode2 = Math.Min(highestBits, 15);
@@ -351,7 +360,9 @@ namespace TombLib.Rendering.DirectX11
 
         public override RenderingDrawingRoom CreateDrawingRoom(RenderingDrawingRoom.Description description)
         {
-            return new Dx11RenderingDrawingRoom(this, description);
+            if (description.Room.GeometryReplacement == null)
+                return new Dx11RenderingDrawingRoom(this, description);
+            else return new Dx11RenderingDrawingRoomImported(this, description);
         }
 
         public override RenderingTextureAllocator CreateTextureAllocator(RenderingTextureAllocator.Description description)
