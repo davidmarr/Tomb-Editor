@@ -312,7 +312,6 @@ namespace TombLib.LevelData
             // Build color array
             VertexColors.Resize(VertexPositions.Count, room.AmbientLight);
             // Lighting
-            Relight(room);
         }
 
         private enum FaceDirection
@@ -1987,54 +1986,6 @@ namespace TombLib.LevelData
 
             return Vector3.Zero;
         }
-
-        public void Relight(Room room,bool highQuality = false)
-        {
-            // Collect lights
-            List<LightInstance> lights = new List<LightInstance>();
-            foreach (var instance in room.Objects)
-            {
-                LightInstance light = instance as LightInstance;
-                if (light != null)
-                    lights.Add(light);
-            }
-
-            // Calculate lighting
-            for (int i = 0; i < VertexPositions.Count; i += 3)
-            {
-                var normal = Vector3.Cross(
-                    VertexPositions[i + 1] - VertexPositions[i],
-                    VertexPositions[i + 2] - VertexPositions[i]);
-                normal = Vector3.Normalize(normal);
-
-                for (int j = 0; j < 3; ++j)
-                {
-                    var position = VertexPositions[i + j];
-                    Vector3 color = room.AmbientLight * 128;
-
-                    foreach (var light in lights) // No Linq here because it's slow
-                    {
-                        if (light.IsStaticallyUsed)
-                            color += CalculateLightForVertex(room, light, position, normal, true, highQuality);
-                    }
-
-                    // Apply color
-                    VertexColors[i + j] = Vector3.Max(color, new Vector3()) * (1.0f / 128.0f);
-                }
-            }
-
-            // Calculate light average for shared vertices
-            foreach (var pair in SharedVertices)
-            {
-                Vector3 faceColorSum = new Vector3();
-                foreach (var vertexIndex in pair.Value)
-                    faceColorSum += VertexColors[vertexIndex];
-                faceColorSum /= pair.Value.Count;
-                foreach (var vertexIndex in pair.Value)
-                    VertexColors[vertexIndex] = faceColorSum;
-            }
-        }
-
         public struct IntersectionInfo
         {
             public VectorInt2 Pos;

@@ -28,7 +28,7 @@ namespace TombLib.LevelData
         Default, Interpolate, NoInterpolate
     }
 
-    public class Room : ITriggerParameter
+    public partial class Room : ITriggerParameter
     {
         public delegate void RemovedFromRoomDelegate(Room instance);
         public event RemovedFromRoomDelegate DeletedEvent;
@@ -69,11 +69,6 @@ namespace TombLib.LevelData
 
         // Internal data structures
         public RoomGeometry RoomGeometry { get; set; }
-        public int VertexCount { get => GeometryReplacement != null ? GeometryReplacement.Positions.Count : RoomGeometry.VertexPositions.Count; }
-        public List<Vector3> VertexPositions { get => GeometryReplacement != null ? GetReplacementVertexPositions() : RoomGeometry.VertexPositions; }
-        public List<Vector2> VertexUVs { get => GeometryReplacement != null ? GetReplacementVertexUVs() : RoomGeometry.VertexEditorUVs; }
-        public List<Vector3> VertexColors { get => GeometryReplacement != null ? GetReplacementVertexColors() : RoomGeometry.VertexColors; }
-
         public Room(Level level, int numXSectors, int numZSectors, Vector3 ambientLight, string name = "Unnamed", short ceiling = DefaultHeight)
         {
             Name = name;
@@ -848,13 +843,8 @@ namespace TombLib.LevelData
         public void BuildGeometry()
         {
             RoomGeometry = new RoomGeometry(this);
+            RebuildLighting(false);
         }
-
-        public void RebuildLighting(bool highQualityLighting)
-        {
-            RoomGeometry.Relight(this, highQualityLighting);
-        }
-
         public Matrix4x4 Transform => Matrix4x4.CreateTranslation(WorldPos);
 
         public int GetHighestCorner(RectangleInt2 area)
@@ -1560,6 +1550,16 @@ namespace TombLib.LevelData
         {
             //Geometry VertexColors are Vec4, but TR only has Vec3.
             return GeometryReplacement.Colors.Select(x => new Vector3(x.X, x.Y, x.Z)).ToList();
+        }
+
+        public void SetRoomGeometryVertexColor(Vector3 color,int index)
+        {
+            this.RoomGeometry.VertexColors[index] = color;
+        }
+
+        public void SetRoomGeometryReplacementVertexColor (Vector3 color, int index)
+        {
+            this.GeometryReplacement.Colors[index] = new Vector4(color.X,color.Y,color.Z,1.0f);
         }
     }
 }

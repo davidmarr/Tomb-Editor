@@ -135,6 +135,7 @@
       <Link>GlobalAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="GeometryIO\RoomExport.cs" />
+    <Compile Include="LevelData\Room.Lighting.cs" />
     <Compile Include="Types\BoundingBox.cs" />
     <Compile Include="Types\BoundingSphere.cs" />
     <Compile Include="Utils\NaturalComparer.cs" />
