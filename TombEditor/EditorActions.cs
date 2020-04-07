@@ -3891,22 +3891,23 @@ namespace TombEditor
                             };
 
                             BaseGeometryExporter exporter = BaseGeometryExporter.CreateForFile(saveFileDialog.FileName, settingsDialog.Settings, getTextureCallback);
-
-                            RoomExportResult result = RoomExport.ExportRooms(rooms, _editor.Level);
-                            if(result.Errors.Count < 1)
-                            {
-
-                                IOModel resultModel = result.Model;
-                            string dbFile = Path.GetDirectoryName(saveFileDialog.FileName) + "\\" + Path.GetFileNameWithoutExtension(saveFileDialog.FileName) + ".xml";
-
-                                if (exporter.ExportToFile(resultModel, saveFileDialog.FileName) /*&& RoomsImportExportXmlDatabase.WriteToFile(dbFile, db)*/)
+                            new Thread(() => {
+                                RoomExportResult result = RoomExport.ExportRooms(rooms, _editor.Level);
+                                if (result.Errors.Count < 1)
                                 {
-                                    if (result.Warnings.Count > 0)
-                                        foreach (string msg in result.Warnings)
-                                            _editor.SendMessage(msg, PopupType.Warning);
-                                    _editor.SendMessage("Room export successful", PopupType.Info);
+
+                                    IOModel resultModel = result.Model;
+                                    string dbFile = Path.GetDirectoryName(saveFileDialog.FileName) + "\\" + Path.GetFileNameWithoutExtension(saveFileDialog.FileName) + ".xml";
+
+                                    if (exporter.ExportToFile(resultModel, saveFileDialog.FileName) /*&& RoomsImportExportXmlDatabase.WriteToFile(dbFile, db)*/)
+                                    {
+                                        if (result.Warnings.Count > 0)
+                                            foreach (string msg in result.Warnings)
+                                                _editor.SendMessage(msg, PopupType.Warning);
+                                        _editor.SendMessage("Room export successful", PopupType.Info);
+                                    }
                                 }
-                            }
+                            }).Start();
                         }
                     }
                 }

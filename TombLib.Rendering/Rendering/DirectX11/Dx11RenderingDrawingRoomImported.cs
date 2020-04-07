@@ -32,7 +32,8 @@ namespace TombLib.Rendering.DirectX11
             IOMesh roomGeometry = description.Room.GeometryReplacement;
 
             // Create buffer
-            Vector3 worldPos = description.Room.WorldPos + description.Offset;
+            Vector3 offset = new Vector3(description.Room.SectorPos.X, 0, description.Room.SectorPos.Y) - description.Room.GeometryReplacement.Position;
+            offset *= 1024;
             int singleSidedVertexCount = roomGeometry.Positions.Count;
             int vertexCount = VertexCount = singleSidedVertexCount;
             if (vertexCount == 0)
@@ -48,7 +49,7 @@ namespace TombLib.Rendering.DirectX11
 
                 // Setup vertices
                 for (int i = 0; i < singleSidedVertexCount; ++i)
-                    positions[i] = roomGeometry.Positions[i] + worldPos;
+                    positions[i] = roomGeometry.Positions[i] + offset;
                 for (int i = 0; i < singleSidedVertexCount; ++i)
                     colors[i] = Dx11RenderingDevice.CompressColor(roomGeometry.Colors[i]);
                 for (int i = 0; i < singleSidedVertexCount; ++i)

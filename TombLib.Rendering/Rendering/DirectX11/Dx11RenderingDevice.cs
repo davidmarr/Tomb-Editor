@@ -362,7 +362,9 @@ namespace TombLib.Rendering.DirectX11
         {
             if (description.Room.GeometryReplacement == null)
                 return new Dx11RenderingDrawingRoom(this, description);
-            else return new Dx11RenderingDrawingRoomImported(this, description);
+            else {
+                return new Dx11RenderingDrawingRoomImported(this, description);
+                 };
         }
 
         public override RenderingTextureAllocator CreateTextureAllocator(RenderingTextureAllocator.Description description)

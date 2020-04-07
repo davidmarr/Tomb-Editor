@@ -13,7 +13,10 @@ namespace TombLib.LevelData
         {
             int currentX = x / 1024 - (x > xLight ? 1 : 0);
             int currentZ = z / 1024 - (z > zLight ? 1 : 0);
-
+            if (currentX > this.NumXSectors)
+                currentX = this.NumXSectors -1;
+            if (currentZ > this.NumZSectors)
+                currentZ = this.NumZSectors - 1;
             Block block = Blocks[currentX, currentZ];
             int floorMin = block.Floor.Min;
             int ceilingMax = block.Ceiling.Max;

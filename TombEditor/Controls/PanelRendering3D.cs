@@ -388,6 +388,11 @@ namespace TombEditor.Controls
                     Invalidate();
                 }
             }
+            if(obj is Editor.ImportedRoomGeometryChangedEvent)
+            {
+                //Force rebuild of Rooms
+                _renderingCachedRooms.Clear();
+            }
         }
 
         public void ResetCamera(bool forceNewCamera = false)

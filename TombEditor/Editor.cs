@@ -921,43 +921,44 @@ namespace TombEditor
 
         private void LoadImportedRoomGeometries()
         {
+            logger.Debug("LoadImportedRoomGeometries()");
+            logger.Debug("Count ImportedRoomGeometrySettings: " + Level.Settings.ImportedRoomGeometryPaths.Count);
             for (int i = 0; i < Level.Settings.ImportedRoomGeometryPaths.Count; i++)
             {
                 ImportedRoomGeometrySettings settings = Level.Settings.ImportedRoomGeometryPaths[i];
+                logger.Debug("Open File: " + settings.Path);
                 BaseGeometryImporter importer = BaseGeometryImporter.CreateForFile(settings.Path, new IOGeometrySettings() ,(absoluteFilePath) => {
                     if(Level.Settings.Textures.Count > 0)
                     {
                         Texture levelTex = Level.Settings.Textures.Where((t) => {
                             string levelTexPath = _level.Settings.ParseVariables(t.Path);
+                            logger.Debug("Compare Mesh Texture with Level Texture: " + absoluteFilePath);
                             return levelTexPath.Equals( absoluteFilePath); 
-                        }).First();
+                        }).FirstOrDefault();
                         if (levelTex != null)
                             return levelTex;
-                        LevelTexture newTex = new LevelTexture(Level.Settings, settings.Path);
-                        Level.Settings.Textures.Add(newTex);
-                        LoadedTexturesChange();
-                        SendMessage("Added new Textures",PopupType.Info);
-                        return newTex;
+                        
                     }
-                    else
-                    {
-                        LevelTexture newTex = new LevelTexture(Level.Settings, settings.Path);
-                        Level.Settings.Textures.Add(newTex);
-                        LoadedTexturesChange();
-                        SendMessage("Added new Textures", PopupType.Info);
-                        return newTex;
-                    }
-                    
-                });try
+                    logger.Debug("Creating new Texture for imported room geometry: " + absoluteFilePath);
+                    LevelTexture newTex = new LevelTexture(Level.Settings, absoluteFilePath);
+                    Level.Settings.Textures.Add(newTex);
+                    LoadedTexturesChange();
+                    SendMessage("Added new Textures for imported room geometry", PopupType.Info);
+                    return newTex;
+
+                });
+                try
                 {
                     string absolutePath = _level.Settings.ParseVariables(settings.Path);
+                    logger.Debug("Import File : " + absolutePath);
                     IOModel model = importer.ImportFromFile(absolutePath);
                     for(int roomIndex = 0; roomIndex < Level.Rooms.Length; roomIndex++)
                     {
                         if (Level.Rooms[roomIndex] == null)
-                            return;
+                            continue;
                         foreach (var mesh in model.Meshes)
                         {
+                            logger.Debug("Mesh Name : " + mesh.Name);
                             string meshName = mesh.Name;
                             string[] meshNameSplits = meshName.Split('_');
                             // TeRoom_ABC_X_Y_Z 
@@ -967,7 +968,8 @@ namespace TombEditor
                                 string roomIndexSplit = meshNameSplits[1];
                                 int meshRoomIndex = -1;
                                 int.TryParse(roomIndexSplit,out meshRoomIndex);
-                                if(meshRoomIndex == -1)
+                                logger.Debug("Mesh Room Index : " + roomIndexSplit);
+                                if (meshRoomIndex == -1)
                                     continue;
                                 //We found a mesh in the file which replaces this room
                                 if(meshRoomIndex == roomIndex)
@@ -976,10 +978,10 @@ namespace TombEditor
                                     string ySplit = meshNameSplits[3];
                                     string zSplit = meshNameSplits[4];
                                     int xOffset, yOffset, zOffset;
-
                                     int.TryParse(xSplit, out xOffset);
                                     int.TryParse(ySplit, out yOffset);
                                     int.TryParse(zSplit, out zOffset);
+                                    logger.Debug("Mesh Room Offset : " + string.Format("{0},{1},{2}", xOffset, yOffset, zOffset));
                                     mesh.Position = new VectorInt3(xOffset, yOffset, zOffset);
                                     Level.Rooms[roomIndex].GeometryReplacement = mesh;
                                     continue;
@@ -989,6 +991,7 @@ namespace TombEditor
                     }
                 }catch(Exception e)
                 {
+                    logger.Error("Importing room geometry encountered an error. File: " + settings.Path +  ", Error:" + e.Message);
                     SendMessage("The imported room geometry file " +settings.Path + " had an error : " + e.Message,PopupType.Error);
                 }
                 

@@ -3,12 +3,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TombLib.GeometryIO;
 using TombLib.Utils;
 using TombLib.Wad;
 
 namespace TombLib.LevelData
 {
-    public class Level
+    public partial class Level
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -329,6 +330,26 @@ namespace TombLib.LevelData
                 set.Frames.RemoveAll(frame => askIfTextureToRemove(frame.Texture));
         }
 
+        private void ApplyRoomGeometrySettings(LevelSettings newSettings)
+        {
+            {
+                //First, reset imported room geometry in all rooms
+                Parallel.ForEach<Room>(Rooms, (r) =>
+                {
+                    if(r != null)
+                        r.GeometryReplacement = null;
+                });
+                //Build a List of <Room,Mesh>, meshes high in the list have priority
+                Dictionary<int, IOMesh> geoemtryRoomAssignment = new Dictionary<int, IOMesh>();
+                List<ImportedRoomGeometrySettings> importedRoomSettings = newSettings.ImportedRoomGeometryPaths;
+                Parallel.ForEach<ImportedRoomGeometrySettings>(importedRoomSettings, (s) =>
+                {
+                });
+            }
+        }
+
+
+
         public void ApplyNewLevelSettings(LevelSettings newSettings, Action<ObjectInstance> objectChangedNotification)
         {
             LevelSettings oldSettings = Settings;
@@ -386,16 +407,8 @@ namespace TombLib.LevelData
                     RemoveTextures(texture => oldLookup.ContainsKey(texture.UniqueID));
             }
 
-            {
-                List<ImportedRoomGeometrySettings> importedRoomSettings = newSettings.ImportedRoomGeometryPaths;
-                for (int i = 0; i < this.Rooms.Length;i++)
-                {
-                    for (int j = 0; j < importedRoomSettings.Count; j++)
-                    {
-                        ImportedRoomGeometrySettings importedRoomSettingsEntry = importedRoomSettings[j];
-                    }
-                }
-            }
+            ApplyRoomGeometrySettings(newSettings);
+
         }
         public void ApplyNewLevelSettings(LevelSettings newSettings) => ApplyNewLevelSettings(newSettings, s => { });
 
