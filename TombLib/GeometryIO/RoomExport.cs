@@ -1,5 +1,7 @@
-﻿using System;
+﻿using NLog;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -16,13 +18,31 @@ namespace TombLib.GeometryIO
         public List<string> Warnings { get; set; } = new List<string>();
         public IOModel Model { get; set; }
     }
-    sealed public class RoomExport
+    static public class RoomExport
     {
-        private static Vector2 GetNormalizedUV(Vector2 uv, int textureWidth, int textureHeight)
+        const int PAGESIZE = 256;
+        private static Vector2 GetNormalizedPageUVs(Vector2 uv, int textureWidth, int textureHeight,int page)
         {
-            return new Vector2(uv.X / textureWidth, uv.Y / textureHeight);
+            int numXPages = getNumXPages(textureWidth);
+            int numYPages = getNumYPages(textureHeight);
+            int yPage = page / numXPages;
+            int xPage = page % numXPages;
+            int uOffset = xPage * PAGESIZE;
+            int vOffset = yPage * PAGESIZE;
+            return new Vector2((uv.X-uOffset) / PAGESIZE, (uv.Y-vOffset) / PAGESIZE);
         }
-        public static RoomExportResult ExportRooms(IEnumerable<Room> roomsToExport, Level level)
+
+        private static int getNumXPages(int width)
+        {
+            return (int)Math.Ceiling((float)width / PAGESIZE);
+        }
+
+        private static int getNumYPages(int height)
+        {
+            return (int)Math.Ceiling((float)height / PAGESIZE);
+        }
+
+        public static RoomExportResult ExportRooms(IEnumerable<Room> roomsToExport,string filePath, Level level)
         {
             RoomExportResult result = new RoomExportResult();
             try
@@ -53,47 +73,37 @@ namespace TombLib.GeometryIO
 
                 for (int j = 0; j < usedTextures.Count; j++)
                 {
-                    if (usedTextures[j].Image.Width > 8192)
+                    var tex = usedTextures[j];
+                    int numXPages = getNumXPages(tex.Image.Width);
+                    int numYPages = getNumXPages(tex.Image.Height);
+                    string baseName = Path.GetFileNameWithoutExtension(tex.Image.FileName);
+                    for (int y = 0; y < numYPages; y++)
                     {
-                        result.Warnings.Add("The Texture " + usedTextures[j].Image.FileName + "Has a width higher than 8192. Possible UV Coordinate precision loss!");
+                        for (int x  = 0; x < numXPages; x++)
+                        {
+                            int page = y * numXPages + x;
+                            string textureFileName = baseName + "_" + x +"_"+ y + ".png";
+                            int startX = x * PAGESIZE;
+                            int width = (x * PAGESIZE + PAGESIZE > tex.Image.Width ? tex.Image.Width - x * PAGESIZE : PAGESIZE);
+                            int startY = y * PAGESIZE;
+                            int height = (y * PAGESIZE + PAGESIZE > tex.Image.Height ? tex.Image.Height - y * PAGESIZE : PAGESIZE);
+                            ImageC newImage = ImageC.CreateNew(PAGESIZE, PAGESIZE);
+                            newImage.CopyFrom(0, 0, tex.Image, startX, startY, width, height);
+                            string absoluteTexturefilePath = Path.Combine(Path.GetDirectoryName(filePath), textureFileName);
+                            newImage.Save(absoluteTexturefilePath);
+                            var matOpaque = new IOMaterial(Material.Material_Opaque + "_" + j,tex, absoluteTexturefilePath, false,false,0,page);
+                            var matOpaqueDoubleSided = new IOMaterial(Material.Material_OpaqueDoubleSided + "_" + page, tex, absoluteTexturefilePath, false,true,0,page);
+                            var matAdditiveBlending = new IOMaterial(Material.Material_AdditiveBlending + "_" + page,tex, absoluteTexturefilePath, true,false,0,page);
+                            var matAdditiveBlendingDoubleSided = new IOMaterial(Material.Material_AdditiveBlendingDoubleSided + "_" + page,tex, absoluteTexturefilePath, true,true,0,page);
+                            model.Materials.Add(matOpaque);
+                            model.Materials.Add(matOpaqueDoubleSided);
+                            model.Materials.Add(matAdditiveBlending);
+                            model.Materials.Add(matAdditiveBlendingDoubleSided);
+                        }
                     }
-                    if (usedTextures[j].Image.Height > 8192)
-                    {
-                        result.Warnings.Add("The Texture " + usedTextures[j].Image.FileName + "Has a height higher than 8192. Possible UV Coordinate precision loss!");
-                    }
+                    
                     // Build materials for this texture pahe
-                    var matOpaque = new IOMaterial(Material.Material_Opaque + "_" + j,
-                                                   usedTextures[j],
-                                                   usedTextures[j].Image.FileName,
-                                                   false,
-                                                   false,
-                                                   0);
-
-                    var matOpaqueDoubleSided = new IOMaterial(Material.Material_OpaqueDoubleSided + "_" + j,
-                                                              usedTextures[j],
-                                                              usedTextures[j].Image.FileName,
-                                                              false,
-                                                              true,
-                                                              0);
-
-                    var matAdditiveBlending = new IOMaterial(Material.Material_AdditiveBlending + "_" + j,
-                                                             usedTextures[j],
-                                                             usedTextures[j].Image.FileName,
-                                                             true,
-                                                             false,
-                                                             0);
-
-                    var matAdditiveBlendingDoubleSided = new IOMaterial(Material.Material_AdditiveBlendingDoubleSided + "_" + j,
-                                                                        usedTextures[j],
-                                                                        usedTextures[j].Image.FileName,
-                                                                        true,
-                                                                        true,
-                                                                        0);
-
-                    model.Materials.Add(matOpaque);
-                    model.Materials.Add(matOpaqueDoubleSided);
-                    model.Materials.Add(matAdditiveBlending);
-                    model.Materials.Add(matAdditiveBlendingDoubleSided);
+                    
                 }
 
                 foreach (var room in roomsToExport)
@@ -141,7 +151,12 @@ namespace TombLib.GeometryIO
                                         continue;
                                     if (textureArea2.TextureIsUnavailable || textureArea2.TextureIsInvisible || textureArea2.Texture == null)
                                         continue;
-
+                                    int textureAreaPage = GetTextureAreaPage(textureArea1, textureArea2);
+                                    if(textureAreaPage < 0)
+                                    {
+                                        result.Warnings.Add(string.Format("Quad at ({0},{1}) has a texture that is beyond the 256px boundary. TexturePage is set to 0"));
+                                        textureAreaPage = 1;
+                                    }
                                     var poly = new IOPolygon(IOPolygonShape.Quad);
                                     poly.Indices.Add(lastIndex + 0);
                                     poly.Indices.Add(lastIndex + 1);
@@ -157,10 +172,10 @@ namespace TombLib.GeometryIO
                                         mesh.Positions.Add(room.RoomGeometry.VertexPositions[i + 2] + room.WorldPos);
                                         mesh.Positions.Add(room.RoomGeometry.VertexPositions[i + 0] + room.WorldPos);
                                         mesh.Positions.Add(room.RoomGeometry.VertexPositions[i + 1] + room.WorldPos);
-                                        mesh.UV.Add(GetNormalizedUV(textureArea2.TexCoord0, textureWidth, textureHeight));
-                                        mesh.UV.Add(GetNormalizedUV(textureArea1.TexCoord2, textureWidth, textureHeight));
-                                        mesh.UV.Add(GetNormalizedUV(textureArea1.TexCoord0, textureWidth, textureHeight));
-                                        mesh.UV.Add(GetNormalizedUV(textureArea1.TexCoord1, textureWidth, textureHeight));
+                                        mesh.UV.Add(GetNormalizedPageUVs(textureArea2.TexCoord0, textureWidth, textureHeight, textureAreaPage));
+                                        mesh.UV.Add(GetNormalizedPageUVs(textureArea1.TexCoord2, textureWidth, textureHeight, textureAreaPage));
+                                        mesh.UV.Add(GetNormalizedPageUVs(textureArea1.TexCoord0, textureWidth, textureHeight, textureAreaPage));
+                                        mesh.UV.Add(GetNormalizedPageUVs(textureArea1.TexCoord1, textureWidth, textureHeight, textureAreaPage));
                                         mesh.Colors.Add(new Vector4(room.RoomGeometry.VertexColors[i + 3], 1.0f));
                                         mesh.Colors.Add(new Vector4(room.RoomGeometry.VertexColors[i + 2], 1.0f));
                                         mesh.Colors.Add(new Vector4(room.RoomGeometry.VertexColors[i + 0], 1.0f));
@@ -172,10 +187,10 @@ namespace TombLib.GeometryIO
                                         mesh.Positions.Add(room.RoomGeometry.VertexPositions[i + 2] + room.WorldPos);
                                         mesh.Positions.Add(room.RoomGeometry.VertexPositions[i + 0] + room.WorldPos);
                                         mesh.Positions.Add(room.RoomGeometry.VertexPositions[i + 5] + room.WorldPos);
-                                        mesh.UV.Add(GetNormalizedUV(textureArea1.TexCoord1, textureWidth, textureHeight));
-                                        mesh.UV.Add(GetNormalizedUV(textureArea1.TexCoord2, textureWidth, textureHeight));
-                                        mesh.UV.Add(GetNormalizedUV(textureArea1.TexCoord0, textureWidth, textureHeight));
-                                        mesh.UV.Add(GetNormalizedUV(textureArea2.TexCoord2, textureWidth, textureHeight));
+                                        mesh.UV.Add(GetNormalizedPageUVs(textureArea1.TexCoord1, textureWidth, textureHeight, textureAreaPage));
+                                        mesh.UV.Add(GetNormalizedPageUVs(textureArea1.TexCoord2, textureWidth, textureHeight, textureAreaPage));
+                                        mesh.UV.Add(GetNormalizedPageUVs(textureArea1.TexCoord0, textureWidth, textureHeight, textureAreaPage));
+                                        mesh.UV.Add(GetNormalizedPageUVs(textureArea2.TexCoord2, textureWidth, textureHeight, textureAreaPage));
                                         mesh.Colors.Add(new Vector4(room.RoomGeometry.VertexColors[i + 1], 1.0f));
                                         mesh.Colors.Add(new Vector4(room.RoomGeometry.VertexColors[i + 2], 1.0f));
                                         mesh.Colors.Add(new Vector4(room.RoomGeometry.VertexColors[i + 0], 1.0f));
@@ -183,6 +198,7 @@ namespace TombLib.GeometryIO
                                     }
                                     var mat = model.GetMaterial(textureArea1.Texture,
                                                                 textureArea1.BlendMode == BlendMode.Additive,
+                                                                textureAreaPage,
                                                                 textureArea1.DoubleSided,
                                                                 0);
 
@@ -198,7 +214,12 @@ namespace TombLib.GeometryIO
                                     var textureArea = room.RoomGeometry.TriangleTextureAreas[i / 3];
                                     if (textureArea.TextureIsUnavailable || textureArea.TextureIsInvisible || textureArea.Texture == null)
                                         continue;
-
+                                    int textureAreaPage = GetTextureAreaPage(textureArea,null);
+                                    if (textureAreaPage < 0)
+                                    {
+                                        result.Warnings.Add(string.Format("Triangle at ({0},{1}) has a texture that is beyond the 256px boundary. TexturePage is set to 0"));
+                                        textureAreaPage = 1;
+                                    }
                                     var poly = new IOPolygon(IOPolygonShape.Triangle);
                                     poly.Indices.Add(lastIndex);
                                     poly.Indices.Add(lastIndex + 1);
@@ -211,9 +232,9 @@ namespace TombLib.GeometryIO
                                     var uvFactor = new Vector2(0.5f / (float)textureArea.Texture.Image.Width, 0.5f / (float)textureArea.Texture.Image.Height);
                                     int textureWidth = textureArea.Texture.Image.Width;
                                     int textureHeight = textureArea.Texture.Image.Height;
-                                    mesh.UV.Add(GetNormalizedUV(textureArea.TexCoord0, textureWidth, textureHeight));
-                                    mesh.UV.Add(GetNormalizedUV(textureArea.TexCoord1, textureWidth, textureHeight));
-                                    mesh.UV.Add(GetNormalizedUV(textureArea.TexCoord2, textureWidth, textureHeight));
+                                    mesh.UV.Add(GetNormalizedPageUVs(textureArea.TexCoord0, textureWidth, textureHeight,textureAreaPage));
+                                    mesh.UV.Add(GetNormalizedPageUVs(textureArea.TexCoord1, textureWidth, textureHeight,textureAreaPage));
+                                    mesh.UV.Add(GetNormalizedPageUVs(textureArea.TexCoord2, textureWidth, textureHeight,textureAreaPage));
 
                                     mesh.Colors.Add(new Vector4(room.RoomGeometry.VertexColors[i], 1.0f));
                                     mesh.Colors.Add(new Vector4(room.RoomGeometry.VertexColors[i + 1], 1.0f));
@@ -221,6 +242,7 @@ namespace TombLib.GeometryIO
 
                                     var mat = model.GetMaterial(textureArea.Texture,
                                                                 textureArea.BlendMode == BlendMode.Additive,
+                                                                textureAreaPage,
                                                                 textureArea.DoubleSided,
                                                                 0);
                                     var submesh = mesh.Submeshes[mat];
@@ -239,6 +261,25 @@ namespace TombLib.GeometryIO
                 result.Errors.Add(e.Message);
             }
             return result;
+        }
+
+        private static int GetTextureAreaPage(TextureArea textureArea1, TextureArea? textureArea2)
+        {
+            int width = textureArea1.Texture.Image.Width;
+            int height = textureArea1.Texture.Image.Height;
+            int numXPages = (int)Math.Ceiling((float)width / PAGESIZE);
+            int numYPages = (int)Math.Ceiling((float)height / PAGESIZE);
+            Rectangle2 textureRect = textureArea2 != null ? textureArea1.GetRect().Union(textureArea2.Value.GetRect()) : textureArea1.GetRect();
+            for (int yPage = 0; yPage < numYPages; yPage++)
+                for (int xPage = 0; xPage < numXPages; xPage++)
+                {
+                    Rectangle2 pageRect = new RectangleInt2(xPage * PAGESIZE, yPage * PAGESIZE, (xPage + 1) * PAGESIZE, (yPage + 1) * PAGESIZE);
+                    if(pageRect.Contains(textureRect))
+                    {
+                        return yPage * numXPages + xPage;
+                    }
+                }
+            return -1;
         }
     }
 }
