@@ -271,20 +271,17 @@ namespace TombLib.LevelData
                 {
                     var normal = GeometryReplacement.Normals[i];
 
-                    for (int j = 0; j < 3; ++j)
+                    var position = GeometryReplacement.Positions[i];
+                    Vector3 color = AmbientLight * 128;
+
+                    foreach (var light in lights) // No Linq here because it's slow
                     {
-                        var position = GeometryReplacement.Positions[i + j];
-                        Vector3 color = AmbientLight * 128;
-
-                        foreach (var light in lights) // No Linq here because it's slow
-                        {
-                            if (light.IsStaticallyUsed)
-                                color += CalculateLightForVertex(light, position, normal, true, highQualityLighting);
-                        }
-
-                        // Apply color
-                        SetRoomGeometryReplacementVertexColor(Vector3.Max(color, new Vector3()) * (1.0f / 128.0f), i + j);
+                        if (light.IsStaticallyUsed)
+                            color += CalculateLightForVertex(light, position, normal, true, highQualityLighting);
                     }
+
+                    // Apply color
+                    SetRoomGeometryReplacementVertexColor(Vector3.Max(color, new Vector3()) * (1.0f / 128.0f), i);
                 }
             }
             
