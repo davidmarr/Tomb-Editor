@@ -3902,10 +3902,22 @@ namespace TombEditor
                                     if (exporter.ExportToFile(resultModel, saveFileDialog.FileName) /*&& RoomsImportExportXmlDatabase.WriteToFile(dbFile, db)*/)
                                     {
                                         if (result.Warnings.Count > 0)
-                                            foreach (string msg in result.Warnings)
-                                                _editor.SendMessage(msg, PopupType.Warning);
-                                        _editor.SendMessage("Room export successful", PopupType.Info);
+                                        {
+                                            string warningmessage = "";
+                                            result.Warnings.ForEach((warning) =>
+                                            {
+                                                warningmessage += warning + "\n";
+                                            });
+                                            _editor.SendMessage("Room export successful with warnings: \n" + warningmessage, PopupType.Warning);
+                                        }
+                                        else
+                                            _editor.SendMessage("Room export successful", PopupType.Info);
                                     }
+                                }else
+                                {
+                                    string errorMessage = "";
+                                    result.Errors.ForEach((error) => { errorMessage += error + "\n"; });
+                                    _editor.SendMessage("There was an error exporting room(s): \n" + errorMessage, PopupType.Error);
                                 }
                             }).Start();
                         }

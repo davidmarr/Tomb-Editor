@@ -45,9 +45,9 @@ namespace TombLib.GeometryIO
         public static RoomExportResult ExportRooms(IEnumerable<Room> roomsToExport,string filePath, Level level)
         {
             RoomExportResult result = new RoomExportResult();
-            try
-            {
-                // Prepare data for export
+             try
+             {
+                //Prepare data for export
                 var model = new IOModel();
 
                 var usedTextures = new List<Texture>();
@@ -154,7 +154,7 @@ namespace TombLib.GeometryIO
                                     int textureAreaPage = GetTextureAreaPage(textureArea1, textureArea2);
                                     if(textureAreaPage < 0)
                                     {
-                                        result.Warnings.Add(string.Format("Quad at ({0},{1}) has a texture that is beyond the 256px boundary. TexturePage is set to 0"));
+                                        result.Warnings.Add(string.Format("Quad at ({0},{1}) in Room {2} has a texture that is beyond the 256px boundary. TexturePage is set to 0",x,z,room));
                                         textureAreaPage = 1;
                                     }
                                     var poly = new IOPolygon(IOPolygonShape.Quad);
@@ -217,7 +217,7 @@ namespace TombLib.GeometryIO
                                     int textureAreaPage = GetTextureAreaPage(textureArea,null);
                                     if (textureAreaPage < 0)
                                     {
-                                        result.Warnings.Add(string.Format("Triangle at ({0},{1}) has a texture that is beyond the 256px boundary. TexturePage is set to 0"));
+                                        result.Warnings.Add(string.Format("Triangle at ({0},{1}) in Room {2} has a texture that is beyond the 256px boundary. TexturePage is set to 0", x, z, room));
                                         textureAreaPage = 1;
                                     }
                                     var poly = new IOPolygon(IOPolygonShape.Triangle);
@@ -255,11 +255,11 @@ namespace TombLib.GeometryIO
                     model.Meshes.Add(mesh);
                 }
                 result.Model = model;
-            }
-            catch (Exception e)
-            {
-                result.Errors.Add(e.Message);
-            }
+                }
+                catch (Exception e)
+                {
+                    result.Errors.Add(e.Message);
+                }
             return result;
         }
 
