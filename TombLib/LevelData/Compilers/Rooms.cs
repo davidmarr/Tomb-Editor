@@ -386,6 +386,7 @@ namespace TombLib.LevelData.Compilers
 
                         roomVertices.Add(trVertex);
                     }
+
                     for (int i = 0; i < wadStatic.Mesh.Polys.Count; i++)
                     {
                         WadPolygon poly = wadStatic.Mesh.Polys[i];
@@ -433,7 +434,6 @@ namespace TombLib.LevelData.Compilers
                 }
 
                 // Add geometry imported objects
-                int geometryVertexIndexBase = roomVertices.Count;
                 foreach (var geometry in room.Objects.OfType<ImportedGeometryInstance>())
                 {
                     if (geometry.Model?.DirectXModel == null)
@@ -452,6 +452,8 @@ namespace TombLib.LevelData.Compilers
 
                         foreach (var submesh in mesh.Submeshes)
                         {
+                            var indexList = new List<int>();
+
                             for (int j = 0; j < mesh.Vertices.Count; j++)
                             {
                                 // Apply the transform to the vertex
@@ -488,7 +490,15 @@ namespace TombLib.LevelData.Compilers
                                     throw new Exception("Room '" + room.Name + "' has too many vertices (limit = 65536)! Try to remove some imported geometry objects.");
                                 }
 
-                                roomVertices.Add(trVertex);
+                                var existingIndex = roomVertices.IndexOf(v => v.Position == trVertex.Position &&
+                                                                              v.Lighting2 == trVertex.Lighting2);
+
+                                if (existingIndex == -1)
+                                {
+                                    existingIndex = roomVertices.Count;
+                                    roomVertices.Add(trVertex);
+                                }
+                                indexList.Add(existingIndex);
                             }
 
                             for (int j = 0; j < submesh.Value.Indices.Count; j += 3)
@@ -499,13 +509,9 @@ namespace TombLib.LevelData.Compilers
                                     throw new Exception("Room '" + room.Name + "' has too many polygons (count = " + numPolygons + ", limit = 3000)! Try to remove some imported geometry objects.");
                                 }
 
-                                var triangle = new tr_face3();
-
-                                ushort index0 = (ushort)(geometryVertexIndexBase + submesh.Value.Indices[j + 0]);
-                                ushort index1 = (ushort)(geometryVertexIndexBase + submesh.Value.Indices[j + 1]);
-                                ushort index2 = (ushort)(geometryVertexIndexBase + submesh.Value.Indices[j + 2]);
-
-                                triangle.Texture = 20;
+                                ushort index0 = (ushort)(indexList[j + 0]);
+                                ushort index1 = (ushort)(indexList[j + 1]);
+                                ushort index2 = (ushort)(indexList[j + 2]);
 
                                 // TODO Move texture area into the mesh
                                 TextureArea texture = new TextureArea();
@@ -530,12 +536,11 @@ namespace TombLib.LevelData.Compilers
                                 var result = _textureInfoManager.AddTexture(texture, true, true);
                                 roomTriangles.Add(result.CreateFace3(new ushort[] { index0, index1, index2 }, false, 0));
                             }
-
-                            geometryVertexIndexBase += mesh.Vertices.Count;
                         }
                     }
                 }
-                if(room.GeometryReplacement == null)
+
+                if (room.GeometryReplacement == null)
                 {
                     for (int z = 0; z < room.NumZSectors; ++z)
                     {
@@ -553,13 +558,13 @@ namespace TombLib.LevelData.Compilers
                                 if(texture.TextureIsInvisible)
                                     continue;
 
-                                if(texture.TextureIsUnavailable)
+                                if (texture.TextureIsUnavailable)
                                 {
                                     _progressReporter.ReportWarn("Missing texture at sector (" + x + "," + z + ") in room " + room.Name + ". Check texture file location.");
                                     continue;
                                 }
 
-                                if((shape == BlockFaceShape.Triangle && texture.TriangleCoordsOutOfBounds) || (shape == BlockFaceShape.Quad && texture.QuadCoordsOutOfBounds))
+                                if ((shape == BlockFaceShape.Triangle && texture.TriangleCoordsOutOfBounds) || (shape == BlockFaceShape.Quad && texture.QuadCoordsOutOfBounds))
                                 {
                                     _progressReporter.ReportWarn("Texture is out of bounds at sector (" + x + "," + z + ") in room " + room.Name + ". Wrong or resized texture file?");
                                     continue;
@@ -693,6 +698,7 @@ namespace TombLib.LevelData.Compilers
                     }
                     logger.Debug("Vertex count after imported room geometry: " + roomVertices.Count);
                 }
+
                 for (int i = 0; i < roomVertices.Count; ++i)
                 {
                     var trVertex = roomVertices[i];

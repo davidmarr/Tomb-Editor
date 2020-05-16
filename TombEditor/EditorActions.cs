@@ -3858,8 +3858,6 @@ namespace TombEditor
             ExportRooms(new[] { _editor.SelectedRoom }, owner);
         }
 
-
-
         public static void ExportRooms(IEnumerable<Room> rooms, IWin32Window owner)
         {
             using (SaveFileDialog saveFileDialog = new SaveFileDialog())
@@ -3872,13 +3870,15 @@ namespace TombEditor
 
                 if (saveFileDialog.ShowDialog(owner) == DialogResult.OK)
                 {
-                    using (var settingsDialog = new GeometryIOSettingsDialog(new IOGeometrySettings()))
+                    using (var settingsDialog = new GeometryIOSettingsDialog(new IOGeometrySettings() { Export = true }))
                     {
-                        settingsDialog.AddPreset(IOSettingsPresets.GeometrySettingsPresets);
+                        settingsDialog.AddPreset(IOSettingsPresets.GeometryExportSettingsPresets);
                         string resultingExtension = Path.GetExtension(saveFileDialog.FileName).ToLowerInvariant();
 
                         if (resultingExtension.Equals(".mqo"))
-                            settingsDialog.SelectPreset("Metasequoia MQO");
+                            settingsDialog.SelectPreset("Metasequoia MQO scale 1");
+                        else if (resultingExtension.Equals(".obj"))
+                            settingsDialog.SelectPreset("Blender OBJ");
 
                         if (settingsDialog.ShowDialog(owner) == DialogResult.OK)
                         {
@@ -3891,11 +3891,11 @@ namespace TombEditor
                             };
 
                             BaseGeometryExporter exporter = BaseGeometryExporter.CreateForFile(saveFileDialog.FileName, settingsDialog.Settings, getTextureCallback);
-                            new Thread(() => {
-                                RoomExportResult result = RoomExport.ExportRooms(rooms,saveFileDialog.FileName, _editor.Level);
+                            new Thread(() => 
+                            {
+                                var result = RoomExport.ExportRooms(rooms, saveFileDialog.FileName, _editor.Level);
                                 if (result.Errors.Count < 1)
                                 {
-
                                     IOModel resultModel = result.Model;
                                     string dbFile = Path.GetDirectoryName(saveFileDialog.FileName) + "\\" + Path.GetFileNameWithoutExtension(saveFileDialog.FileName) + ".xml";
 
@@ -3913,7 +3913,8 @@ namespace TombEditor
                                         else
                                             _editor.SendMessage("Room export successful", PopupType.Info);
                                     }
-                                }else
+                                }
+                                else
                                 {
                                     string errorMessage = "";
                                     result.Errors.ForEach((error) => { errorMessage += error + "\n"; });

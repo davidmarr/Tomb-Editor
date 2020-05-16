@@ -2531,7 +2531,19 @@ namespace TombEditor.Controls
 
         private void DrawRoomImportedGeometry(Matrix4x4 viewProjection, List<ImportedGeometryInstance> importedGeometryToDraw, List<Text> textToDraw, bool disableSelection = false)
         {
+            // Before drawing custom geometry, apply a depth bias for reducing Z fighting
+            _legacyDevice.SetRasterizerState(_rasterizerStateDepthBias);
+
             var geometryEffect = DeviceManager.DefaultDeviceManager.___LegacyEffects["RoomGeometry"];
+
+            // If picking for imported geometry is disabled, then draw geometry translucent
+            if (DisablePickingForImportedGeometry)
+            {
+                geometryEffect.Parameters["Color"].SetValue(new Vector4(0.0f, 0.0f, 0.5f, 1.0f));
+                _legacyDevice.SetBlendState(_legacyDevice.BlendStates.Additive);
+            }
+            else
+                geometryEffect.Parameters["Color"].SetValue(new Vector4(1.0f));
 
             ImportedGeometryInstance _lastObject = null;
 
@@ -2561,8 +2573,7 @@ namespace TombEditor.Controls
 
                     geometryEffect.Parameters["ModelViewProjection"].SetValue((instance.ObjectMatrix * viewProjection).ToSharpDX());
 
-                    geometryEffect.Parameters["Color"].SetValue(new Vector4(1.0f));
-                    if (/*!disableSelection &&*/ _editor.SelectedObject == instance)
+                    if (_editor.SelectedObject == instance)
                         geometryEffect.Parameters["Color"].SetValue(_editor.Configuration.UI_ColorScheme.ColorSelection);
 
                     foreach (var submesh in mesh.Submeshes)
@@ -2608,6 +2619,12 @@ namespace TombEditor.Controls
 
                 _lastObject = instance;
             }
+
+            // Reset GPU states
+            _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullBack);
+
+            if (DisablePickingForImportedGeometry)
+                _legacyDevice.SetBlendState(_legacyDevice.BlendStates.Opaque);
         }
 
         private void DrawStatics(Matrix4x4 viewProjection, List<StaticInstance> staticsToDraw, List<Text> textToDraw, bool disableSelection = false)
@@ -2950,20 +2967,8 @@ namespace TombEditor.Controls
             // Draw room imported geometry
             if (importedGeometryToDraw.Count != 0 && ShowImportedGeometry)
             {
-                // If picking for imported geometry is disabled, then draw geometry translucent
-                if (DisablePickingForImportedGeometry)
-                    _legacyDevice.SetBlendState(_legacyDevice.BlendStates.Additive);
-
-                // Before drawing custom geometry, apply a depth bias for reducing Z fighting
-                _legacyDevice.SetRasterizerState(_rasterizerStateDepthBias);
-
                 // Draw imported geometry
                 DrawRoomImportedGeometry(viewProjection, importedGeometryToDraw, textToDraw, drawSelection);
-
-                // Reset GPU states
-                _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullBack);
-                if (DisablePickingForImportedGeometry)
-                    _legacyDevice.SetBlendState(_legacyDevice.BlendStates.Opaque);
             }
 
             // Draw ghost blocks

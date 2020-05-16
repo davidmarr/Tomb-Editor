@@ -110,7 +110,6 @@ namespace TombLib.LevelData
         public string Name { get; set; }
         public string Path { get; set; }
         public float Scale { get; set; }
-
         public bool SwapXY { get; set; }
         public bool SwapXZ { get; set; }
         public bool SwapYZ { get; set; }

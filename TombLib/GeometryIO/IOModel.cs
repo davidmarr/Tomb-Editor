@@ -40,7 +40,7 @@ namespace TombLib.GeometryIO
             }
         }
 
-        public IOMaterial GetMaterial(Texture texture,bool blending,int page, bool doubleSided, int shininess)
+        public IOMaterial GetMaterial(Texture texture, bool blending, int page, bool doubleSided, int shininess)
         {
             foreach (var mat in Materials)
                 if(mat.Page == page)
