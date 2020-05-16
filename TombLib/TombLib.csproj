@@ -134,7 +134,7 @@
     <Compile Include="..\GlobalAssemblyInfo.cs">
       <Link>GlobalAssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="GeometryIO\RoomExport.cs" />
+    <Compile Include="GeometryIO\RoomGeometryExporter.cs" />
     <Compile Include="LevelData\Level.ImportedRoomGeometry.cs" />
     <Compile Include="LevelData\Room.Lighting.cs" />
     <Compile Include="Types\BoundingBox.cs" />

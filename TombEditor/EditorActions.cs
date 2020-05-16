@@ -3893,7 +3893,7 @@ namespace TombEditor
                             BaseGeometryExporter exporter = BaseGeometryExporter.CreateForFile(saveFileDialog.FileName, settingsDialog.Settings, getTextureCallback);
                             new Thread(() => 
                             {
-                                var result = RoomExport.ExportRooms(rooms, saveFileDialog.FileName, _editor.Level);
+                                var result = RoomGeometryExporter.ExportRooms(rooms, saveFileDialog.FileName, _editor.Level);
                                 if (result.Errors.Count < 1)
                                 {
                                     IOModel resultModel = result.Model;

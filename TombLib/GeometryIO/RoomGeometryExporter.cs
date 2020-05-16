@@ -1,11 +1,7 @@
-﻿using NLog;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using TombLib.Graphics;
 using TombLib.LevelData;
 using TombLib.Utils;
@@ -31,7 +27,7 @@ namespace TombLib.GeometryIO
         }
     }
 
-    static public class RoomExport
+    static public class RoomGeometryExporter
     {
         const int SplitPageSize = 256;
 
