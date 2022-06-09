@@ -30,7 +30,7 @@ namespace TombLib.Wad.Catalog
         FloorHeight,
         CornerHeight,
         WorldDimensions,
-
+        MaxTextureSize,
         NG_SoundMapSize
     }
 

@@ -353,7 +353,7 @@ namespace TombLib.LevelData.Compilers
                                     continue;
                                 }
 
-                                if((shape == BlockFaceShape.Triangle && texture.TriangleCoordsOutOfBounds) || (shape == BlockFaceShape.Quad && texture.QuadCoordsOutOfBounds))
+                                if((shape == BlockFaceShape.Triangle && texture.IsTriangleCoordsOutOfBounds()) || (shape == BlockFaceShape.Quad && texture.IsQuadCoordsOutOfBounds()))
                                 {
                                     _progressReporter.ReportWarn("Texture is out of bounds at sector (" + x + "," + z + ") in room " + room.Name + ". Wrong or resized texture file?");
                                     continue;

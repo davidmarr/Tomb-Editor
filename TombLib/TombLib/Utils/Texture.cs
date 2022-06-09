@@ -1,8 +1,9 @@
 ﻿using System;
-using System.Numerics;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
 using TombLib.LevelData;
+using TombLib.Wad.Catalog;
 
 namespace TombLib.Utils
 {
@@ -91,12 +92,12 @@ namespace TombLib.Utils
 
     public static class TextureExtensions
     {
-         // Helper procedures to convert between blending mode indices available to user
-         // and actual internal enumeration of blending modes.
+        // Helper procedures to convert between blending mode indices available to user
+        // and actual internal enumeration of blending modes.
 
         public static BlendMode ToBlendMode(int userIndex)
         {
-            var result = BlendMode.Normal;
+            BlendMode result = BlendMode.Normal;
             switch (userIndex)
             {
                 default:
@@ -113,7 +114,7 @@ namespace TombLib.Utils
 
         public static int ToUserIndex(this BlendMode mode)
         {
-            var result = 0;
+            int result = 0;
             switch (mode)
             {
                 default:
@@ -131,8 +132,10 @@ namespace TombLib.Utils
         // Helper UI function which gets the names of all available blending modes
         // according to selected game version.
 
-        public static List<string> BlendModeUserNames(TRVersion.Game version) =>
-            BlendModeUserNames(new LevelSettings() { GameVersion = version, GameEnableExtraBlendingModes = true });
+        public static List<string> BlendModeUserNames(TRVersion.Game version)
+        {
+            return BlendModeUserNames(new LevelSettings() { GameVersion = version, GameEnableExtraBlendingModes = true });
+        }
 
         public static List<string> BlendModeUserNames(LevelSettings settings)
         {
@@ -151,14 +154,20 @@ namespace TombLib.Utils
             {
                 // Additive blending is for TR3-5 only
                 if (settings.GameVersion >= TRVersion.Game.TR3)
+                {
                     blendCount = 2;
+                }
                 else
+                {
                     blendCount = 1; // Type 0 exists everywhere
+                }
             }
 
-            var result = new List<string>();
+            List<string> result = new List<string>();
             for (int i = 0; i < blendCount; i++)
+            {
                 result.Add(ToBlendMode(i).ToString().SplitCamelcase());
+            }
 
             return result;
         }
@@ -200,13 +209,19 @@ namespace TombLib.Utils
 
                 byte closeEdgeIndex = 0;
                 if (distance1 < Math.Min(distance0, distance2))
+                {
                     closeEdgeIndex = 1;
+                }
+
                 if (distance2 < Math.Min(distance0, distance1))
+                {
                     closeEdgeIndex = 2;
+                }
 
                 // Determine case
                 Vector2 toClosestEdge = texCoords[closeEdgeIndex] - midPoint;
                 if (toClosestEdge.X < 0)
+                {
                     if (toClosestEdge.Y < 0)
                     { // Negative X, Negative Y
                         // +---+
@@ -215,9 +230,13 @@ namespace TombLib.Utils
                         // |/
                         // +
                         if (isClockwise)
-                            return (TextureShapeType)0; //static constexpr Diverse::Vec<2, float> Triangle0[3] = { { 0.5f, 0.5f }, { -0.5f, 0.5f }, { 0.5f, -0.5f } };
+                        {
+                            return 0; //static constexpr Diverse::Vec<2, float> Triangle0[3] = { { 0.5f, 0.5f }, { -0.5f, 0.5f }, { 0.5f, -0.5f } };
+                        }
                         else
+                        {
                             return (TextureShapeType)5; //static constexpr Diverse::Vec<2, float> Triangle5[3] = { { 0.5f, 0.5f }, { 0.5f, -0.5f }, { -0.5f, 0.5f } };
+                        }
                     }
                     else
                     { // Negative X, Postive Y
@@ -227,10 +246,15 @@ namespace TombLib.Utils
                         // |  \
                         // +---+
                         if (isClockwise)
+                        {
                             return (TextureShapeType)3; //static constexpr Diverse::Vec<2, float> Triangle3[3] = { { 0.5f, -0.5f }, { 0.5f, 0.5f }, { -0.5f, -0.5f } };
+                        }
                         else
+                        {
                             return (TextureShapeType)6; //static constexpr Diverse::Vec<2, float> Triangle6[3] = { { 0.5f, -0.5f }, { -0.5f, -0.5f }, { 0.5f, 0.5f } };
+                        }
                     }
+                }
                 else
                     if (toClosestEdge.Y < 0)
                 { // Postive X, Negative Y
@@ -240,9 +264,13 @@ namespace TombLib.Utils
                   //    \|
                   //     +
                     if (isClockwise)
+                    {
                         return (TextureShapeType)1; //static constexpr Diverse::Vec<2, float> Triangle1[3] = { { -0.5f, 0.5f }, { -0.5f, -0.5f }, { 0.5f, 0.5f } };
+                    }
                     else
+                    {
                         return (TextureShapeType)4; //static constexpr Diverse::Vec<2, float> Triangle4[3] = { { -0.5f, 0.5f }, { 0.5f, 0.5f }, { -0.5f, -0.5f } };
+                    }
                 }
                 else
                 { // Postive X, Postive Y
@@ -252,15 +280,23 @@ namespace TombLib.Utils
                   //  /  |
                   // +---+
                     if (isClockwise)
+                    {
                         return (TextureShapeType)2; //static constexpr Diverse::Vec<2, float> Triangle2[3] = { { -0.5f, -0.5f }, { 0.5f, -0.5f }, { -0.5f, 0.5f } };
+                    }
                     else
+                    {
                         return (TextureShapeType)7; //static constexpr Diverse::Vec<2, float> Triangle7[3] = { { -0.5f, -0.5f }, { -0.5f, 0.5f }, { 0.5f, -0.5f } };
+                    }
                 }
             }
             else if (!isClockwise)
+            {
                 return (TextureShapeType)1;
+            }
             else
-                return (TextureShapeType)0;
+            {
+                return 0;
+            }
         }
     }
 
@@ -292,84 +328,101 @@ namespace TombLib.Utils
                 first.DoubleSided == second.DoubleSided;
         }
 
-        public static bool operator !=(TextureArea first, TextureArea second) => !(first == second);
-        public bool Equals(TextureArea other) => this == other;
-        public override bool Equals(object other) => other is TextureArea && this == (TextureArea)other;
-        public override int GetHashCode() => base.GetHashCode();
+        public static bool operator !=(TextureArea first, TextureArea second)
+        {
+            return !(first == second);
+        }
+
+        public bool Equals(TextureArea other)
+        {
+            return this == other;
+        }
+
+        public override bool Equals(object other)
+        {
+            return other is TextureArea && this == (TextureArea)other;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
 
         public bool TextureIsUnavailable => Texture == null || Texture.IsUnavailable;
         public bool TextureIsInvisible => Texture == TextureInvisible.Instance || Texture == null;
         public bool TextureIsTriangle => TexCoord2 == TexCoord3;
         public bool TextureIsDegenerate => (!TextureIsTriangle && QuadArea == 0) || (TextureIsTriangle && TriangleArea == 0);
 
-        public bool TriangleCoordsOutOfBounds
+        public bool IsTriangleCoordsOutOfBounds(int maxAllowedSize = 256)
         {
-            get
+            if (TextureIsInvisible || TextureIsUnavailable)
             {
-                if (TextureIsInvisible || TextureIsUnavailable)
-                    return false;
-
-                Vector2 max = Vector2.Max(Vector2.Max(TexCoord0, TexCoord1), TexCoord2);
-                Vector2 min = Vector2.Min(Vector2.Min(TexCoord0, TexCoord1), TexCoord2);
-
-                return min.X < 0.0f || min.Y < 0.0f || max.X > Texture.Image.Width || max.Y > Texture.Image.Height ||
-                       max.X - min.X > 256.0f || max.Y - min.Y > 256.0f;
+                return false;
             }
+
+            Vector2 max = Vector2.Max(Vector2.Max(TexCoord0, TexCoord1), TexCoord2);
+            Vector2 min = Vector2.Min(Vector2.Min(TexCoord0, TexCoord1), TexCoord2);
+
+            return min.X < 0.0f || min.Y < 0.0f || max.X > Texture.Image.Width || max.Y > Texture.Image.Height ||
+                       max.X - min.X > maxAllowedSize || max.Y - min.Y > maxAllowedSize;
         }
 
-        public bool QuadCoordsOutOfBounds
+        public bool IsQuadCoordsOutOfBounds(int maxAllowedSize = 256)
         {
-            get
+            if (TextureIsInvisible || TextureIsUnavailable)
             {
-                if (TextureIsInvisible || TextureIsUnavailable)
-                    return false;
-
-                Vector2 max = Vector2.Max(Vector2.Max(TexCoord0, TexCoord1), Vector2.Max(TexCoord2, TexCoord3));
-                Vector2 min = Vector2.Min(Vector2.Min(TexCoord0, TexCoord1), Vector2.Min(TexCoord2, TexCoord3));
-
-                return min.X < 0.0f || min.Y < 0.0f || max.X > Texture.Image.Width || max.Y > Texture.Image.Height ||
-                       max.X - min.X > 256.0f || max.Y - min.Y > 256.0f;
+                return false;
             }
+
+            Vector2 max = Vector2.Max(Vector2.Max(TexCoord0, TexCoord1), Vector2.Max(TexCoord2, TexCoord3));
+            Vector2 min = Vector2.Min(Vector2.Min(TexCoord0, TexCoord1), Vector2.Min(TexCoord2, TexCoord3));
+
+            return min.X < 0.0f || min.Y < 0.0f || max.X > Texture.Image.Width || max.Y > Texture.Image.Height ||
+                   max.X - min.X > maxAllowedSize || max.Y - min.Y > maxAllowedSize;
         }
 
         public Rectangle2 GetRect(bool? isTriangle = null)
         {
             if (!isTriangle.HasValue)
+            {
                 isTriangle = TextureIsTriangle;
+            }
 
             if (isTriangle.Value)
+            {
                 return Rectangle2.FromCoordinates(TexCoord0, TexCoord1, TexCoord2);
+            }
             else
+            {
                 return Rectangle2.FromCoordinates(TexCoord0, TexCoord1, TexCoord2, TexCoord3);
+            }
         }
 
-        public Vector2[] TexCoords
-        {
-            get
-            {
-                return new Vector2[]
+        public Vector2[] TexCoords => new Vector2[]
                 {
                 TexCoord0,
                 TexCoord1,
                 TexCoord2,
                 TexCoord3
                 };
-            }
-        }
 
         // Gets canonical texture area which is compatible with UVRotate routine
         // and also puts rotational difference into Rotation out parameter
         public TextureArea GetCanonicalTexture(bool isTriangle)
         {
-            var minY = GetRect(isTriangle).Start.Y;
-            var transformedTexture = this;
+            float minY = GetRect(isTriangle).Start.Y;
+            TextureArea transformedTexture = this;
 
             while (transformedTexture.TexCoord0.Y != minY)
+            {
                 transformedTexture.Rotate(1, isTriangle);
+            }
 
             // Perform extra rotation in case it's texture with similar upper coordinates
             if (minY == (isTriangle ? transformedTexture.TexCoord2.Y : transformedTexture.TexCoord3.Y))
+            {
                 transformedTexture.Rotate(1, isTriangle);
+            }
 
             return transformedTexture;
         }
@@ -377,10 +430,12 @@ namespace TombLib.Utils
         public TextureArea RestoreQuad()
         {
             if (!TextureIsTriangle)
+            {
                 return this;
+            }
 
-            var area = GetRect(true);
-            var restoredTexture = this;
+            Rectangle2 area = GetRect(true);
+            TextureArea restoredTexture = this;
 
             Vector2[] restoredCoords = new Vector2[4];
             restoredCoords[0] = new Vector2(area.X0, area.Y0);
@@ -397,11 +452,11 @@ namespace TombLib.Utils
             // Get closest vertex to zero coord
 
             int closest = 0;
-            var length = float.MaxValue;
+            float length = float.MaxValue;
 
             for (int i = 0; i < 4; i++)
             {
-                var newLength = Vector2.Distance(restoredCoords[i], originalCoords[0]);
+                float newLength = Vector2.Distance(restoredCoords[i], originalCoords[0]);
                 if (newLength <= length)
                 {
                     closest = i;
@@ -410,7 +465,9 @@ namespace TombLib.Utils
             }
 
             for (int i = closest, j = 0; i <= closest + 3; i++, j++)
+            {
                 originalCoords[i % 4] = restoredCoords[j];
+            }
 
             restoredTexture.TexCoord0 = originalCoords[0];
             restoredTexture.TexCoord1 = originalCoords[1];
@@ -423,13 +480,15 @@ namespace TombLib.Utils
         public TextureArea RestoreQuadWithRotation()
         {
             if (!TextureIsTriangle)
+            {
                 return this;
+            }
 
             try
             {
-                var area = GetRect(true);
-                var triangleCoords = TexCoords.ToList();
-                var coords = new List<Vector2>
+                Rectangle2 area = GetRect(true);
+                List<Vector2> triangleCoords = TexCoords.ToList();
+                List<Vector2> coords = new List<Vector2>
                 {
                     area.Start,
                     new Vector2(area.X1, area.Y0),
@@ -437,8 +496,8 @@ namespace TombLib.Utils
                     area.End
                 };
 
-                var newCoord = coords.First(c => !triangleCoords.Contains(c));
-                var newTexture = this;
+                Vector2 newCoord = coords.First(c => !triangleCoords.Contains(c));
+                TextureArea newTexture = this;
                 newTexture.TexCoord3 = newCoord;
 
                 return newTexture;
@@ -461,14 +520,14 @@ namespace TombLib.Utils
             TexCoord3.Y = Math.Max(0.0f, TexCoord3.Y);
 
             if (!TextureIsInvisible && !TextureIsUnavailable)
-            {                                                
-                TexCoord0.X = Math.Min(Texture.Image.Width,  TexCoord0.X);
+            {
+                TexCoord0.X = Math.Min(Texture.Image.Width, TexCoord0.X);
                 TexCoord0.Y = Math.Min(Texture.Image.Height, TexCoord0.Y);
-                TexCoord1.X = Math.Min(Texture.Image.Width,  TexCoord1.X);
+                TexCoord1.X = Math.Min(Texture.Image.Width, TexCoord1.X);
                 TexCoord1.Y = Math.Min(Texture.Image.Height, TexCoord1.Y);
-                TexCoord2.X = Math.Min(Texture.Image.Width,  TexCoord2.X);
+                TexCoord2.X = Math.Min(Texture.Image.Width, TexCoord2.X);
                 TexCoord2.Y = Math.Min(Texture.Image.Height, TexCoord2.Y);
-                TexCoord3.X = Math.Min(Texture.Image.Width,  TexCoord3.X);
+                TexCoord3.X = Math.Min(Texture.Image.Width, TexCoord3.X);
                 TexCoord3.Y = Math.Min(Texture.Image.Height, TexCoord3.Y);
             }
         }

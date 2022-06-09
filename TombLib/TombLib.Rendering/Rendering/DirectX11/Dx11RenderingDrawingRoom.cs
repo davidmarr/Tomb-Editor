@@ -133,7 +133,7 @@ namespace TombLib.Rendering.DirectX11
                                 uvwAndBlendModes[i * 3 + 1] = Dx11RenderingDevice.CompressUvw(position, textureScaling, Vector2.Abs(roomGeometry.VertexEditorUVs[i * 3 + 1]) * (image.Size - VectorInt2.One) + new Vector2(0.5f), (uint)texture.BlendMode);
                                 uvwAndBlendModes[i * 3 + 2] = Dx11RenderingDevice.CompressUvw(position, textureScaling, Vector2.Abs(roomGeometry.VertexEditorUVs[i * 3 + 2]) * (image.Size - VectorInt2.One) + new Vector2(0.5f), (uint)texture.BlendMode);
                             }
-                            else if (texture.TriangleCoordsOutOfBounds)
+                            else if (texture.IsTriangleCoordsOutOfBounds())
                             { // Texture is available but coordinates are ouf of bounds
                                 ImageC image = Dx11RenderingDevice.TextureCoordOutOfBounds;
                                 VectorInt3 position = TextureAllocator.Get(image);

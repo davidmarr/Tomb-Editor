@@ -1330,7 +1330,7 @@ namespace TombEditor
                                     break;
 
                                 case TextureSearchType.Broken:
-                                    if (tex.TriangleCoordsOutOfBounds || tex.QuadCoordsOutOfBounds)
+                                    if (tex.IsTriangleCoordsOutOfBounds() || tex.IsQuadCoordsOutOfBounds())
                                         result.Add(entry);
 
                                     if (!tex.TextureIsInvisible)

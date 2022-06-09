@@ -1624,7 +1624,7 @@ namespace TombLib.LevelData
 
                             var texture = Blocks[x, z].GetFaceTexture(face);
                             if (texture.TextureIsInvisible || texture.TextureIsUnavailable ||
-                                (shape == BlockFaceShape.Triangle && texture.TriangleCoordsOutOfBounds) || (shape == BlockFaceShape.Quad && texture.QuadCoordsOutOfBounds))
+                                (shape == BlockFaceShape.Triangle && texture.IsTriangleCoordsOutOfBounds() || (shape == BlockFaceShape.Quad && texture.IsQuadCoordsOutOfBounds())))
                                 continue;
 
                             var doubleSided = Level.Settings.GameVersion > TRVersion.Game.TR2 && texture.DoubleSided;
