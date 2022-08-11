@@ -158,8 +158,7 @@
     <Compile Include="LevelData\Instances\ObjectGroup.cs" />
     <Compile Include="LevelData\Instances\MemoInstance.cs" />
     <Compile Include="LevelData\Instances\SpriteInstance.cs" />
-    <Compile Include="LevelData\Instances\ScriptInstance.cs" />
-    <Compile Include="LevelData\Instances\TriggerVolumeInstance.cs" />
+    <Compile Include="LevelData\Instances\VolumeInstance.cs" />
     <Compile Include="LevelData\IO\Prj2TombEngineConverter.cs" />
     <Compile Include="LevelData\LuaScriptID.cs" />
     <Compile Include="LevelData\ReloadableResource.cs" />
@@ -326,6 +325,7 @@
     <Compile Include="Utils\RectPackerTree.cs" />
     <Compile Include="Utils\Undo.cs" />
     <Compile Include="Utils\VertexNormalAverageHelper.cs" />
+    <Compile Include="Utils\XmlUtils.cs" />
     <Compile Include="Utils\ZLib.cs" />
     <Compile Include="Types\VectorInt2.cs" />
     <Compile Include="Types\VectorInt3.cs" />

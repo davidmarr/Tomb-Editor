@@ -196,6 +196,7 @@ namespace TombLib.LevelData
         public List<ImportedGeometry> ImportedGeometries { get; set; } = new List<ImportedGeometry>();
         public List<AutoStaticMeshMergeEntry> AutoStaticMeshMerges { get; set; } = new List<AutoStaticMeshMergeEntry>();
         public List<AnimatedTextureSet> AnimatedTextureSets { get; set; } = new List<AnimatedTextureSet>();
+        public List<VolumeEventSet> EventSets { get; set; } = new List<VolumeEventSet>();
         public List<ColorC> Palette { get; set; } = LoadPalette(ResourcesC.ResourcesC.palette);
 
         // Light options
@@ -538,6 +539,33 @@ namespace TombLib.LevelData
 
                 return image;
             }
+        }
+
+        public bool LoadDefaultWad()
+        {
+            string wadName = string.Empty;
+
+            switch (GameVersion.Native())
+            {
+                case TRVersion.Game.TombEngine:
+                    wadName = DefaultPaths.ProgramDirectory + "\\Assets\\Wads\\TombEngine.wad2";
+                    break;
+            }
+
+            if (!string.IsNullOrEmpty(wadName) && File.Exists(wadName))
+            {
+                try
+                {
+                    Wads.Add(new ReferencedWad(this, MakeRelative(wadName, VariableType.EditorDirectory)));
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    logger.Error("Unable to load default wad! Exception: " + ex);
+                }
+            }
+
+            return false;
         }
 
         public bool LoadDefaultSoundCatalog()

@@ -140,13 +140,14 @@ namespace TombIDE.ProjectMaster
 				level.Settings.WadSoundPaths.Clear();
 				level.Settings.WadSoundPaths.Add(new WadSoundPath(LevelSettings.VariableCreate(VariableType.LevelDirectory) + LevelSettings.Dir + ".." + LevelSettings.Dir + ".." + LevelSettings.Dir + "Sounds"));
 
-				if (_targetProject.GameVersion == TRVersion.Game.TR3)
+				if (_targetProject.GameVersion <= TRVersion.Game.TR3)
 				{
 					level.Settings.AgressiveTexturePacking = true;
 					level.Settings.TexturePadding = 1;
 				}
 
 				level.Settings.LoadDefaultSoundCatalog();
+				level.Settings.LoadDefaultWad();
 
 				Prj2Writer.SaveToPrj2(prj2FilePath, level);
 

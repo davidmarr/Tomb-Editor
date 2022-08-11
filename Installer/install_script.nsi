@@ -8,8 +8,8 @@
 !define MUI_COMPONENTSPAGE_SMALLDESC
 !define MUI_ABORTWARNING
 !define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
-!define MUI_WELCOMEFINISHPAGE_BITMAP "..\TombEditor\Resources\misc\misc_InstallerSplash.bmp"
-!define MUI_UNWELCOMEFINISHPAGE_BITMAP "..\TombEditor\Resources\misc\misc_InstallerSplash.bmp" 
+!define MUI_WELCOMEFINISHPAGE_BITMAP "..\TombEditor\Resources\misc\misc_InstallerSplashTEN.bmp"
+!define MUI_UNWELCOMEFINISHPAGE_BITMAP "..\TombEditor\Resources\misc\misc_InstallerSplashTEN.bmp" 
 !define MUI_ICON "..\Icons\ICO\TE.ico"
 !define MUI_FINISHPAGE_SHOWREADME "Changes.txt"
 
@@ -23,7 +23,9 @@ $\r$\n\
   ${U+2022} Windows 7 or later (preferably 64-bit) $\r$\n\
   ${U+2022} Installed .NET Framework 4.5 $\r$\n\
   ${U+2022} Videocard with DirectX 10 support $\r$\n\
-  ${U+2022} At least 2 gigabytes of RAM $\r$\n\
+  ${U+2022} At least 1 gigabyte of RAM $\r$\n\
+$\r$\n\
+This package includes a TIDE template to build Tomb Engine (TEN) levels. $\r$\n\
 $\r$\n\
 Enjoy! $\r$\n\
 Tomb Editor dev team."
@@ -35,7 +37,6 @@ Unicode true
 Name "Tomb Editor"
 OutFile "TombEditorInstall.exe"
 InstallDir "C:\Tomb Editor"
-Var tideInstalled
 
 ;--------------------------------
 
@@ -61,9 +62,6 @@ Section "Tomb Editor" Section1
   
   SetOutPath $INSTDIR
   File /r \
-  /x "TIDE" \
-  /x "Configs" \
-  /x "Assets" \
   /x "TombEditorLog*.txt" \
   /x "WadToolLog*.txt" \
   /x "TombIDELog*.txt" \
@@ -76,7 +74,6 @@ Section "Tomb Editor" Section1
   /x "TombEditorConfiguration.xml" \
   /x "SoundToolConfiguration.xml" \
   /x "WadToolConfiguration.xml" \
-  /x "TombIDE*.*" \
   *.* \
   
   ; Add readme from installer folder
@@ -105,65 +102,31 @@ Section "Tomb Editor" Section1
   
 SectionEnd
 
-Section "TombIDE" Section2
-
-  SectionIn 1
-  
-  SetOutPath $INSTDIR
-  File /r \
-  /x "*.pdb" \
-  /x "*.config" \
-  /x "*.vshost.*" \
-  /x "TombIDE*.xml" \
-  TombIDE*.* 
-  
-  File /r "TIDE"
-  File /r "Configs"
-  
-  StrCpy $tideInstalled "yes"
-  
-SectionEnd
-
-Section "Stock Assets" Section3
-
-  SectionIn 1
-
-  SetOutPath $INSTDIR
-  File /r "Assets"
-  
-SectionEnd
-
-Section "Start Menu Shortcuts" Section4
+Section "Start Menu Shortcuts" Section2
 
   SectionIn 1 2
 
   CreateDirectory "$SMPROGRAMS\Tomb Editor"
+  
   CreateShortcut "$SMPROGRAMS\Tomb Editor\Tomb Editor.lnk" "$INSTDIR\TombEditor.exe" "" "$INSTDIR\TombEditor.exe" 0
   CreateShortcut "$SMPROGRAMS\Tomb Editor\SoundTool.lnk" "$INSTDIR\SoundTool.exe" "" "$INSTDIR\SoundTool.exe" 0
   CreateShortcut "$SMPROGRAMS\Tomb Editor\WadTool.lnk" "$INSTDIR\WadTool.exe" "" "$INSTDIR\WadTool.exe" 0
-
-  ${If} ${SectionIsSelected} ${Section2}
-	CreateShortcut "$SMPROGRAMS\Tomb Editor\TombIDE.lnk" "$INSTDIR\TombIDE.exe" "" "$INSTDIR\TombIDE.exe" 0
-  ${EndIf}
-  
+  CreateShortcut "$SMPROGRAMS\Tomb Editor\TombIDE.lnk" "$INSTDIR\TombIDE.exe" "" "$INSTDIR\TombIDE.exe" 0  
   CreateShortcut "$SMPROGRAMS\Tomb Editor\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
   
 SectionEnd
 
-Section "Desktop Shortcuts" Section5
+Section "Desktop Shortcuts" Section3
 
   SectionIn 1 2
   CreateShortcut "$DESKTOP\Tomb Editor.lnk" "$INSTDIR\TombEditor.exe" "" "$INSTDIR\TombEditor.exe" 0
   CreateShortcut "$DESKTOP\SoundTool.lnk" "$INSTDIR\SoundTool.exe" "" "$INSTDIR\SoundTool.exe" 0
   CreateShortcut "$DESKTOP\WadTool.lnk" "$INSTDIR\WadTool.exe" "" "$INSTDIR\WadTool.exe" 0
+  CreateShortcut "$DESKTOP\TombIDE.lnk" "$INSTDIR\TombIDE.exe" "" "$INSTDIR\TombIDE.exe" 0
   
-  ${If} ${SectionIsSelected} ${Section2}
-    CreateShortcut "$DESKTOP\TombIDE.lnk" "$INSTDIR\TombIDE.exe" "" "$INSTDIR\TombIDE.exe" 0
-  ${EndIf}
-
 SectionEnd
 
-Section "Associate File Types" Section6
+Section "Associate File Types" Section4
   
   SectionIn 1 2
   
@@ -172,19 +135,15 @@ Section "Associate File Types" Section6
 SectionEnd
 
 LangString DESC_Section1 ${LANG_ENGLISH} "Basic Tomb Editor components. Includes WadTool and SoundTool."
-LangString DESC_Section2 ${LANG_ENGLISH} "TombIDE. Also makes TombEditor not dependent on TRNG installation."
-LangString DESC_Section3 ${LANG_ENGLISH} "Stock sound assets for TR1. Needed if you plan to build TR1 levels."
-LangString DESC_Section4 ${LANG_ENGLISH} "Shortcuts for Tomb Editor applications in Start Menu."
-LangString DESC_Section5 ${LANG_ENGLISH} "Shortcuts for Tomb Editor applications on Desktop."
-LangString DESC_Section6 ${LANG_ENGLISH} "Associate file types with Tomb Editor, WadTool and TombIDE."
+LangString DESC_Section2 ${LANG_ENGLISH} "Shortcuts for Tomb Editor applications in Start Menu."
+LangString DESC_Section3 ${LANG_ENGLISH} "Shortcuts for Tomb Editor applications on Desktop."
+LangString DESC_Section4 ${LANG_ENGLISH} "Associate file types with Tomb Editor, WadTool and TombIDE."
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${Section1} $(DESC_Section1)
   !insertmacro MUI_DESCRIPTION_TEXT ${Section2} $(DESC_Section2)
   !insertmacro MUI_DESCRIPTION_TEXT ${Section3} $(DESC_Section3)
   !insertmacro MUI_DESCRIPTION_TEXT ${Section4} $(DESC_Section4)
-  !insertmacro MUI_DESCRIPTION_TEXT ${Section5} $(DESC_Section5)
-  !insertmacro MUI_DESCRIPTION_TEXT ${Section6} $(DESC_Section6)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ;--------------------------------
@@ -199,23 +158,23 @@ Section "Uninstall"
   ; https://nsis.sourceforge.io/mediawiki/images/9/9f/Unlist.zip
   ; PLEASE UPDATE THIS BLOCK IF BUILD FILE SET IS CHANGED!
     
-  Delete "$INSTDIR\TIDE\Templates\TOMB4\Defaults\uklogo.pak"
-  Delete "$INSTDIR\TIDE\Templates\TOMB4\Defaults\TRNG.ico"
-  Delete "$INSTDIR\TIDE\Templates\TOMB4\Defaults\TR4.ico"
-  Delete "$INSTDIR\TIDE\Templates\TOMB4\Defaults\load.bmp"
-  Delete "$INSTDIR\TIDE\Templates\TOMB4\Shared.zip"
-  Delete "$INSTDIR\TIDE\Templates\TOMB4\FLEP.zip"
-  Delete "$INSTDIR\TIDE\Templates\TOMB3\Defaults\TR3.ico"
-  Delete "$INSTDIR\TIDE\Templates\TOMB3\Shared.zip"
-  Delete "$INSTDIR\TIDE\Templates\TOMB2\Defaults\TR2.ico"
-  Delete "$INSTDIR\TIDE\Templates\TOMB2\Shared.zip"
-  Delete "$INSTDIR\TIDE\Templates\TOMB1\Defaults\TR1.ico"
-  Delete "$INSTDIR\TIDE\Templates\TOMB1\Shared.zip"
-  Delete "$INSTDIR\TIDE\Templates\Engines\TRNG.zip"
-  Delete "$INSTDIR\TIDE\Templates\Engines\TR4.zip"
-  Delete "$INSTDIR\TIDE\Templates\Engines\TR3.zip"
-  Delete "$INSTDIR\TIDE\Templates\Engines\TR2.zip"
-  Delete "$INSTDIR\TIDE\Templates\Engines\TR1.zip"
+  Delete "$INSTDIR\TIDE\Templates\Shared\TR4-TRNG Shared Files.zip"
+  Delete "$INSTDIR\TIDE\Templates\Shared\TR4-TEN Shared Audio.zip"
+  Delete "$INSTDIR\TIDE\Templates\Presets\TRNG.zip"
+  Delete "$INSTDIR\TIDE\Templates\Presets\TR4.zip"
+  Delete "$INSTDIR\TIDE\Templates\Presets\TR3.zip"
+  Delete "$INSTDIR\TIDE\Templates\Presets\TR2.zip"
+  Delete "$INSTDIR\TIDE\Templates\Presets\TR1.zip"
+  Delete "$INSTDIR\TIDE\Templates\Presets\TEN.zip"
+  Delete "$INSTDIR\TIDE\Templates\Extras\FLEP.zip"
+  Delete "$INSTDIR\TIDE\Templates\Defaults\TR4 Resources\uklogo.pak"
+  Delete "$INSTDIR\TIDE\Templates\Defaults\TR4 Resources\load.bmp"
+  Delete "$INSTDIR\TIDE\Templates\Defaults\Game Icons\TRNG.ico"
+  Delete "$INSTDIR\TIDE\Templates\Defaults\Game Icons\TR4.ico"
+  Delete "$INSTDIR\TIDE\Templates\Defaults\Game Icons\TR3.ico"
+  Delete "$INSTDIR\TIDE\Templates\Defaults\Game Icons\TR2.ico"
+  Delete "$INSTDIR\TIDE\Templates\Defaults\Game Icons\TR1.ico"
+  Delete "$INSTDIR\TIDE\Templates\Defaults\Game Icons\TombEngine.ico"
   Delete "$INSTDIR\TIDE\NGC\VGE\tools\keep.me"
   Delete "$INSTDIR\TIDE\NGC\VGE\sound\samples\keep.me"
   Delete "$INSTDIR\TIDE\NGC\VGE\sound\LevelSFX Creator\sounds.txt"
@@ -286,9 +245,7 @@ Section "Uninstall"
   Delete "$INSTDIR\Configs\TextEditors\ColorSchemes\Tomb1Main\Obsidian.t1msch"
   Delete "$INSTDIR\Configs\TextEditors\ColorSchemes\Tomb1Main\NG_Center.t1msch"
   Delete "$INSTDIR\Configs\TextEditors\ColorSchemes\Tomb1Main\Monokai.t1msch"
-  Delete "$INSTDIR\Configs\TextEditors\ColorSchemes\Lua\VS15.luasch"
-  Delete "$INSTDIR\Configs\TextEditors\ColorSchemes\Lua\Obsidian.luasch"
-  Delete "$INSTDIR\Configs\TextEditors\ColorSchemes\Lua\Monokai.luasch"
+  Delete "$INSTDIR\Configs\TextEditors\ColorSchemes\Lua\Default.xml"
   Delete "$INSTDIR\Configs\TextEditors\ColorSchemes\GameFlowScript\VS15.gflsch"
   Delete "$INSTDIR\Configs\TextEditors\ColorSchemes\GameFlowScript\Obsidian.gflsch"
   Delete "$INSTDIR\Configs\TextEditors\ColorSchemes\GameFlowScript\NG_Center.gflsch"
@@ -297,16 +254,16 @@ Section "Uninstall"
   Delete "$INSTDIR\Configs\TextEditors\ColorSchemes\ClassicScript\Obsidian.cssch"
   Delete "$INSTDIR\Configs\TextEditors\ColorSchemes\ClassicScript\NG_Center.cssch"
   Delete "$INSTDIR\Configs\TextEditors\ColorSchemes\ClassicScript\Monokai.cssch"
+  Delete "$INSTDIR\Catalogs\TEN Sound Catalogs\TR5_Override.xml"
+  Delete "$INSTDIR\Catalogs\TEN Sound Catalogs\TR2_Override.xml"
+  Delete "$INSTDIR\Catalogs\TEN Sound Catalogs\TR1_Override.xml"
   Delete "$INSTDIR\Catalogs\TEN Sound Catalogs\TEN_TR5.xml"
   Delete "$INSTDIR\Catalogs\TEN Sound Catalogs\TEN_TR4.xml"
   Delete "$INSTDIR\Catalogs\TEN Sound Catalogs\TEN_TR3.xml"
   Delete "$INSTDIR\Catalogs\TEN Sound Catalogs\TEN_TR2.xml"
   Delete "$INSTDIR\Catalogs\TEN Sound Catalogs\TEN_TR1.xml"
-  Delete "$INSTDIR\Catalogs\TEN Sound Catalogs\TEN_ALL_SOUNDS.xml"
   Delete "$INSTDIR\Catalogs\TEN Sound Catalogs\TEN_DEFAULT_GLOBAL_HARDCODED.xml"
-  Delete "$INSTDIR\Catalogs\TEN Sound Catalogs\TR1_Override.xml"
-  Delete "$INSTDIR\Catalogs\TEN Sound Catalogs\TR2_Override.xml"
-  Delete "$INSTDIR\Catalogs\TEN Sound Catalogs\TR5_Override.xml"
+  Delete "$INSTDIR\Catalogs\TEN Sound Catalogs\TEN_ALL_SOUNDS.xml"
   Delete "$INSTDIR\Catalogs\TrCatalog.xml"
   Delete "$INSTDIR\Catalogs\Sounds.tr5.xml"
   Delete "$INSTDIR\Catalogs\Sounds.tr4.xml"
@@ -317,236 +274,6 @@ Section "Uninstall"
   Delete "$INSTDIR\Catalogs\Sounds.tr1.xml"
   Delete "$INSTDIR\Catalogs\NgCatalog.xml"
   Delete "$INSTDIR\Assets\Wads\TombEngine.wad2"
-  Delete "$INSTDIR\Assets\Samples\TR1\uzi_fr.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\uw_swt.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\usekey.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\useitem.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\undwatr.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\trx_roar.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\trx_foot.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\trx_die.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\trx_atk.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\trapd_op.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\trapd_cl.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\torso_move.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\torso_hit.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\torso_ground.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\torso_die.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\torso_atk2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\torso_atk1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\torso_arm.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\thunder.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\takehit2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\takehit1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\switch.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\swim.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\swch_up.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\splash.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\Slipping.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\slide_fx.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\slam_open.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\slam_close.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\skate_stop.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\skate_start.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\skate_spch.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\skate_shoot.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\skate_move.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\skate_hit.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\skate_ground.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\skate_die.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\shot_gun.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\setup.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\secret.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\sand_fx.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\rolling.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\rokfall3.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\rokfall2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\rokfall1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\rico_02.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\rico_01.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\reload.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\rat_foot.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\rat_die.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\rat_chirp.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\rat_atk.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\rapt_roar.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\rapt_ft2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\rapt_ft1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\rapt_atk.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\push_blk.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\powerup_fx.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\pierre_spch.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\pierre_die.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\pendulum.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\p&p05.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\p&p04.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\p&p03.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\p&p02.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\p&p01.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\natla_spch.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\natla_die.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\mum_grwl.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\metald_open.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\metald_close.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\medi_fix.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\magnum.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\m_spinout.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\m_spinin.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\m_select.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\m_rotat.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\m_passport.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\m_guns.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\m_controls.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\m_compass.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\m_choose.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lion_roar.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lion_hurt.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lion_death.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lion_atk2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lion_atk1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lava_fountain.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lars_spch.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lars_rico.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lars_fire.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lars_die.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lara_no.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lar_spks.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lar_jmp.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lar_die3.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lar_die2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\lar_die1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\landing.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\l_wtfall_b.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\l_wtfall.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\l_water.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\l_rumb.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\l_lava.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\l_fire.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\l_conveyor.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\l_altar.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\hut_lower.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\hut_ground.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\hols_out.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\hols_in.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_25.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_24.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_23.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_22.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_21.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_20.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_19.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_18.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_17.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_16.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_15.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_14.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_13.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_12.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_11.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_10.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_09.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_08.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_07.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_06.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_05.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_04.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_03.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_02.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gym_01.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gr_gr4.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gr_gr3.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gr_gr2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gr_gr1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gorl_pant.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gorl_grnt.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gorl_foot.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gorl_die.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\go_watr.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\gen_door.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\foot04.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\foot03.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\foot02.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\foot01.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\floatswm.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\f2f_scrm.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\f2f_hitg.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\explos_fx.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\explode.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\emp_gun.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\drill_start.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\drill.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\dog_jat2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\dog_jat1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\dog_hwl.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\dog_hit.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\dog_d2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\dog_d1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\dog_at2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\dog_at1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\dart.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\damocles.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\d_eagle.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\ct_ft4.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\ct_ft3.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\ct_ft2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\ct_ft1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\croc_foot.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\croc_die.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\croc_at2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\croc_at1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\cowboy_spch.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\cowboy_die.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\cogs.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\clsl_03.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\clsl_02.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\clsl_01.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\Clim_up3.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\Clim_up2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\Clim_up1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\chn_up.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\chn_down.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\chain_fx.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\cent_roar.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bul_flsh.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bubbles.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\breath.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\body_sl2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\body_sl1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\block_fx.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\blanding.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\black_spch.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\black_die.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bft04.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bft03.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bft02.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bft01.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bear_snrl2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bear_snrl1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bear_hit.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bear_grwl.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bear_feet.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bear_die.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bear_atk.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bat_sqk.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\bat_flp.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\Back_jm3.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\Back_jm2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\back_jm1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\atlan_wing.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\atlan_sneak2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\atlan_sneak1.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\atlan_needle.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\atlan_jatk.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\atlan_hatch.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\atlan_expld.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\atlan_egg.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\atlan_die.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\atlan_ball.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\atlan_atk.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\at_ft4.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\at_ft3.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\at_ft2.wav"
-  Delete "$INSTDIR\Assets\Samples\TR1\at_ft1.wav"
   Delete "$INSTDIR\WadTool.exe.config"
   Delete "$INSTDIR\WadTool.exe"
   Delete "$INSTDIR\TombLib.Scripting.Tomb1Main.dll"
@@ -564,7 +291,6 @@ Section "Uninstall"
   Delete "$INSTDIR\TombIDE.exe"
   Delete "$INSTDIR\TombIDE Library Registration.exe.config"
   Delete "$INSTDIR\TombIDE Library Registration.exe"
-  Delete "$INSTDIR\TombEditorInstall.exe"
   Delete "$INSTDIR\TombEditor.exe.config"
   Delete "$INSTDIR\TombEditor.exe"
   Delete "$INSTDIR\TestStack.White.xml"
@@ -589,9 +315,9 @@ Section "Uninstall"
   Delete "$INSTDIR\NAudio.Vorbis.dll"
   Delete "$INSTDIR\NAudio.Flac.dll"
   Delete "$INSTDIR\NAudio.dll"
-  Delete "$INSTDIR\MiniZ64.dll"
-  Delete "$INSTDIR\MiniZ32.dll"
   Delete "$INSTDIR\MiniZ.Net.dll"
+  Delete "$INSTDIR\MiniZ32.dll"
+  Delete "$INSTDIR\MiniZ64.dll"
   Delete "$INSTDIR\MiniFileAssociation.dll"
   Delete "$INSTDIR\ICSharpCode.AvalonEdit.dll"
   Delete "$INSTDIR\IconInjector.dll"
@@ -605,15 +331,12 @@ Section "Uninstall"
   Delete "$INSTDIR\Castle.Core.xml"
   Delete "$INSTDIR\Castle.Core.dll"
   Delete "$INSTDIR\AssimpNet.dll"
-  RMDir "$INSTDIR\TIDE\Templates\TOMB4\Defaults"
-  RMDir "$INSTDIR\TIDE\Templates\TOMB3\Defaults"
-  RMDir "$INSTDIR\TIDE\Templates\TOMB2\Defaults"
-  RMDir "$INSTDIR\TIDE\Templates\TOMB1\Defaults"
-  RMDir "$INSTDIR\TIDE\Templates\TOMB4"
-  RMDir "$INSTDIR\TIDE\Templates\TOMB3"
-  RMDir "$INSTDIR\TIDE\Templates\TOMB2"
-  RMDir "$INSTDIR\TIDE\Templates\TOMB1"
-  RMDir "$INSTDIR\TIDE\Templates\Engines"
+  RMDir "$INSTDIR\TIDE\Templates\Defaults\TR4 Resources"
+  RMDir "$INSTDIR\TIDE\Templates\Defaults\Game Icons"
+  RMDir "$INSTDIR\TIDE\Templates\Shared"
+  RMDir "$INSTDIR\TIDE\Templates\Presets"
+  RMDir "$INSTDIR\TIDE\Templates\Extras"
+  RMDir "$INSTDIR\TIDE\Templates\Defaults"
   RMDir "$INSTDIR\TIDE\NGC\VGE\sound\samples"
   RMDir "$INSTDIR\TIDE\NGC\VGE\sound\LevelSFX Creator"
   RMDir "$INSTDIR\TIDE\NGC\VGE\graphics\wads"
@@ -651,9 +374,7 @@ Section "Uninstall"
   RMDir "$INSTDIR\Configs\TextEditors\ColorSchemes"
   RMDir "$INSTDIR\Configs\TextEditors"
   RMDir "$INSTDIR\Catalogs\TEN Sound Catalogs"
-  RMDir "$INSTDIR\Assets\Samples\TR1"
   RMDir "$INSTDIR\Assets\Wads"
-  RMDir "$INSTDIR\Assets\Samples"
   RMDir "$INSTDIR\TIDE"
   RMDir "$INSTDIR\Runtimes"
   RMDir "$INSTDIR\Resources"
@@ -771,12 +492,6 @@ Function un.registerExtensions
 FunctionEnd
 
 Function .registerExtensions
-  
-  ${If} tideInstalled == "yes"
     ExecShell "runas" "$INSTDIR\File Association.exe" '-111'
-  ${Else}
-    ExecShell "runas" "$INSTDIR\File Association.exe" '-110'
-  ${EndIf}
-    
 FunctionEnd
 

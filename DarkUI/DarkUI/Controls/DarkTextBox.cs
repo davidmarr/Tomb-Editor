@@ -53,9 +53,30 @@ namespace DarkUI.Controls
             set { base.BorderStyle = value; }
         }
 
+        [DefaultValue(false)]
+        public bool SelectOnClick { get; set; }
+        private bool _firstClicked = false;
+
         #endregion
 
         #region Methods Region
+
+        protected override void OnLostFocus(System.EventArgs e)
+        {
+            base.OnLostFocus(e);
+            _firstClicked = false;
+        }
+
+        protected override void OnClick(System.EventArgs e)
+        {
+            base.OnClick(e);
+
+            if (SelectOnClick && !_firstClicked)
+            {
+                SelectAll();
+                _firstClicked = true;
+            }
+        }
 
         protected override void WndProc(ref Message m)
         {

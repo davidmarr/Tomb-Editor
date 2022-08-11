@@ -195,6 +195,11 @@ namespace TombEditor
                     }
             });
 
+            AddCommand("RenameObject", "Rename object...", CommandType.Objects, delegate (CommandArgs args)
+            {
+                EditorActions.RenameObject(args.Editor.SelectedObject, args.Window);
+            });
+
             AddCommand("EditObject", "Edit object properties...", CommandType.Objects, delegate (CommandArgs args)
             {
                 if (args.Editor.SelectedObject != null)
@@ -885,6 +890,13 @@ namespace TombEditor
                 }
                 else
                     existingWindow.Focus();
+            });
+
+            AddCommand("EditEventSets", "Edit event sets...", CommandType.Edit, delegate (CommandArgs args)
+            {
+                using (var formVolume = new FormVolume(null))
+                    if (formVolume.ShowDialog(args.Window) == DialogResult.OK)
+                        args.Editor.EventSetsChange();
             });
 
             AddCommand("SearchAndReplaceObjects", "Search and replace objects...", CommandType.Edit, delegate (CommandArgs args)

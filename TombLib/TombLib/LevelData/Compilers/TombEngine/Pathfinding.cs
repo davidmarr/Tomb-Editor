@@ -270,9 +270,7 @@ namespace TombLib.LevelData.Compilers.TombEngine
                 {
                     int overlapIndex = i;
                     if (overlapIndex < 0)
-                    {
                         return boxes;
-                    }
 
                     last = (_overlaps[overlapIndex].Flags & 0x8000) != 0;
 

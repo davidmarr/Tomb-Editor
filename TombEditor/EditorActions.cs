@@ -529,7 +529,8 @@ namespace TombEditor
 
             for (int x = area.X0; x <= area.X1; x++)
                 for (int z = area.Y0; z <= area.Y1; z++)
-                    if (room.Blocks[x, z].Floor.DiagonalSplit == DiagonalSplit.None && !room.Blocks[x, z].Floor.IsQuad)
+                    if (room.Blocks[x, z].Floor.DiagonalSplit == DiagonalSplit.None &&
+                        (!room.Blocks[x, z].Floor.IsQuad || !(room.Blocks[x, z].HasGhostBlock && room.Blocks[x, z].GhostBlock.Floor.IsQuad)))
                         room.Blocks[x, z].Floor.SplitDirectionToggled = !room.Blocks[x, z].Floor.SplitDirectionToggled;
 
             SmartBuildGeometry(room, area);
@@ -541,7 +542,8 @@ namespace TombEditor
 
             for (int x = area.X0; x <= area.X1; x++)
                 for (int z = area.Y0; z <= area.Y1; z++)
-                    if (room.Blocks[x, z].Ceiling.DiagonalSplit == DiagonalSplit.None && !room.Blocks[x, z].Ceiling.IsQuad)
+                    if (room.Blocks[x, z].Ceiling.DiagonalSplit == DiagonalSplit.None &&
+                        (!room.Blocks[x, z].Ceiling.IsQuad || !(room.Blocks[x, z].HasGhostBlock && room.Blocks[x, z].GhostBlock.Ceiling.IsQuad)))
                         room.Blocks[x, z].Ceiling.SplitDirectionToggled = !room.Blocks[x, z].Ceiling.SplitDirectionToggled;
 
             SmartBuildGeometry(room, area);
@@ -969,6 +971,34 @@ namespace TombEditor
             }
         }
 
+        public static void RenameObject(ObjectInstance instance, IWin32Window owner)
+        {
+            if (instance == null)
+            {
+                _editor.SendMessage("Please select an object.", PopupType.Error);
+                return;
+            }
+
+            if (!VersionCheck(_editor.Level.IsTombEngine, "Object name"))
+                return;
+
+            if (!(instance is PositionAndScriptBasedObjectInstance))
+                return;
+
+            var luaInstance = instance as PositionAndScriptBasedObjectInstance;
+
+            using (var form = new FormInputBox("Edit object name", "Enter new Lua name for this object:", luaInstance.LuaName))
+            {
+                if (form.ShowDialog(owner) == DialogResult.Cancel)
+                    return;
+
+                if (!luaInstance.TrySetLuaName(form.Result, owner))
+                    RenameObject(luaInstance, owner);
+                else
+                    _editor.ObjectChange(luaInstance, ObjectChangeType.Change);
+            }
+        }
+
         public static void EditObject(ObjectInstance instance, IWin32Window owner)
         {
             if (instance is MoveableInstance)
@@ -987,10 +1017,11 @@ namespace TombEditor
             else if (instance is StaticInstance)
             {
                 // Use static editing dialog only for NG levels for now (bypass it if Ctrl/Alt key is pressed)
-                if (instance.CanBeColored() &&
-                    (!_editor.Level.IsNG && !_editor.Level.IsTombEngine || Control.ModifierKeys.HasFlag(Keys.Control)))
+                if (instance.CanBeColored() && (!_editor.Level.IsNG || Control.ModifierKeys.HasFlag(Keys.Control)))
+                {
                     EditColor(owner, (StaticInstance)instance);
-                else if (_editor.Level.IsNG || _editor.Level.IsTombEngine)
+                }
+                else if (_editor.Level.IsNG)
                 {
                     using (var formStaticMesh = GetObjectSetupWindow((StaticInstance)instance))
                         if (formStaticMesh.ShowDialog(owner) != DialogResult.OK)
@@ -1225,6 +1256,20 @@ namespace TombEditor
                     room.AlternateOpposite.BuildGeometry();
                     room.AlternateOpposite.RebuildLighting(_editor.Configuration.Rendering3D_HighQualityLightPreview);
                     _editor.RoomSectorPropertiesChange(room.AlternateOpposite);
+                }
+            }
+        }
+
+        public static void DeleteEventSet(VolumeEventSet eventSet)
+        {
+            _editor.Level.Settings.EventSets.Remove(eventSet);
+
+            foreach (var vol in _editor.Level.GetAllObjects().OfType<VolumeInstance>())
+            {
+                if (vol.EventSet == eventSet)
+                {
+                    vol.EventSet = null;
+                    _editor.ObjectChange(vol, ObjectChangeType.Change);
                 }
             }
         }

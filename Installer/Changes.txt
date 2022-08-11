@@ -1,5 +1,23 @@
+Version 1.5.2
+=============
+
+Tomb Editor:
+ * Fix occasional errors when compiling pathfinding data in TEN levels.
+ * Reorganize the way objects which can have Lua name are renamed.
+ * Add ability to rename volumes.
+ * Flip floor/ceiling splits if non-quad ghost blocks are present.
+ * Show debug output window when launching TEN via quick start feature.
+ * Fix TEN project converter issue which caused wrong collision for some animatings.
+ 
+TombIDE:
+ * Fix exception on renaming TEN levels.
+
 Version 1.5.1
 =============
+
+General:
+ * Upgrade framework to .NET 6, which improves performance and compatibility with modern systems.
+ * First release with official support for Tomb Engine (TEN).
 
 Tomb Editor:
  * Fix ghost blocks causing room geometry clipping when placed on floor portals.
@@ -20,6 +38,12 @@ Tomb Editor:
 WadTool:
  * Add options to convert selected objects from/to dynamic light model.
  * Add option to convert loaded destination wad to TombEngine format.
+ * Fix batch animation import not importing to correct slots.
+ 
+TombIDE:
+ * Added basic support for TEN project setup, engine and assets bundle included (except textures).
+ * Updated FLEP for new projects.
+ * Updated Tomb1Main preset to 2.10.2.
 
 Version 1.5
 ===========
