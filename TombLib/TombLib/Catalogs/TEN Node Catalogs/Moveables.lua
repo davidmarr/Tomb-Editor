@@ -371,3 +371,25 @@ LevelFuncs.Engine.Node.SwapMoveableMesh = function(dest, destIndex, srcSlot, src
 	
 	TEN.Objects.GetMoveableByName(dest):SwapMesh(destIndex, srcSlot, srcIndex)
 end
+
+
+-- !Name "If moveable has effect..."
+-- !Section "Moveable state"
+-- !Conditional "True"
+-- !Description "Checks if moveable has currently an effect attached."
+-- !Arguments "Enumeration, 40, [ None | Burn | Electric | Smoke ], Effect type to compare"
+-- !Arguments "NewLine, Moveables, Moveable to check"
+
+LevelFuncs.Engine.Node.TestMoveableEffect = function(value, dest)
+    return (TEN.Objects.GetMoveableByName(dest):GetEffect() == value)
+end
+
+-- !Name "Set moveable effect"
+-- !Section "Moveable state"
+-- !Description "Attach an effect to a moveable."
+-- !Arguments "Enumeration, 30, [ None | Burn | Electric | Smoke ], Effect type to compare"
+-- !Arguments "NewLine, Moveables, Destination moveable"
+
+LevelFuncs.Engine.Node.SetMoveableEffect = function(value, dest)
+    TEN.Objects.GetMoveableByName(dest):SetEffect(value)
+end

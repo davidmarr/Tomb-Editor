@@ -102,24 +102,6 @@ LevelFuncs.Engine.Node.ModifyLaraWet = function(operation, value)
 	end
 end
 
--- !Name "If Lara is on fire..."
--- !Section "Lara state"
--- !Conditional "True"
--- !Description "Checks if Lara is currently on fire."
-
-LevelFuncs.Engine.Node.TestLaraOnFire = function(operator, value)
-    return TEN.Objects.Lara:GetOnFire()
-end
-
--- !Name "Set Lara on fire"
--- !Section "Lara state"
--- !Description "Sets or unsets Lara on fire."
--- !Arguments "Boolean, 20, Fire is on"
-
-LevelFuncs.Engine.Node.SetLaraOnFire = function(value)
-    return TEN.Objects.Lara:SetOnFire(value)
-end
-
 -- !Name "Undraw weapon"
 -- !Section "Lara state"
 -- !Description "Undraws any currently selected weapon."
