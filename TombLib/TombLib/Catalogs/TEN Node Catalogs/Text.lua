@@ -7,8 +7,8 @@
 
 LevelFuncs.Engine.Node.DrawText = function(text, x, y, center, shadow, color)
 
-	local string = LevelFuncs.Engine.Node.GenerateString(text, x, y, center, shadow, color)
-	TEN.Strings.ShowString(string, 1 / 30)
+	local str = LevelFuncs.Engine.Node.GenerateString(text, x, y, center, shadow, color)
+	TEN.Strings.ShowString(str, 1 / 30)
 end
 
 -- !Name "Draw text for a time span"
@@ -21,8 +21,8 @@ end
 
 LevelFuncs.Engine.Node.DrawTextForTimespan = function(time, text, x, y, center, shadow, color)
 
-	local string = LevelFuncs.Engine.Node.GenerateString(text, x, y, center, shadow, color)
-	TEN.Strings.ShowString(string, time)
+	local str = LevelFuncs.Engine.Node.GenerateString(text, x, y, center, shadow, color)
+	TEN.Strings.ShowString(str, time)
 end
 
 -- !Name "Draw subtitle for the voice track"
@@ -33,11 +33,11 @@ end
 
 LevelFuncs.Engine.Node.DrawSubtitle = function(x, y, center, shadow, color)
 
-	local string = Misc.GetCurrentSubtitle()
+	local text = Misc.GetCurrentSubtitle()
 	
-	if (string ~= '') then
-		local string = LevelFuncs.Engine.Node.GenerateString(string, x, y, center, shadow, color)
-		TEN.Strings.ShowString(string, 1 / 30)
+	if (text ~= nil) then
+		local str = LevelFuncs.Engine.Node.GenerateString(text, x, y, center, shadow, color)
+		TEN.Strings.ShowString(str, 1 / 30)
 	end
 	
 end
