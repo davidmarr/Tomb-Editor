@@ -18,6 +18,7 @@ namespace TombLib.LevelData.Compilers.TombEngine
         private readonly List<Room> _roomUnmapping = new List<Room>();
         private Dictionary<WadPolygon, TombEngineTexInfoManager.Result> _mergedStaticMeshTextureInfos = new Dictionary<WadPolygon, TombEngineTexInfoManager.Result>();
         private Dictionary<ShadeMatchSignature, Vector3> _vertexColors;
+        private uint _objectUniqueId = 1;
 
         private void BuildRooms(CancellationToken cancelToken)
         {
@@ -422,6 +423,8 @@ namespace TombLib.LevelData.Compilers.TombEngine
                         if (wadStatic == null || wadStatic.Mesh == null)
                             continue;
 
+                        _objectUniqueId++;
+
                         foreach (bool doubleSided in new[] { false, true })
                         {
                             for (int i = 0; i < wadStatic.Mesh.Polys.Count; i++)
@@ -533,7 +536,11 @@ namespace TombLib.LevelData.Compilers.TombEngine
                                         result.CreateTombEnginePolygon3(indices, (byte)realBlendMode, roomVertices) :
                                         result.CreateTombEnginePolygon4(indices, (byte)realBlendMode, roomVertices);
 
-                                    roomPolygons.Add(face);
+                                    face.GroupID = face.BlendMode == (byte)BlendMode.Normal || face.BlendMode == (byte)BlendMode.AlphaTest ?
+                                                   0 :
+                                                   _objectUniqueId;
+
+									roomPolygons.Add(face);
                                 }
                                 else
                                 {
@@ -542,7 +549,12 @@ namespace TombLib.LevelData.Compilers.TombEngine
                                         result.CreateTombEnginePolygon3(indices, (byte)realBlendMode, roomVertices) :
                                         result.CreateTombEnginePolygon4(indices, (byte)realBlendMode, roomVertices);
 
-                                    roomPolygons.Add(face);
+									face.GroupID = face.BlendMode == (byte)BlendMode.Normal || face.BlendMode == (byte)BlendMode.AlphaTest ?
+												   0 :
+												   _objectUniqueId;
+
+									roomPolygons.Add(face);
+                                    
                                     _mergedStaticMeshTextureInfos.Add(key, result);
                                     roomVertices[index0].NormalHelpers.Add(new NormalHelper(face));
                                     roomVertices[index1].NormalHelpers.Add(new NormalHelper(face));
@@ -572,6 +584,8 @@ namespace TombLib.LevelData.Compilers.TombEngine
                     foreach (var mesh in meshes)
                     {
                         int currentMeshIndexCount = 0;
+
+                        _objectUniqueId++;
 
                         foreach (var submesh in mesh.Submeshes)
                         {
@@ -693,7 +707,12 @@ namespace TombLib.LevelData.Compilers.TombEngine
                                     var result = _textureInfoManager.AddTexture(texture, TextureDestination.RoomOrAggressive, true, realBlendMode);
                                     var tri = result.CreateTombEnginePolygon3(indices, (byte)realBlendMode, roomVertices);
 
-                                    roomPolygons.Add(tri);
+									tri.GroupID = tri.BlendMode == (byte)BlendMode.Normal || tri.BlendMode == (byte)BlendMode.AlphaTest ?
+												   0 :
+												   _objectUniqueId;
+                                    
+									roomPolygons.Add(tri);
+
                                     roomVertices[index0].NormalHelpers.Add(new NormalHelper(tri));
                                     roomVertices[index1].NormalHelpers.Add(new NormalHelper(tri));
                                     roomVertices[index2].NormalHelpers.Add(new NormalHelper(tri));
@@ -1741,14 +1760,15 @@ namespace TombLib.LevelData.Compilers.TombEngine
             return tmp;
         }
 
-        private TombEngineBucket GetOrAddBucket(int texture, byte blendMode, bool animated, int sequence, Dictionary<TombEngineMaterial, TombEngineBucket> buckets)
+        private TombEngineBucket GetOrAddBucket(int texture, byte blendMode, bool animated, int sequence, uint groupID, Dictionary<TombEngineMaterial, TombEngineBucket> buckets)
         {
             var material = new TombEngineMaterial
             {
                 Texture = texture,
                 BlendMode = blendMode,
                 Animated = animated,
-                AnimatedSequence = sequence
+                AnimatedSequence = sequence,
+                UniqueID = groupID
             };
 
             if (!buckets.ContainsKey(material))
@@ -1784,7 +1804,7 @@ namespace TombLib.LevelData.Compilers.TombEngine
                     }
                 }
 
-                var bucket = GetOrAddBucket(textures[poly.TextureId].AtlasIndex, poly.BlendMode, poly.Animated, poly.AnimatedSequence, room.Buckets);
+                var bucket = GetOrAddBucket(textures[poly.TextureId].AtlasIndex, poly.BlendMode, poly.Animated, poly.AnimatedSequence, poly.GroupID, room.Buckets);
 
                 var texture = textures[poly.TextureId];
 

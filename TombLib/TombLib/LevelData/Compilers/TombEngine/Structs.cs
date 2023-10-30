@@ -92,6 +92,7 @@ namespace TombLib.LevelData.Compilers.TombEngine
         public int AnimatedSequence;
         public int AnimatedFrame;
         public float ShineStrength;
+        public uint GroupID;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -210,7 +211,11 @@ namespace TombLib.LevelData.Compilers.TombEngine
         {
             public bool Equals(TombEngineMaterial x, TombEngineMaterial y)
             {
-                return (x.Texture == y.Texture && x.BlendMode == y.BlendMode && x.Animated == y.Animated && x.NormalMapping == y.NormalMapping && 
+                return (x.Texture == y.Texture && 
+                    x.BlendMode == y.BlendMode &&
+                    x.Animated == y.Animated && 
+                    x.NormalMapping == y.NormalMapping && 
+                    x.UniqueID == y.UniqueID &&
                     x.AnimatedSequence == y.AnimatedSequence);
             }
 
@@ -219,7 +224,8 @@ namespace TombLib.LevelData.Compilers.TombEngine
                 unchecked
                 {
                     int hash = 17;
-                    hash = hash * 23 + obj.Texture.GetHashCode();
+					hash = hash * 23 + obj.UniqueID.GetHashCode();
+					hash = hash * 23 + obj.Texture.GetHashCode();
                     hash = hash * 23 + obj.BlendMode.GetHashCode();
                     hash = hash * 23 + obj.Animated.GetHashCode();
                     hash = hash * 23 + obj.NormalMapping.GetHashCode();
@@ -234,6 +240,7 @@ namespace TombLib.LevelData.Compilers.TombEngine
         public bool Animated;
         public bool NormalMapping;
         public int AnimatedSequence;
+        public uint UniqueID; 
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
