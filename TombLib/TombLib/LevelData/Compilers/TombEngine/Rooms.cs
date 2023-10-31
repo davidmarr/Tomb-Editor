@@ -321,12 +321,22 @@ namespace TombLib.LevelData.Compilers.TombEngine
                                 if (texture.BlendMode == BlendMode.Normal)
                                     realBlendMode = texture.Texture.Image.HasAlpha(TRVersion.Game.TombEngine, texture.GetRect());
 
+                                VectorInt3 chunk = VectorInt3.Zero;
+                                if (texture.BlendMode != BlendMode.Normal && texture.BlendMode != BlendMode.AlphaTest)
+                                {
+									chunk = new VectorInt3(
+										(int)Math.Floor(vertexPositions[range.Start].X / 3072.0f),
+										(int)Math.Floor(vertexPositions[range.Start].Y / 3072.0f),
+										(int)Math.Floor(vertexPositions[range.Start].Z / 3072.0f)
+									);
+								}
+
                                 int rangeEnd = range.Start + range.Count;
                                 for (int i = range.Start; i < rangeEnd; i += 3)
                                 {
                                     int vertex0Index, vertex1Index, vertex2Index;
 
-                                    if (shape == BlockFaceShape.Quad)
+									if (shape == BlockFaceShape.Quad)
                                     {
                                         int vertex3Index;
 
@@ -349,7 +359,8 @@ namespace TombLib.LevelData.Compilers.TombEngine
                                         var result = _textureInfoManager.AddTexture(texture, TextureDestination.RoomOrAggressive, false, realBlendMode);
                                         var poly = result.CreateTombEnginePolygon4(new int[] { vertex0Index, vertex1Index, vertex2Index, vertex3Index },
                                                          (byte)realBlendMode, roomVertices);
-                                        roomPolygons.Add(poly);
+                                        poly.Chunk = chunk;
+										roomPolygons.Add(poly);
                                         roomVertices[vertex0Index].NormalHelpers.Add(new NormalHelper(poly));
                                         roomVertices[vertex1Index].NormalHelpers.Add(new NormalHelper(poly));
                                         roomVertices[vertex2Index].NormalHelpers.Add(new NormalHelper(poly));
@@ -360,7 +371,8 @@ namespace TombLib.LevelData.Compilers.TombEngine
                                             result = _textureInfoManager.AddTexture(texture, TextureDestination.RoomOrAggressive, false, realBlendMode);
                                             poly = result.CreateTombEnginePolygon4(new int[] { vertex3Index, vertex2Index, vertex1Index, vertex0Index },
                                                             (byte)realBlendMode, roomVertices);
-                                            roomPolygons.Add(poly);
+											poly.Chunk = chunk;
+											roomPolygons.Add(poly);
                                             roomVertices[vertex0Index].NormalHelpers.Add(new NormalHelper(poly));
                                             roomVertices[vertex1Index].NormalHelpers.Add(new NormalHelper(poly));
                                             roomVertices[vertex2Index].NormalHelpers.Add(new NormalHelper(poly));
@@ -380,7 +392,8 @@ namespace TombLib.LevelData.Compilers.TombEngine
                                         var result = _textureInfoManager.AddTexture(texture, TextureDestination.RoomOrAggressive, true, realBlendMode);
                                         var poly = result.CreateTombEnginePolygon3(new int[] { vertex0Index, vertex1Index, vertex2Index },
                                                         (byte)realBlendMode, roomVertices);
-                                        roomPolygons.Add(poly);
+										poly.Chunk = chunk;
+										roomPolygons.Add(poly);
                                         roomVertices[vertex0Index].NormalHelpers.Add(new NormalHelper(poly));
                                         roomVertices[vertex1Index].NormalHelpers.Add(new NormalHelper(poly));
                                         roomVertices[vertex2Index].NormalHelpers.Add(new NormalHelper(poly));
@@ -390,7 +403,8 @@ namespace TombLib.LevelData.Compilers.TombEngine
                                             result = _textureInfoManager.AddTexture(texture, TextureDestination.RoomOrAggressive, true, realBlendMode);
                                             poly = result.CreateTombEnginePolygon3(new int[] { vertex2Index, vertex1Index, vertex0Index },
                                                             (byte)realBlendMode, roomVertices);
-                                            roomPolygons.Add(poly);
+											poly.Chunk = chunk;
+											roomPolygons.Add(poly);
                                             roomVertices[vertex0Index].NormalHelpers.Add(new NormalHelper(poly));
                                             roomVertices[vertex1Index].NormalHelpers.Add(new NormalHelper(poly));
                                             roomVertices[vertex2Index].NormalHelpers.Add(new NormalHelper(poly));
@@ -707,10 +721,20 @@ namespace TombLib.LevelData.Compilers.TombEngine
                                     var result = _textureInfoManager.AddTexture(texture, TextureDestination.RoomOrAggressive, true, realBlendMode);
                                     var tri = result.CreateTombEnginePolygon3(indices, (byte)realBlendMode, roomVertices);
 
-									tri.GroupID = tri.BlendMode == (byte)BlendMode.Normal || tri.BlendMode == (byte)BlendMode.AlphaTest ?
+									tri.GroupID = texture.BlendMode == BlendMode.Normal || texture.BlendMode == BlendMode.AlphaTest ?
 												   0 :
 												   _objectUniqueId;
-                                    
+
+									VectorInt3 chunk = VectorInt3.Zero;
+									if (texture.BlendMode != BlendMode.Normal && texture.BlendMode != BlendMode.AlphaTest)
+									{
+										chunk = new VectorInt3(
+											(int)Math.Floor(roomVertices[index0].Position.X / 3072.0f),
+											(int)Math.Floor(roomVertices[index0].Position.Y / 3072.0f),
+											(int)Math.Floor(roomVertices[index0].Position.Z / 3072.0f)
+										);
+									}
+
 									roomPolygons.Add(tri);
 
                                     roomVertices[index0].NormalHelpers.Add(new NormalHelper(tri));
@@ -1760,7 +1784,7 @@ namespace TombLib.LevelData.Compilers.TombEngine
             return tmp;
         }
 
-        private TombEngineBucket GetOrAddBucket(int texture, byte blendMode, bool animated, int sequence, uint groupID, Dictionary<TombEngineMaterial, TombEngineBucket> buckets)
+        private TombEngineBucket GetOrAddBucket(int texture, byte blendMode, bool animated, int sequence, uint groupID, VectorInt3 chunk, Dictionary<TombEngineMaterial, TombEngineBucket> buckets)
         {
             var material = new TombEngineMaterial
             {
@@ -1768,7 +1792,8 @@ namespace TombLib.LevelData.Compilers.TombEngine
                 BlendMode = blendMode,
                 Animated = animated,
                 AnimatedSequence = sequence,
-                UniqueID = groupID
+                UniqueID = groupID,
+                Chunk = chunk
             };
 
             if (!buckets.ContainsKey(material))
@@ -1804,7 +1829,23 @@ namespace TombLib.LevelData.Compilers.TombEngine
                     }
                 }
 
-                var bucket = GetOrAddBucket(textures[poly.TextureId].AtlasIndex, poly.BlendMode, poly.Animated, poly.AnimatedSequence, poly.GroupID, room.Buckets);
+                VectorInt3 chunk = VectorInt3.Zero;
+                if (poly.BlendMode != (byte)BlendMode.Normal && poly.BlendMode != (byte)BlendMode.AlphaTest)
+                {
+                    chunk = new VectorInt3(
+                        (int)Math.Floor(room.Vertices[poly.Indices[0]].Position.X / 3072.0f),
+                        (int)Math.Floor(room.Vertices[poly.Indices[0]].Position.Y / 3072.0f),
+                        (int)Math.Floor(room.Vertices[poly.Indices[0]].Position.Z / 3072.0f));
+				}
+
+                var bucket = GetOrAddBucket(
+                    textures[poly.TextureId].AtlasIndex, 
+                    poly.BlendMode, 
+                    poly.Animated, 
+                    poly.AnimatedSequence,
+                    poly.GroupID,
+					chunk, 
+                    room.Buckets);
 
                 var texture = textures[poly.TextureId];
 

@@ -126,7 +126,7 @@ namespace TombLib.LevelData.Compilers.TombEngine
             mesh.Buckets = new Dictionary<TombEngineMaterial, TombEngineBucket>(new TombEngineMaterial.TombEngineMaterialComparer());
             foreach (var poly in mesh.Polygons)
             {
-                var bucket = GetOrAddBucket(textures[poly.TextureId].AtlasIndex, poly.BlendMode, poly.Animated, 0, poly.GroupID, mesh.Buckets);
+                var bucket = GetOrAddBucket(textures[poly.TextureId].AtlasIndex, poly.BlendMode, poly.Animated, 0, poly.GroupID, poly.Chunk, mesh.Buckets);
 
                 var texture = textures[poly.TextureId];
 
