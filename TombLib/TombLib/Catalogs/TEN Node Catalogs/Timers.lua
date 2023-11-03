@@ -104,7 +104,7 @@ LevelFuncs.Engine.Node.StopTimer = function(name)
     end
 end
 
--- !Name "Is the timer active?"
+-- !Name "If timer is active..."
 -- !Conditional "True"
 -- !Description "Get whether or not the timer is active"
 -- !Section "Timer"
