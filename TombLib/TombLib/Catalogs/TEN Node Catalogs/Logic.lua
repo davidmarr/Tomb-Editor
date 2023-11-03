@@ -1,31 +1,24 @@
--- !Name "Run event set ..."
+-- !Name "Run event on ..."
 -- !Section "Logic"
 -- !Conditional "False"
 -- !Description "Run event set only under certain conditions of the game"
 -- !Arguments "NewLine, 70, EventSets, Event set"
 -- !Arguments "Enumeration, 30, [ When entering | When inside | When Leaving ], Event-set section"
 -- !Arguments "NewLine, Moveables, Activator for the event-set (when necessary)"
--- !Arguments "NewLine, Enumeration,18, [before | after ], Before or after the selected context"
--- !Arguments "Enumeration,59, [ saving the game | Loading the save game | exit to the title | level is completed | Lara's death | each cycle of the game (frame) ], context when to run the event set"
+-- !Arguments "NewLine, Enumeration, 77, [ Saving game | after game loading | exit to title | level ending | before game loading | Lara's death | every frame ], context when to run the event set"
 --!Arguments "Number, 23, [ 1 | 30 | 0 ], Slot where to save the event set\nRange [1 to 40]"
-LevelFuncs.Engine.Node.AddCallbackEventSet2 = function(setName, eventType, activator, when, constest, slot)
+LevelFuncs.Engine.Node.AddCallbackEventSet2 = function(setName, eventType, activator, constest, slot)
     if (setName == '' or setName == nil) then
         print("There is no specified event set in level!")
         return
     end
     local CallbackPoint = nil
     local endReason = nil
-    CallbackPoint = ((when == 0) and (constest == 0)) and 0 or
-        ((when == 1) and (constest == 0)) and 1 or
-        ((when == 0) and (constest == 1)) and 2 or
-        ((when == 1) and (constest == 1)) and 3 or
-        (((when == 0) and (constest == 2)) or ((when == 0) and (constest == 3)) or ((when == 0) and (constest == 4))) and
-        4 or
-        (((when == 1) and (constest == 2)) or ((when == 1) and (constest == 3)) or ((when == 1) and (constest == 4))) and
-        5 or
-        ((when == 0) and (constest == 5)) and 6 or
-        ((when == 1) and (constest == 5)) and 7
-    endReason = (constest == 2) and 0 or (constest == 3) and 1 or (constest == 4) and 2 or nil
+    CallbackPoint = (constest == 0) and 0 or
+        (constest == 1) and 1 or
+        ((constest == 2) or (constest == 3) or (constest == 4) or constest == 5) and 2 or
+        (constest == 6) and 3
+    endReason = (constest == 2) and 0 or (constest == 3) and 1 or (constest == 4) and 2 or (constest == 5) and 3 or nil
     LevelVars.CBs[slot] = {}
     LevelVars.CBs[slot].setName = setName
     LevelVars.CBs[slot].eventType = eventType
@@ -33,19 +26,17 @@ LevelFuncs.Engine.Node.AddCallbackEventSet2 = function(setName, eventType, activ
     LevelVars.CBs[slot].callbackP = CallbackPoint
     LevelVars.CBs[slot].endReason = endReason
     LevelVars.CBs[slot].constest = constest
-    LevelVars.CBs[slot].when = when
     local func = AssignFunction(slot)
     TEN.Logic.AddCallback(LevelVars.CBES.CallbackPoint[CallbackPoint], func)
     local eventTypeT = LevelVars.CBES.eventTypeList[LevelVars.CBs[slot].eventType]
-    local whenT = (when == 0) and " before " or " after "
     local constestT = LevelVars.CBES.ConstestList[constest]
-    print('"Run Evet set ' .. setName .. ' (' .. eventTypeT .. ')' .. whenT .. constestT .. '" saved in slot ' .. slot)
+    print('"Run event [' .. setName .. ' (' .. eventTypeT .. ')]' .. " on" .. constestT .. '" saved in slot ' .. slot)
 end
 
--- !Name "Remove 'Run event set ...' from slot"
+-- !Name "Remove 'Run event on ...' from slot"
 -- !Section "Logic"
 -- !Conditional "False"
--- !Description "Remove the event set from the specified slot"
+-- !Description "Remove the event from the specified slot"
 -- !Arguments "NewLine, Number, 100, [ 1 | 40 | 0 ], Slot \nRange [1 to 40]"
 LevelFuncs.Engine.Node.RemoveCallbackEventSet = function(slot)
     if LevelVars.CBs[slot].setName == nil then
@@ -53,19 +44,16 @@ LevelFuncs.Engine.Node.RemoveCallbackEventSet = function(slot)
     else
         local func = AssignFunction(slot)
         local cBp = LevelVars.CBES.CallbackPoint[LevelVars.CBs[slot].callbackP]
-        local setName = LevelVars.CBs[slot].setName
-        local evenTypeT = LevelVars.CBES.eventTypeList[LevelVars.CBs[slot].eventType]
-        local constestT = LevelVars.CBES.ConstestList[LevelVars.CBs[slot].constest]
-        local whenT = (LevelVars.CBs[slot].when == 0) and " before " or " after "
-        print('Removed "Run Evet set ' ..
-            setName .. ' (' .. evenTypeT .. ')' .. whenT .. constestT .. '" from slot ' .. slot)
+        local setName = LevelVars.CBs[slot].setName .. " "
+        local eTypeT = LevelVars.CBES.eventTypeList[LevelVars.CBs[slot].eventType]
+        local cT = LevelVars.CBES.ConstestList[LevelVars.CBs[slot].constest]
+        print('Removed "Run event [' .. setName .. '(' .. eTypeT .. ')]' .. " on" .. cT .. '" from slot ' .. slot)
         TEN.Logic.RemoveCallback(cBp, func)
         LevelVars.CBs[slot].setName = nil
         LevelVars.CBs[slot].eventType = nil
         LevelVars.CBs[slot].callbackP = nil
         LevelVars.CBs[slot].endReason = nil
         LevelVars.CBs[slot].situation = nil
-        LevelVars.CBs[slot].when = nil
     end
 end
 
@@ -76,28 +64,27 @@ LevelVars.CBES.eventTypeList = { [0] = "When entering", [1] = "When inside", [2]
 LevelVars.CBES.CallbackPoint =
 {
     [0] = TEN.Logic.CallbackPoint.PRESAVE,
-    [1] = TEN.Logic.CallbackPoint.POSTSAVE,
-    [2] = TEN.Logic.CallbackPoint.PRELOAD,
-    [3] = TEN.Logic.CallbackPoint.POSTLOAD,
-    [4] = TEN.Logic.CallbackPoint.PREEND,
-    [5] = TEN.Logic.CallbackPoint.POSTEND,
-    [6] = TEN.Logic.CallbackPoint.PRECONTROLPHASE,
-    [7] = TEN.Logic.CallbackPoint.POSTCONTROLPHASE
+    [1] = TEN.Logic.CallbackPoint.PRELOAD,
+    [2] = TEN.Logic.CallbackPoint.PREEND,
+    [3] = TEN.Logic.CallbackPoint.PRECONTROLPHASE
 }
 LevelVars.CBES.ConstestList  = {
-    [0] = "Saving the game",
-    [1] = "Loading of the save game",
-    [2] = "Exit to the title",
-    [3] = "Level is completed",
-    [4] = "Lara's death",
-    [5] = "Each game cycle (frame)",
+    [0] = " saving game",
+    [1] = " after game loading",
+    [2] = " exit to title",
+    [3] = " level ending",
+    [4] = " before game loading",
+    [5] = " Lara's death",
+    [6] = " every frame",
 }
 
 function HandleEvent(number, arg)
     local callbackVals = LevelVars.CBs[number]
     local checkLevelEndReason = false
-    if callbackVals.callbackP == 4 or callbackVals.callbackP == 5 then
-        print("LevelEndReason " .. arg)
+    if callbackVals.callbackP == 0 or callbackVals.callbackP == 1 or callbackVals.callbackP == 3 then
+        checkLevelEndReason = true
+    end
+    if callbackVals.callbackP == 2 then
         if (arg == TEN.Logic.EndReason.EXITTOTITLE) and callbackVals.endReason == 0 then
             print("LevelEndReason EXITTOTITLE")
             checkLevelEndReason = true
@@ -106,15 +93,17 @@ function HandleEvent(number, arg)
             print("LevelEndReason LEVELCOMPLETE")
             checkLevelEndReason = true
         end
-        if (arg == TEN.Logic.EndReason.DEATH) and callbackVals.endReason == 2 then
+        if (arg == TEN.Logic.EndReason.LOADGAME) and callbackVals.endReason == 2 then
+            print("LevelEndReason LOADGAME")
+            checkLevelEndReason = true
+        end
+        if (arg == TEN.Logic.EndReason.DEATH) and callbackVals.endReason == 3 then
             print("LevelEndReason DEATH")
             checkLevelEndReason = true
         end
         if (arg == TEN.Logic.EndReason.OTHER) then
             print("OTHER")
         end
-    else
-        checkLevelEndReason = true
     end
     if checkLevelEndReason == true then
         TEN.Logic.HandleEvent(callbackVals.setName, callbackVals.eventType,
