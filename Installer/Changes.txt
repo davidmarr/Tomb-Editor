@@ -8,8 +8,8 @@ Tomb Editor:
  * Add nodes to load, save, delete and check existence of savegames
  * Add "Create Timer with event set" node to start an event set after specific seconds
  * Modifying nodes for timer management. Please note: For existing projects check all nodes "Create timer..."
- * Add "Run event set ..." node to run an event set only in certain contexts.
- * Add the node "Remove 'Run event set ...' from slot"
+ * Add "Run event on..." node to run an event set only in certain contexts.
+ * Add the node "Remove 'Run event on...' from slot"
  * Show selection size instead of local area.
  * Fix exception when trying to assign footstep sound if no material was selected.
  * TEN Base WAD:
