@@ -53,7 +53,7 @@ LevelFuncs.Engine.Node.RemoveCallbackEventSet = function(slot)
         LevelVars.CBs[slot].eventType = nil
         LevelVars.CBs[slot].callbackP = nil
         LevelVars.CBs[slot].endReason = nil
-        LevelVars.CBs[slot].situation = nil
+        LevelVars.CBs[slot].constest = nil
     end
 end
 
