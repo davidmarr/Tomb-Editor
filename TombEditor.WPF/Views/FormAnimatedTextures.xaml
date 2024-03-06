@@ -10,7 +10,7 @@
         xmlns:xceed="http://schemas.xceed.com/wpf/xaml/toolkit"
         mc:Ignorable="d"
         Style="{DynamicResource CustomWindowStyle}"
-        Title="Animated textures" Height="628" Width="800">
+        Title="Animated textures" Height="628" Width="800" ResizeMode="NoResize">
     <sg:SpacedGrid Margin="{x:Static darkUI:Defaults.MediumThickness}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="431"/>
