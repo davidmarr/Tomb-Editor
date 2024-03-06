@@ -9,7 +9,7 @@
         x:Class="TombEditor.WPF.Forms.FormBumpMaps"
         mc:Ignorable="d"
         Style="{DynamicResource CustomWindowStyle}"
-        Title="Bumpmaps" Height="601" Width="440">
+        Title="Bumpmaps" Height="601" Width="440" ResizeMode="NoResize">
     <sg:SpacedGrid Margin="{x:Static darkUI:Defaults.SmallThickness}">
         <sg:SpacedGrid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -29,12 +29,12 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <darkCtrl:SearchableComboBox>
+            <ComboBox>
                 <ComboBoxItem>None</ComboBoxItem>
                 <ComboBoxItem>Level1</ComboBoxItem>
                 <ComboBoxItem>Level2</ComboBoxItem>
                 <ComboBoxItem>Level3</ComboBoxItem>
-            </darkCtrl:SearchableComboBox>
+            </ComboBox>
             <Button Grid.Column="1" Width="113" Content="Assign bumpmap"/>
             <Button Grid.Column="2" Width="80" Content="OK" IsDefault="True" />
         </sg:SpacedGrid>
