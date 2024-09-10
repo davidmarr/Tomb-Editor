@@ -32,7 +32,7 @@
             treeView_AllPrjFiles = new DarkUI.Controls.DarkTreeView();
             tabPage_Resources = new System.Windows.Forms.TabPage();
             treeView_Resources = new DarkUI.Controls.DarkTreeView();
-            tabPage_ = new System.Windows.Forms.TabPage();
+            tabPage_Settings = new System.Windows.Forms.TabPage();
             Label_fogColor = new DarkUI.Controls.DarkLabel();
             Label_skyLayerColor2 = new DarkUI.Controls.DarkLabel();
             Label_skyLayerColor1 = new DarkUI.Controls.DarkLabel();
@@ -72,7 +72,7 @@
             tabControl.SuspendLayout();
             tabPage_LevelSettings.SuspendLayout();
             tabPage_Resources.SuspendLayout();
-            tabPage_.SuspendLayout();
+            tabPage_Settings.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)darkDataGridView1).BeginInit();
             ((System.ComponentModel.ISupportInitialize)darkNumericUpDown5).BeginInit();
             ((System.ComponentModel.ISupportInitialize)darkNumericUpDown4).BeginInit();
@@ -137,7 +137,7 @@
             label_Loading.ForeColor = System.Drawing.Color.Gray;
             label_Loading.Location = new System.Drawing.Point(0, 0);
             label_Loading.Name = "label_Loading";
-            label_Loading.Size = new System.Drawing.Size(308, 562);
+            label_Loading.Size = new System.Drawing.Size(308, 565);
             label_Loading.TabIndex = 1;
             label_Loading.Text = "Loading resources. Please wait...";
             label_Loading.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -180,7 +180,7 @@
             // 
             tabControl.Controls.Add(tabPage_LevelSettings);
             tabControl.Controls.Add(tabPage_Resources);
-            tabControl.Controls.Add(tabPage_);
+            tabControl.Controls.Add(tabPage_Settings);
             tabControl.DisplayStyle = System.Windows.Forms.TabStyle.Dark;
             tabControl.DisplayStyleProvider.BorderColor = System.Drawing.Color.FromArgb(96, 96, 96);
             tabControl.DisplayStyleProvider.BorderColorHot = System.Drawing.Color.FromArgb(96, 96, 96);
@@ -240,9 +240,9 @@
             tabPage_Resources.BackColor = System.Drawing.Color.FromArgb(60, 63, 65);
             tabPage_Resources.Controls.Add(label_Loading);
             tabPage_Resources.Controls.Add(treeView_Resources);
-            tabPage_Resources.Location = new System.Drawing.Point(4, 26);
+            tabPage_Resources.Location = new System.Drawing.Point(4, 23);
             tabPage_Resources.Name = "tabPage_Resources";
-            tabPage_Resources.Size = new System.Drawing.Size(308, 562);
+            tabPage_Resources.Size = new System.Drawing.Size(308, 565);
             tabPage_Resources.TabIndex = 1;
             tabPage_Resources.Text = "Resources";
             // 
@@ -258,57 +258,58 @@
             treeView_Resources.OverrideEvenColor = System.Drawing.Color.FromArgb(48, 48, 48);
             treeView_Resources.OverrideOddColor = System.Drawing.Color.FromArgb(44, 44, 44);
             treeView_Resources.ShowIcons = true;
-            treeView_Resources.Size = new System.Drawing.Size(308, 562);
+            treeView_Resources.Size = new System.Drawing.Size(308, 565);
             treeView_Resources.TabIndex = 0;
             treeView_Resources.MouseClick += treeView_Resources_MouseClick;
             treeView_Resources.MouseDoubleClick += treeView_Resources_MouseDoubleClick;
             // 
-            // tabPage_
+            // tabPage_Settings
             // 
-            tabPage_.AutoScroll = true;
-            tabPage_.BackColor = System.Drawing.Color.FromArgb(60, 63, 65);
-            tabPage_.Controls.Add(Label_fogColor);
-            tabPage_.Controls.Add(Label_skyLayerColor2);
-            tabPage_.Controls.Add(Label_skyLayerColor1);
-            tabPage_.Controls.Add(darkDataGridView1);
-            tabPage_.Controls.Add(darkLabel3);
-            tabPage_.Controls.Add(darkCheckBox1);
-            tabPage_.Controls.Add(darkNumericUpDown5);
-            tabPage_.Controls.Add(darkNumericUpDown4);
-            tabPage_.Controls.Add(darkNumericUpDown3);
-            tabPage_.Controls.Add(darkLabel4);
-            tabPage_.Controls.Add(darkLabel5);
-            tabPage_.Controls.Add(darkNumericUpDown2);
-            tabPage_.Controls.Add(darkNumericUpDown1);
-            tabPage_.Controls.Add(darkLabel2);
-            tabPage_.Controls.Add(darkLabel1);
-            tabPage_.Controls.Add(ComboBox_WeatherType);
-            tabPage_.Controls.Add(darkLabel_weather);
-            tabPage_.Controls.Add(ComboBox_LaraType);
-            tabPage_.Controls.Add(Label_LaraType);
-            tabPage_.Controls.Add(NumericUpDown_farView);
-            tabPage_.Controls.Add(darkLabel_farView);
-            tabPage_.Controls.Add(NumericUpDown_secrets);
-            tabPage_.Controls.Add(darkLabel_secrets);
-            tabPage_.Controls.Add(CheckBox_rumble);
-            tabPage_.Controls.Add(CheckBox_storm);
-            tabPage_.Controls.Add(CheckBox_horizon);
-            tabPage_.Controls.Add(ComboBox_nameKey);
-            tabPage_.Controls.Add(Label_nameKey);
-            tabPage_.Controls.Add(ComboBox_loadScreenFile);
-            tabPage_.Controls.Add(Label_loadScreenFile);
-            tabPage_.Controls.Add(ComboBox_ambientTrack);
-            tabPage_.Controls.Add(Label_ambientTrack);
-            tabPage_.Location = new System.Drawing.Point(4, 23);
-            tabPage_.Name = "tabPage_";
-            tabPage_.Padding = new System.Windows.Forms.Padding(3);
-            tabPage_.Size = new System.Drawing.Size(308, 565);
-            tabPage_.TabIndex = 2;
-            tabPage_.Text = "Settings";
-            toolTip1.SetToolTip(tabPage_, "Color");
+            tabPage_Settings.AutoScroll = true;
+            tabPage_Settings.BackColor = System.Drawing.Color.FromArgb(60, 63, 65);
+            tabPage_Settings.Controls.Add(Label_fogColor);
+            tabPage_Settings.Controls.Add(Label_skyLayerColor2);
+            tabPage_Settings.Controls.Add(Label_skyLayerColor1);
+            tabPage_Settings.Controls.Add(darkDataGridView1);
+            tabPage_Settings.Controls.Add(darkLabel3);
+            tabPage_Settings.Controls.Add(darkCheckBox1);
+            tabPage_Settings.Controls.Add(darkNumericUpDown5);
+            tabPage_Settings.Controls.Add(darkNumericUpDown4);
+            tabPage_Settings.Controls.Add(darkNumericUpDown3);
+            tabPage_Settings.Controls.Add(darkLabel4);
+            tabPage_Settings.Controls.Add(darkLabel5);
+            tabPage_Settings.Controls.Add(darkNumericUpDown2);
+            tabPage_Settings.Controls.Add(darkNumericUpDown1);
+            tabPage_Settings.Controls.Add(darkLabel2);
+            tabPage_Settings.Controls.Add(darkLabel1);
+            tabPage_Settings.Controls.Add(ComboBox_WeatherType);
+            tabPage_Settings.Controls.Add(darkLabel_weather);
+            tabPage_Settings.Controls.Add(ComboBox_LaraType);
+            tabPage_Settings.Controls.Add(Label_LaraType);
+            tabPage_Settings.Controls.Add(NumericUpDown_farView);
+            tabPage_Settings.Controls.Add(darkLabel_farView);
+            tabPage_Settings.Controls.Add(NumericUpDown_secrets);
+            tabPage_Settings.Controls.Add(darkLabel_secrets);
+            tabPage_Settings.Controls.Add(CheckBox_rumble);
+            tabPage_Settings.Controls.Add(CheckBox_storm);
+            tabPage_Settings.Controls.Add(CheckBox_horizon);
+            tabPage_Settings.Controls.Add(ComboBox_nameKey);
+            tabPage_Settings.Controls.Add(Label_nameKey);
+            tabPage_Settings.Controls.Add(ComboBox_loadScreenFile);
+            tabPage_Settings.Controls.Add(Label_loadScreenFile);
+            tabPage_Settings.Controls.Add(ComboBox_ambientTrack);
+            tabPage_Settings.Controls.Add(Label_ambientTrack);
+            tabPage_Settings.Location = new System.Drawing.Point(4, 23);
+            tabPage_Settings.Name = "tabPage_Settings";
+            tabPage_Settings.Padding = new System.Windows.Forms.Padding(3);
+            tabPage_Settings.Size = new System.Drawing.Size(308, 565);
+            tabPage_Settings.TabIndex = 2;
+            tabPage_Settings.Text = "Settings";
+            toolTip1.SetToolTip(tabPage_Settings, "Color");
             // 
             // Label_fogColor
             // 
+            Label_fogColor.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             Label_fogColor.BackColor = System.Drawing.Color.White;
             Label_fogColor.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             Label_fogColor.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
@@ -321,6 +322,7 @@
             // 
             // Label_skyLayerColor2
             // 
+            Label_skyLayerColor2.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             Label_skyLayerColor2.BackColor = System.Drawing.Color.White;
             Label_skyLayerColor2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             Label_skyLayerColor2.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
@@ -333,6 +335,7 @@
             // 
             // Label_skyLayerColor1
             // 
+            Label_skyLayerColor1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             Label_skyLayerColor1.BackColor = System.Drawing.Color.White;
             Label_skyLayerColor1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             Label_skyLayerColor1.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
@@ -361,7 +364,7 @@
             darkLabel3.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
             darkLabel3.Location = new System.Drawing.Point(6, 457);
             darkLabel3.Name = "darkLabel3";
-            darkLabel3.Size = new System.Drawing.Size(55, 19);
+            darkLabel3.Size = new System.Drawing.Size(46, 13);
             darkLabel3.TabIndex = 28;
             darkLabel3.Text = "Objects";
             // 
@@ -376,40 +379,40 @@
             // 
             // darkNumericUpDown5
             // 
-            darkNumericUpDown5.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            darkNumericUpDown5.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             darkNumericUpDown5.IncrementAlternate = new decimal(new int[] { 10, 0, 0, 65536 });
             darkNumericUpDown5.Location = new System.Drawing.Point(242, 333);
             darkNumericUpDown5.LoopValues = false;
             darkNumericUpDown5.Maximum = new decimal(new int[] { 32767, 0, 0, 0 });
             darkNumericUpDown5.Minimum = new decimal(new int[] { 32768, 0, 0, int.MinValue });
             darkNumericUpDown5.Name = "darkNumericUpDown5";
-            darkNumericUpDown5.Size = new System.Drawing.Size(60, 26);
+            darkNumericUpDown5.Size = new System.Drawing.Size(60, 22);
             darkNumericUpDown5.TabIndex = 26;
             toolTip1.SetToolTip(darkNumericUpDown5, "Max distance");
             // 
             // darkNumericUpDown4
             // 
-            darkNumericUpDown4.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            darkNumericUpDown4.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             darkNumericUpDown4.IncrementAlternate = new decimal(new int[] { 10, 0, 0, 65536 });
             darkNumericUpDown4.Location = new System.Drawing.Point(171, 333);
             darkNumericUpDown4.LoopValues = false;
             darkNumericUpDown4.Maximum = new decimal(new int[] { 32767, 0, 0, 0 });
             darkNumericUpDown4.Minimum = new decimal(new int[] { 32768, 0, 0, int.MinValue });
             darkNumericUpDown4.Name = "darkNumericUpDown4";
-            darkNumericUpDown4.Size = new System.Drawing.Size(60, 26);
+            darkNumericUpDown4.Size = new System.Drawing.Size(60, 22);
             darkNumericUpDown4.TabIndex = 25;
             toolTip1.SetToolTip(darkNumericUpDown4, "Min distance");
             // 
             // darkNumericUpDown3
             // 
-            darkNumericUpDown3.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            darkNumericUpDown3.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             darkNumericUpDown3.IncrementAlternate = new decimal(new int[] { 10, 0, 0, 65536 });
             darkNumericUpDown3.Location = new System.Drawing.Point(171, 301);
             darkNumericUpDown3.LoopValues = false;
             darkNumericUpDown3.Maximum = new decimal(new int[] { 32767, 0, 0, 0 });
             darkNumericUpDown3.Minimum = new decimal(new int[] { 32768, 0, 0, int.MinValue });
             darkNumericUpDown3.Name = "darkNumericUpDown3";
-            darkNumericUpDown3.Size = new System.Drawing.Size(131, 26);
+            darkNumericUpDown3.Size = new System.Drawing.Size(131, 22);
             darkNumericUpDown3.TabIndex = 22;
             toolTip1.SetToolTip(darkNumericUpDown3, "Speed");
             // 
@@ -419,7 +422,7 @@
             darkLabel4.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
             darkLabel4.Location = new System.Drawing.Point(6, 336);
             darkLabel4.Name = "darkLabel4";
-            darkLabel4.Size = new System.Drawing.Size(32, 19);
+            darkLabel4.Size = new System.Drawing.Size(27, 13);
             darkLabel4.TabIndex = 21;
             darkLabel4.Text = "Fog";
             // 
@@ -429,26 +432,26 @@
             darkLabel5.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
             darkLabel5.Location = new System.Drawing.Point(6, 303);
             darkLabel5.Name = "darkLabel5";
-            darkLabel5.Size = new System.Drawing.Size(129, 19);
+            darkLabel5.Size = new System.Drawing.Size(106, 13);
             darkLabel5.TabIndex = 20;
             darkLabel5.Text = "Secondary sky layer";
             // 
             // darkNumericUpDown2
             // 
-            darkNumericUpDown2.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            darkNumericUpDown2.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             darkNumericUpDown2.IncrementAlternate = new decimal(new int[] { 10, 0, 0, 65536 });
             darkNumericUpDown2.Location = new System.Drawing.Point(171, 267);
             darkNumericUpDown2.LoopValues = false;
             darkNumericUpDown2.Maximum = new decimal(new int[] { 32767, 0, 0, 0 });
             darkNumericUpDown2.Minimum = new decimal(new int[] { 32768, 0, 0, int.MinValue });
             darkNumericUpDown2.Name = "darkNumericUpDown2";
-            darkNumericUpDown2.Size = new System.Drawing.Size(131, 26);
+            darkNumericUpDown2.Size = new System.Drawing.Size(131, 22);
             darkNumericUpDown2.TabIndex = 11;
             toolTip1.SetToolTip(darkNumericUpDown2, "Speed");
             // 
             // darkNumericUpDown1
             // 
-            darkNumericUpDown1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            darkNumericUpDown1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             darkNumericUpDown1.DecimalPlaces = 1;
             darkNumericUpDown1.Increment = new decimal(new int[] { 1, 0, 0, 65536 });
             darkNumericUpDown1.IncrementAlternate = new decimal(new int[] { 10, 0, 0, 65536 });
@@ -457,7 +460,7 @@
             darkNumericUpDown1.Maximum = new decimal(new int[] { 1, 0, 0, 0 });
             darkNumericUpDown1.Minimum = new decimal(new int[] { 1, 0, 0, 65536 });
             darkNumericUpDown1.Name = "darkNumericUpDown1";
-            darkNumericUpDown1.Size = new System.Drawing.Size(163, 26);
+            darkNumericUpDown1.Size = new System.Drawing.Size(163, 22);
             darkNumericUpDown1.TabIndex = 18;
             darkNumericUpDown1.Value = new decimal(new int[] { 1, 0, 0, 0 });
             // 
@@ -467,7 +470,7 @@
             darkLabel2.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
             darkLabel2.Location = new System.Drawing.Point(6, 270);
             darkLabel2.Name = "darkLabel2";
-            darkLabel2.Size = new System.Drawing.Size(113, 19);
+            darkLabel2.Size = new System.Drawing.Size(90, 13);
             darkLabel2.TabIndex = 5;
             darkLabel2.Text = "Primary sky layer";
             // 
@@ -477,18 +480,18 @@
             darkLabel1.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
             darkLabel1.Location = new System.Drawing.Point(6, 237);
             darkLabel1.Name = "darkLabel1";
-            darkLabel1.Size = new System.Drawing.Size(116, 19);
+            darkLabel1.Size = new System.Drawing.Size(98, 13);
             darkLabel1.TabIndex = 17;
             darkLabel1.Text = "Weather strength";
             // 
             // ComboBox_WeatherType
             // 
-            ComboBox_WeatherType.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            ComboBox_WeatherType.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             ComboBox_WeatherType.FormattingEnabled = true;
             ComboBox_WeatherType.Items.AddRange(new object[] { "None", "Rain", "Snow" });
             ComboBox_WeatherType.Location = new System.Drawing.Point(139, 202);
             ComboBox_WeatherType.Name = "ComboBox_WeatherType";
-            ComboBox_WeatherType.Size = new System.Drawing.Size(163, 27);
+            ComboBox_WeatherType.Size = new System.Drawing.Size(163, 23);
             ComboBox_WeatherType.TabIndex = 16;
             // 
             // darkLabel_weather
@@ -497,18 +500,18 @@
             darkLabel_weather.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
             darkLabel_weather.Location = new System.Drawing.Point(6, 205);
             darkLabel_weather.Name = "darkLabel_weather";
-            darkLabel_weather.Size = new System.Drawing.Size(97, 19);
+            darkLabel_weather.Size = new System.Drawing.Size(83, 13);
             darkLabel_weather.TabIndex = 15;
             darkLabel_weather.Text = "Weather effect";
             // 
             // ComboBox_LaraType
             // 
-            ComboBox_LaraType.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            ComboBox_LaraType.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             ComboBox_LaraType.FormattingEnabled = true;
             ComboBox_LaraType.Items.AddRange(new object[] { "Normal", "Young", "Bunhead", "Catsuit", "Divesuit", "Invisible" });
             ComboBox_LaraType.Location = new System.Drawing.Point(139, 169);
             ComboBox_LaraType.Name = "ComboBox_LaraType";
-            ComboBox_LaraType.Size = new System.Drawing.Size(163, 27);
+            ComboBox_LaraType.Size = new System.Drawing.Size(163, 23);
             ComboBox_LaraType.TabIndex = 14;
             // 
             // Label_LaraType
@@ -517,19 +520,19 @@
             Label_LaraType.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
             Label_LaraType.Location = new System.Drawing.Point(6, 172);
             Label_LaraType.Name = "Label_LaraType";
-            Label_LaraType.Size = new System.Drawing.Size(67, 19);
+            Label_LaraType.Size = new System.Drawing.Size(54, 13);
             Label_LaraType.TabIndex = 13;
             Label_LaraType.Text = "Lara Type";
             // 
             // NumericUpDown_farView
             // 
-            NumericUpDown_farView.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            NumericUpDown_farView.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             NumericUpDown_farView.IncrementAlternate = new decimal(new int[] { 10, 0, 0, 65536 });
             NumericUpDown_farView.Location = new System.Drawing.Point(139, 137);
             NumericUpDown_farView.LoopValues = false;
             NumericUpDown_farView.Minimum = new decimal(new int[] { 4, 0, 0, 0 });
             NumericUpDown_farView.Name = "NumericUpDown_farView";
-            NumericUpDown_farView.Size = new System.Drawing.Size(163, 26);
+            NumericUpDown_farView.Size = new System.Drawing.Size(163, 22);
             NumericUpDown_farView.TabIndex = 12;
             NumericUpDown_farView.Value = new decimal(new int[] { 4, 0, 0, 0 });
             // 
@@ -539,18 +542,18 @@
             darkLabel_farView.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
             darkLabel_farView.Location = new System.Drawing.Point(6, 139);
             darkLabel_farView.Name = "darkLabel_farView";
-            darkLabel_farView.Size = new System.Drawing.Size(158, 19);
+            darkLabel_farView.Size = new System.Drawing.Size(131, 13);
             darkLabel_farView.TabIndex = 11;
             darkLabel_farView.Text = "Maximum draw distance";
             // 
             // NumericUpDown_secrets
             // 
-            NumericUpDown_secrets.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            NumericUpDown_secrets.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             NumericUpDown_secrets.IncrementAlternate = new decimal(new int[] { 10, 0, 0, 65536 });
             NumericUpDown_secrets.Location = new System.Drawing.Point(139, 105);
             NumericUpDown_secrets.LoopValues = false;
             NumericUpDown_secrets.Name = "NumericUpDown_secrets";
-            NumericUpDown_secrets.Size = new System.Drawing.Size(163, 26);
+            NumericUpDown_secrets.Size = new System.Drawing.Size(163, 22);
             NumericUpDown_secrets.TabIndex = 10;
             // 
             // darkLabel_secrets
@@ -559,7 +562,7 @@
             darkLabel_secrets.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
             darkLabel_secrets.Location = new System.Drawing.Point(6, 107);
             darkLabel_secrets.Name = "darkLabel_secrets";
-            darkLabel_secrets.Size = new System.Drawing.Size(121, 19);
+            darkLabel_secrets.Size = new System.Drawing.Size(100, 13);
             darkLabel_secrets.TabIndex = 9;
             darkLabel_secrets.Text = "Number of secrets";
             // 
@@ -592,11 +595,11 @@
             // 
             // ComboBox_nameKey
             // 
-            ComboBox_nameKey.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            ComboBox_nameKey.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             ComboBox_nameKey.FormattingEnabled = true;
             ComboBox_nameKey.Location = new System.Drawing.Point(139, 6);
             ComboBox_nameKey.Name = "ComboBox_nameKey";
-            ComboBox_nameKey.Size = new System.Drawing.Size(163, 27);
+            ComboBox_nameKey.Size = new System.Drawing.Size(163, 23);
             ComboBox_nameKey.TabIndex = 5;
             // 
             // Label_nameKey
@@ -605,17 +608,17 @@
             Label_nameKey.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
             Label_nameKey.Location = new System.Drawing.Point(6, 14);
             Label_nameKey.Name = "Label_nameKey";
-            Label_nameKey.Size = new System.Drawing.Size(71, 19);
+            Label_nameKey.Size = new System.Drawing.Size(56, 13);
             Label_nameKey.TabIndex = 4;
             Label_nameKey.Text = "Name Key";
             // 
             // ComboBox_loadScreenFile
             // 
-            ComboBox_loadScreenFile.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            ComboBox_loadScreenFile.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             ComboBox_loadScreenFile.FormattingEnabled = true;
             ComboBox_loadScreenFile.Location = new System.Drawing.Point(139, 72);
             ComboBox_loadScreenFile.Name = "ComboBox_loadScreenFile";
-            ComboBox_loadScreenFile.Size = new System.Drawing.Size(163, 27);
+            ComboBox_loadScreenFile.Size = new System.Drawing.Size(163, 23);
             ComboBox_loadScreenFile.TabIndex = 3;
             // 
             // Label_loadScreenFile
@@ -624,17 +627,17 @@
             Label_loadScreenFile.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
             Label_loadScreenFile.Location = new System.Drawing.Point(6, 79);
             Label_loadScreenFile.Name = "Label_loadScreenFile";
-            Label_loadScreenFile.Size = new System.Drawing.Size(123, 19);
+            Label_loadScreenFile.Size = new System.Drawing.Size(102, 13);
             Label_loadScreenFile.TabIndex = 2;
             Label_loadScreenFile.Text = "Load screen image";
             // 
             // ComboBox_ambientTrack
             // 
-            ComboBox_ambientTrack.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            ComboBox_ambientTrack.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
             ComboBox_ambientTrack.FormattingEnabled = true;
             ComboBox_ambientTrack.Location = new System.Drawing.Point(139, 39);
             ComboBox_ambientTrack.Name = "ComboBox_ambientTrack";
-            ComboBox_ambientTrack.Size = new System.Drawing.Size(163, 27);
+            ComboBox_ambientTrack.Size = new System.Drawing.Size(163, 23);
             ComboBox_ambientTrack.TabIndex = 1;
             // 
             // Label_ambientTrack
@@ -643,7 +646,7 @@
             Label_ambientTrack.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
             Label_ambientTrack.Location = new System.Drawing.Point(6, 47);
             Label_ambientTrack.Name = "Label_ambientTrack";
-            Label_ambientTrack.Size = new System.Drawing.Size(137, 19);
+            Label_ambientTrack.Size = new System.Drawing.Size(114, 13);
             Label_ambientTrack.TabIndex = 0;
             Label_ambientTrack.Text = "Ambient sound track";
             // 
@@ -666,8 +669,8 @@
             tabControl.ResumeLayout(false);
             tabPage_LevelSettings.ResumeLayout(false);
             tabPage_Resources.ResumeLayout(false);
-            tabPage_.ResumeLayout(false);
-            tabPage_.PerformLayout();
+            tabPage_Settings.ResumeLayout(false);
+            tabPage_Settings.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)darkDataGridView1).EndInit();
             ((System.ComponentModel.ISupportInitialize)darkNumericUpDown5).EndInit();
             ((System.ComponentModel.ISupportInitialize)darkNumericUpDown4).EndInit();
@@ -696,7 +699,7 @@
 		private System.Windows.Forms.ToolStripMenuItem menuItem_Open;
 		private System.Windows.Forms.ToolStripMenuItem menuItem_OpenFolder;
 		private System.Windows.Forms.ToolStripSeparator separator_01;
-        private System.Windows.Forms.TabPage tabPage_;
+        private System.Windows.Forms.TabPage tabPage_Settings;
         private DarkUI.Controls.DarkComboBox ComboBox_ambientTrack;
         private DarkUI.Controls.DarkLabel Label_ambientTrack;
         private DarkUI.Controls.DarkLabel Label_loadScreenFile;

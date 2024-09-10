@@ -35,6 +35,12 @@ namespace TombIDE.ProjectMaster
         {
             _ide = ide;
             _ide.IDEEventRaised += OnIDEEventRaised;
+            if (_ide.Project.GameVersion != TRVersion.Game.TombEngine)
+            {
+                tabControl.TabPages.Remove(tabPage_Settings);
+                //((Control)this.tabPage_Settings).Enabled = false;
+                //toolTip1.SetToolTip(((Control)this.tabPage_Settings), "Settings page are not supported by the current game engine.");
+            }
 
             AddPinnedProgramsToContextMenu();
         }
@@ -267,6 +273,52 @@ namespace TombIDE.ProjectMaster
             };
 
             Process.Start(startInfo);
+        }
+
+        private void Label_skyLayer1_Click(object sender, EventArgs e)
+        {
+
+            ColorDialog MyDialog = new ColorDialog();
+            // Keeps the user from selecting a custom color.
+            MyDialog.AllowFullOpen = true;
+            // Allows the user to get help. (The default is false.)
+            MyDialog.ShowHelp = true;
+            // Sets the initial color select to the current text color.
+            MyDialog.Color = Label_skyLayerColor1.BackColor;
+
+            // Update the text box color if the user clicks OK 
+            if (MyDialog.ShowDialog() == DialogResult.OK)
+                Label_skyLayerColor1.BackColor = MyDialog.Color;
+        }
+
+        private void Label_skyLayer2_Click(object sender, EventArgs e)
+        {
+            ColorDialog MyDialog = new ColorDialog();
+            // Keeps the user from selecting a custom color.
+            MyDialog.AllowFullOpen = true;
+            // Allows the user to get help. (The default is false.)
+            MyDialog.ShowHelp = true;
+            // Sets the initial color select to the current text color.
+            MyDialog.Color = Label_skyLayerColor2.BackColor;
+
+            // Update the text box color if the user clicks OK 
+            if (MyDialog.ShowDialog() == DialogResult.OK)
+                Label_skyLayerColor2.BackColor = MyDialog.Color;
+        }
+
+        private void Label_fogColor_Click(object sender, EventArgs e)
+        {
+            ColorDialog MyDialog = new ColorDialog();
+            // Keeps the user from selecting a custom color.
+            MyDialog.AllowFullOpen = true;
+            // Allows the user to get help. (The default is false.)
+            MyDialog.ShowHelp = true;
+            // Sets the initial color select to the current text color.
+            MyDialog.Color = Label_fogColor.BackColor;
+
+            // Update the text box color if the user clicks OK 
+            if (MyDialog.ShowDialog() == DialogResult.OK)
+                Label_fogColor.BackColor = MyDialog.Color;
         }
 
         #endregion Events
@@ -527,50 +579,5 @@ namespace TombIDE.ProjectMaster
 
         #endregion Methods
 
-        private void Label_skyLayer1_Click(object sender, EventArgs e)
-        {
-
-            ColorDialog MyDialog = new ColorDialog();
-            // Keeps the user from selecting a custom color.
-            MyDialog.AllowFullOpen = true;
-            // Allows the user to get help. (The default is false.)
-            MyDialog.ShowHelp = true;
-            // Sets the initial color select to the current text color.
-            MyDialog.Color = Label_skyLayerColor1.BackColor;
-
-            // Update the text box color if the user clicks OK 
-            if (MyDialog.ShowDialog() == DialogResult.OK)
-                Label_skyLayerColor1.BackColor = MyDialog.Color;
-        }
-
-        private void Label_skyLayer2_Click(object sender, EventArgs e)
-        {
-            ColorDialog MyDialog = new ColorDialog();
-            // Keeps the user from selecting a custom color.
-            MyDialog.AllowFullOpen = true;
-            // Allows the user to get help. (The default is false.)
-            MyDialog.ShowHelp = true;
-            // Sets the initial color select to the current text color.
-            MyDialog.Color = Label_skyLayerColor2.BackColor;
-
-            // Update the text box color if the user clicks OK 
-            if (MyDialog.ShowDialog() == DialogResult.OK)
-                Label_skyLayerColor2.BackColor = MyDialog.Color;
-        }
-
-        private void Label_fogColor_Click(object sender, EventArgs e)
-        {
-            ColorDialog MyDialog = new ColorDialog();
-            // Keeps the user from selecting a custom color.
-            MyDialog.AllowFullOpen = true;
-            // Allows the user to get help. (The default is false.)
-            MyDialog.ShowHelp = true;
-            // Sets the initial color select to the current text color.
-            MyDialog.Color = Label_fogColor.BackColor;
-
-            // Update the text box color if the user clicks OK 
-            if (MyDialog.ShowDialog() == DialogResult.OK)
-                Label_fogColor.BackColor = MyDialog.Color;
-        }
     }
 }
