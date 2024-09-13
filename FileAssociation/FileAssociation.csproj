@@ -4,6 +4,8 @@
     <OutputType>WinExe</OutputType>
     <AssemblyName>File Association</AssemblyName>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <ForceDesignerDPIUnaware>true</ForceDesignerDPIUnaware>
+    <ApplicationHighDpiMode>DpiUnawareGdiScaled</ApplicationHighDpiMode>
     <UseWindowsForms>true</UseWindowsForms>
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
     <Configurations>Debug;Release</Configurations>
