@@ -6,335 +6,367 @@ using TombLib.Wad;
 using TombLib.Wad.Catalog;
 using System.ComponentModel;
 using DarkUI.Config;
+using System.Collections.Generic;
 
 namespace WadTool
 {
-    public partial class AnimCommandEditor : UserControl
-    {
-        private bool _currentlyDoingCommandSelection = false;
-        private AnimationEditor _editor;
+	public partial class AnimCommandEditor : UserControl
+	{
+		private bool _currentlyDoingCommandSelection = false;
+		private AnimationEditor _editor;
 
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public WadAnimCommand Command
-        {
-            get { return _command; }
-            set
-            {
-                _command = value;
-                UpdateUI(_command);
-            }
-        } private WadAnimCommand _command;
+		[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+		public WadAnimCommand Command
+		{
+			get { return _command; }
+			set
+			{
+				_command = value;
+				UpdateUI(_command);
+			}
+		}
+		private WadAnimCommand _command;
 
-        public class AnimCommandEventArgs : EventArgs { public WadAnimCommand Command { get; set; } }
-        public event EventHandler<AnimCommandEventArgs> AnimCommandChanged;
-        private void InvokeChanged() { if (!_currentlyDoingCommandSelection) AnimCommandChanged?.Invoke(this, new AnimCommandEventArgs() { Command = _command }); }
+		public class AnimCommandEventArgs : EventArgs { public WadAnimCommand Command { get; set; } }
+		public event EventHandler<AnimCommandEventArgs> AnimCommandChanged;
+		private void InvokeChanged() { if (!_currentlyDoingCommandSelection) AnimCommandChanged?.Invoke(this, new AnimCommandEventArgs() { Command = _command }); }
 
-        public AnimCommandEditor() { InitializeComponent(); panelView.BackColor = Colors.GreyBackground; }
-        public void Initialize(AnimationEditor editor, bool disableFrameControls = false)
-        {
-            _editor = editor;
-            tbPlaySoundFrame.Enabled = !disableFrameControls;
-            tbFlipEffectFrame.Enabled = !disableFrameControls;
+		public AnimCommandEditor() { InitializeComponent(); panelView.BackColor = Colors.GreyBackground; }
+		public void Initialize(AnimationEditor editor, bool disableFrameControls = false)
+		{
+			_editor = editor;
 
-            butPlaySound.Enabled = (_editor.Tool.ReferenceLevel != null &&
-                _editor.Tool.ReferenceLevel.Settings.GlobalSoundMap.Count > 0);
+			comboCommandType.Items.Clear();
+			comboCommandType.Items.Add("Set position");
+			comboCommandType.Items.Add("Set jump velocity");
+			comboCommandType.Items.Add("Empty hands");
+			comboCommandType.Items.Add("Kill entity");
+			comboCommandType.Items.Add("Play sound");
+			comboCommandType.Items.Add("Flipeffect");
 
-            comboFlipeffectConditions.Enabled = _editor.Tool.DestinationWad.GameVersion != TRVersion.Game.TombEngine;
+			if (editor.Wad.GameVersion == TRVersion.Game.TombEngine)
+			{
+				comboCommandType.Items.Add("Disable in-game interpolation");
+			}
 
-            ReloadSounds();
+			tbPlaySoundFrame.Enabled = !disableFrameControls;
+			tbFlipEffectFrame.Enabled = !disableFrameControls;
 
-            comboPlaySoundConditions.Items.Clear();
-            comboPlaySoundConditions.Items.AddRange(new object[] {
-                "Always",
-                "On land",
-                "In shallow water"
-            });
+			butPlaySound.Enabled = (_editor.Tool.ReferenceLevel != null &&
+				_editor.Tool.ReferenceLevel.Settings.GlobalSoundMap.Count > 0);
 
-            if (editor.Wad.GameVersion == TRVersion.Game.TombEngine)
-            {
-                comboPlaySoundConditions.Items.AddRange(new object[] {
-                    "In quicksand",
-                    "Underwater"
-                });
-            }
-        }
+			comboFlipeffectConditions.Enabled = _editor.Tool.DestinationWad.GameVersion != TRVersion.Game.TombEngine;
 
-        public void UpdateUI(WadAnimCommand cmd)
-        {
-            if (_currentlyDoingCommandSelection)
-                return;
+			ReloadSounds();
 
-            if (cmd == null)
-            {
-                comboCommandType.Enabled = false;
-                commandControls.Visible = false;
-                return;
-            }
-            else
-            {
-                comboCommandType.Enabled = true;
-                commandControls.Visible = true;
-            }
+			comboPlaySoundConditions.Items.Clear();
+			comboPlaySoundConditions.Items.AddRange(new object[] {
+				"Always",
+				"On land",
+				"In shallow water"
+			});
 
-            try
-            {
-                _currentlyDoingCommandSelection = true;
+			if (editor.Wad.GameVersion == TRVersion.Game.TombEngine)
+			{
+				comboPlaySoundConditions.Items.AddRange(new object[] {
+					"In quicksand",
+					"Underwater"
+				});
+			}
+		}
 
-                comboCommandType.SelectedIndex = (int)(cmd.Type) - 1;
+		public void UpdateUI(WadAnimCommand cmd)
+		{
+			if (_currentlyDoingCommandSelection)
+				return;
 
-                switch (cmd.Type)
-                {
-                    case WadAnimCommandType.SetPosition:
-                        commandControls.Visible = true;
-                        commandControls.SelectedTab = tabSetPosition;
+			if (cmd == null)
+			{
+				comboCommandType.Enabled = false;
+				commandControls.Visible = false;
+				return;
+			}
+			else
+			{
+				comboCommandType.Enabled = true;
+				commandControls.Visible = true;
+			}
 
-                        tbPosX.Value = cmd.Parameter1;
-                        tbPosY.Value = cmd.Parameter2;
-                        tbPosZ.Value = cmd.Parameter3;
-                        break;
+			try
+			{
+				_currentlyDoingCommandSelection = true;
 
-                    case WadAnimCommandType.SetJumpDistance:
-                        commandControls.Visible = true;
-                        commandControls.SelectedTab = tabSetJumpDistance;
+				comboCommandType.SelectedIndex = (int)(cmd.Type) - 1;
 
-                        tbHorizontal.Value = cmd.Parameter1;
-                        tbVertical.Value = cmd.Parameter2;
-                        break;
+				switch (cmd.Type)
+				{
+					case WadAnimCommandType.SetPosition:
+						commandControls.Visible = true;
+						commandControls.SelectedTab = tabSetPosition;
 
-                    case WadAnimCommandType.EmptyHands:
-                    case WadAnimCommandType.KillEntity:
-                        commandControls.Visible = false;
-                        break;
+						tbPosX.Value = cmd.Parameter1;
+						tbPosY.Value = cmd.Parameter2;
+						tbPosZ.Value = cmd.Parameter3;
+						break;
 
-                    case WadAnimCommandType.PlaySound:
-                        commandControls.Visible = true;
-                        commandControls.SelectedTab = tabPlaySound;
+					case WadAnimCommandType.SetJumpDistance:
+						commandControls.Visible = true;
+						commandControls.SelectedTab = tabSetJumpDistance;
 
-                        tbPlaySoundFrame.Value = cmd.Parameter1;
-                        nudSoundId.Value = cmd.Parameter2 & 0xFFF;
+						tbHorizontal.Value = cmd.Parameter1;
+						tbVertical.Value = cmd.Parameter2;
+						break;
 
-                        // Check sound conditions stored in last 4 bits.
-                        switch (cmd.Parameter2 & 0xF000)
-                        {
-                            default:
-                            case 0:
-                                comboPlaySoundConditions.SelectedIndex = 0;
-                                break;
+					case WadAnimCommandType.EmptyHands:
+					case WadAnimCommandType.KillEntity:
+						commandControls.Visible = false;
+						break;
 
-                            // On dry land.
-                            case (1 << 14):
-                                comboPlaySoundConditions.SelectedIndex = 1;
-                                break;
+					case WadAnimCommandType.DisableInterpolation:
+						commandControls.Visible = true;
+						commandControls.SelectedTab = tabDisableInterpolation;
 
-                            // In shallow water.
-                            case (1 << 15):
-                                comboPlaySoundConditions.SelectedIndex = 2;
-                                break;
+						tbFrameDisableInterpolation.Value = cmd.Parameter1;
 
-                            // In quicksand (TEN).
-                            case (1 << 12):
-                                comboPlaySoundConditions.SelectedIndex = 3;
-                                break;
+						break;
 
-                            // Underwater (TEN).
-                            case (1 << 13):
-                                comboPlaySoundConditions.SelectedIndex = 4;
-                                break;
-                        }
-                        break;
+					case WadAnimCommandType.PlaySound:
+						commandControls.Visible = true;
+						commandControls.SelectedTab = tabPlaySound;
 
-                    case WadAnimCommandType.FlipEffect:
-                        commandControls.Visible = true;
-                        commandControls.SelectedTab = tabFlipeffect;
+						tbPlaySoundFrame.Value = cmd.Parameter1;
+						nudSoundId.Value = cmd.Parameter2 & 0xFFF;
 
-                        tbFlipEffectFrame.Value = cmd.Parameter1;
-                        tbFlipEffect.Value = cmd.Parameter2 & 0x3FFF;
+						// Check sound conditions stored in last 4 bits.
+						switch (cmd.Parameter2 & 0xF000)
+						{
+							default:
+							case 0:
+								comboPlaySoundConditions.SelectedIndex = 0;
+								break;
 
-                        switch (cmd.Parameter2 & 0xC000)
-                        {
-                            default:
-                                comboFlipeffectConditions.SelectedIndex = 0;
-                                break;
-                            case 0x4000:
-                                comboFlipeffectConditions.SelectedIndex = 1;
-                                break;
-                            case 0x8000:
-                                comboFlipeffectConditions.SelectedIndex = 2;
-                                break;
-                        }
-                        break;
-                }
-            }
-            finally
-            {
-                _currentlyDoingCommandSelection = false;
-            }
-        }
+							// On dry land.
+							case (1 << 14):
+								comboPlaySoundConditions.SelectedIndex = 1;
+								break;
 
-        private void ReloadSounds()
-        {
-            comboSound.Items.Clear();
+							// In shallow water.
+							case (1 << 15):
+								comboPlaySoundConditions.SelectedIndex = 2;
+								break;
 
-            var defaultSoundList = TrCatalog.GetAllSounds(_editor.Tool.DestinationWad.GameVersion);
-            var soundCatalogPresent = _editor.Tool.ReferenceLevel != null && _editor.Tool.ReferenceLevel.Settings.GlobalSoundMap.Count > 0;
+							// In quicksand (TEN).
+							case (1 << 12):
+								comboPlaySoundConditions.SelectedIndex = 3;
+								break;
 
-            var maxKnownSound = -1;
+							// Underwater (TEN).
+							case (1 << 13):
+								comboPlaySoundConditions.SelectedIndex = 4;
+								break;
+						}
+						break;
 
-            foreach (var sound in defaultSoundList)
-                if (sound.Key > maxKnownSound) maxKnownSound = (int)sound.Key;
+					case WadAnimCommandType.FlipEffect:
+						commandControls.Visible = true;
+						commandControls.SelectedTab = tabFlipeffect;
 
-            if (soundCatalogPresent)
-                foreach (var sound in _editor.Tool.ReferenceLevel.Settings.GlobalSoundMap)
-                    if (sound.Id > maxKnownSound) maxKnownSound = sound.Id;
+						tbFlipEffectFrame.Value = cmd.Parameter1;
+						tbFlipEffect.Value = cmd.Parameter2 & 0x3FFF;
 
-            for (int i = 0; i <= maxKnownSound; i++)
-            {
-                var lbl = i.ToString().PadLeft(4, '0') + ": ";
+						switch (cmd.Parameter2 & 0xC000)
+						{
+							default:
+								comboFlipeffectConditions.SelectedIndex = 0;
+								break;
+							case 0x4000:
+								comboFlipeffectConditions.SelectedIndex = 1;
+								break;
+							case 0x8000:
+								comboFlipeffectConditions.SelectedIndex = 2;
+								break;
+						}
+						break;
+				}
+			}
+			finally
+			{
+				_currentlyDoingCommandSelection = false;
+			}
+		}
 
-                if (soundCatalogPresent && _editor.Tool.ReferenceLevel.Settings.GlobalSoundMap.Any(item => item.Id == i))
-                    lbl += _editor.Tool.ReferenceLevel.Settings.GlobalSoundMap.First(item => item.Id == i).Name;
-                else if (defaultSoundList.Any(item => item.Key == i))
-                    lbl += defaultSoundList.First(item => item.Key == i).Value;
-                else
-                    lbl += "Unknown sound";
+		private void ReloadSounds()
+		{
+			comboSound.Items.Clear();
 
-                comboSound.Items.Add(lbl);
-            }
+			var defaultSoundList = TrCatalog.GetAllSounds(_editor.Tool.DestinationWad.GameVersion);
+			var soundCatalogPresent = _editor.Tool.ReferenceLevel != null && _editor.Tool.ReferenceLevel.Settings.GlobalSoundMap.Count > 0;
 
-            comboSound.Items.Add("Custom sound ID");
-            comboSound.SelectedIndex = 0;
-        }
+			var maxKnownSound = -1;
 
-        private void comboCommandType_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (_command == null || _currentlyDoingCommandSelection)
-                return;
+			foreach (var sound in defaultSoundList)
+				if (sound.Key > maxKnownSound) maxKnownSound = (int)sound.Key;
 
-            WadAnimCommandType newType = (WadAnimCommandType)(comboCommandType.SelectedIndex + 1);
-            _command.Type = newType;
-            UpdateUI(_command);
-            InvokeChanged();
-        }
+			if (soundCatalogPresent)
+				foreach (var sound in _editor.Tool.ReferenceLevel.Settings.GlobalSoundMap)
+					if (sound.Id > maxKnownSound) maxKnownSound = sound.Id;
 
-        private void tbPosX_ValueChanged(object sender, EventArgs e)
-        {
-            if (_command == null || _command.Type != WadAnimCommandType.SetPosition)
-                return;
-            _command.Parameter1 = (short)tbPosX.Value;
-            InvokeChanged();
-        }
+			for (int i = 0; i <= maxKnownSound; i++)
+			{
+				var lbl = i.ToString().PadLeft(4, '0') + ": ";
 
-        private void tbPosY_ValueChanged(object sender, EventArgs e)
-        {
-            if (_command == null || _command.Type != WadAnimCommandType.SetPosition)
-                return;
-            _command.Parameter2 = (short)tbPosY.Value;
-            InvokeChanged();
-        }
+				if (soundCatalogPresent && _editor.Tool.ReferenceLevel.Settings.GlobalSoundMap.Any(item => item.Id == i))
+					lbl += _editor.Tool.ReferenceLevel.Settings.GlobalSoundMap.First(item => item.Id == i).Name;
+				else if (defaultSoundList.Any(item => item.Key == i))
+					lbl += defaultSoundList.First(item => item.Key == i).Value;
+				else
+					lbl += "Unknown sound";
 
-        private void tbPosZ_ValueChanged(object sender, EventArgs e)
-        {
-            if (_command == null || _command.Type != WadAnimCommandType.SetPosition)
-                return;
-            _command.Parameter3 = (short)tbPosZ.Value;
-            InvokeChanged();
-        }
+				comboSound.Items.Add(lbl);
+			}
 
-        private void tbHorizontal_ValueChanged(object sender, EventArgs e)
-        {
-            if (_command == null || _command.Type != WadAnimCommandType.SetJumpDistance)
-                return;
-            _command.Parameter1 = (short)tbHorizontal.Value;
-            InvokeChanged();
-        }
+			comboSound.Items.Add("Custom sound ID");
+			comboSound.SelectedIndex = 0;
+		}
 
-        private void tbVertical_ValueChanged(object sender, EventArgs e)
-        {
-            if (_command == null || _command.Type != WadAnimCommandType.SetJumpDistance)
-                return;
-            _command.Parameter2 = (short)tbVertical.Value;
-            InvokeChanged();
-        }
+		private void comboCommandType_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			if (_command == null || _currentlyDoingCommandSelection)
+				return;
 
-        private void tbFlipEffectFrame_ValueChanged(object sender, EventArgs e)
-        {
-            if (_command == null || _command.Type != WadAnimCommandType.FlipEffect)
-                return;
-            _command.Parameter1 = (short)tbFlipEffectFrame.Value;
-            InvokeChanged();
-        }
+			WadAnimCommandType newType = (WadAnimCommandType)(comboCommandType.SelectedIndex + 1);
+			_command.Type = newType;
+			UpdateUI(_command);
+			InvokeChanged();
+		}
 
-        private void tbFlipEffect_ValueChanged(object sender, EventArgs e)
-        {
-            if (_command == null || _command.Type != WadAnimCommandType.FlipEffect)
-                return;
+		private void tbPosX_ValueChanged(object sender, EventArgs e)
+		{
+			if (_command == null || _command.Type != WadAnimCommandType.SetPosition)
+				return;
+			_command.Parameter1 = (short)tbPosX.Value;
+			InvokeChanged();
+		}
 
-            _command.Parameter2 &= unchecked((short)~0x3FFF);
-            _command.Parameter2 |= (short)tbFlipEffect.Value;
-            InvokeChanged();
-        }
+		private void tbPosY_ValueChanged(object sender, EventArgs e)
+		{
+			if (_command == null || _command.Type != WadAnimCommandType.SetPosition)
+				return;
+			_command.Parameter2 = (short)tbPosY.Value;
+			InvokeChanged();
+		}
 
-        private void tbPlaySoundFrame_ValueChanged(object sender, EventArgs e)
-        {
-            if (_command == null || _command.Type != WadAnimCommandType.PlaySound)
-                return;
-            _command.Parameter1 = (short)tbPlaySoundFrame.Value;
-            InvokeChanged();
-        }
+		private void tbPosZ_ValueChanged(object sender, EventArgs e)
+		{
+			if (_command == null || _command.Type != WadAnimCommandType.SetPosition)
+				return;
+			_command.Parameter3 = (short)tbPosZ.Value;
+			InvokeChanged();
+		}
 
-        private void comboPlaySoundConditions_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (_command == null || _command.Type != WadAnimCommandType.PlaySound)
-                return;
+		private void tbHorizontal_ValueChanged(object sender, EventArgs e)
+		{
+			if (_command == null || _command.Type != WadAnimCommandType.SetJumpDistance)
+				return;
+			_command.Parameter1 = (short)tbHorizontal.Value;
+			InvokeChanged();
+		}
 
-            // Due to arrangemet of TEN-exclusive sound condition flags, must determine special shift value.
-            _command.Parameter2 &= unchecked((short)~0xF000);
-            _command.Parameter2 |= (comboPlaySoundConditions.SelectedIndex <= 2) ?
-                (short)(comboPlaySoundConditions.SelectedIndex << 14) :
-                (short)((comboPlaySoundConditions.SelectedIndex - 2) << 12);
+		private void tbVertical_ValueChanged(object sender, EventArgs e)
+		{
+			if (_command == null || _command.Type != WadAnimCommandType.SetJumpDistance)
+				return;
+			_command.Parameter2 = (short)tbVertical.Value;
+			InvokeChanged();
+		}
 
-            InvokeChanged();
-        }
+		private void tbFlipEffectFrame_ValueChanged(object sender, EventArgs e)
+		{
+			if (_command == null || _command.Type != WadAnimCommandType.FlipEffect)
+				return;
+			_command.Parameter1 = (short)tbFlipEffectFrame.Value;
+			InvokeChanged();
+		}
 
-        private void comboSound_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (_command == null || _command.Type != WadAnimCommandType.PlaySound)
-                return;
+		private void tbFlipEffect_ValueChanged(object sender, EventArgs e)
+		{
+			if (_command == null || _command.Type != WadAnimCommandType.FlipEffect)
+				return;
 
-            if (comboSound.SelectedIndex < comboSound.Items.Count - 1)
-                nudSoundId.Value = comboSound.SelectedIndex;
-        }
+			_command.Parameter2 &= unchecked((short)~0x3FFF);
+			_command.Parameter2 |= (short)tbFlipEffect.Value;
+			InvokeChanged();
+		}
 
-        private void comboFlipeffectConditions_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            _command.Parameter2 &= unchecked((short)~0xC000);
-            _command.Parameter2 |= (short)(comboFlipeffectConditions.SelectedIndex << 14);
-            InvokeChanged();
-        }
+		private void tbPlaySoundFrame_ValueChanged(object sender, EventArgs e)
+		{
+			if (_command == null || _command.Type != WadAnimCommandType.PlaySound)
+				return;
+			_command.Parameter1 = (short)tbPlaySoundFrame.Value;
+			InvokeChanged();
+		}
 
-        private void butPlaySound_Click(object sender, EventArgs e)
-        {
-            if (_editor.Tool.ReferenceLevel == null ||
-                _editor.Tool.ReferenceLevel.Settings.GlobalSoundMap.Count == 0)
-                return;
+		private void comboPlaySoundConditions_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			if (_command == null || _command.Type != WadAnimCommandType.PlaySound)
+				return;
 
-            var soundInfo = _editor.Tool.ReferenceLevel.Settings.GlobalSoundMap.FirstOrDefault(soundInfo_ => soundInfo_.Id == (int)nudSoundId.Value);
-            if (soundInfo != null)
-                try { WadSoundPlayer.PlaySoundInfo(_editor.Tool.ReferenceLevel, soundInfo); }
-                catch (Exception) { } // FIXME: do something!
-        }
+			// Due to arrangemet of TEN-exclusive sound condition flags, must determine special shift value.
+			_command.Parameter2 &= unchecked((short)~0xF000);
+			_command.Parameter2 |= (comboPlaySoundConditions.SelectedIndex <= 2) ?
+				(short)(comboPlaySoundConditions.SelectedIndex << 14) :
+				(short)((comboPlaySoundConditions.SelectedIndex - 2) << 12);
 
-        private void nudSoundId_ValueChanged(object sender, EventArgs e)
-        {
-            _command.Parameter2 &= unchecked((short)~0xFFF);
-            _command.Parameter2 |= (short)nudSoundId.Value;
+			InvokeChanged();
+		}
 
-            if (nudSoundId.Value < comboSound.Items.Count - 1)
-                comboSound.SelectedIndex = (int)nudSoundId.Value;
-            else
-                comboSound.SelectedIndex = comboSound.Items.Count - 1;
+		private void comboSound_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			if (_command == null || _command.Type != WadAnimCommandType.PlaySound)
+				return;
 
-            InvokeChanged();
-        }
-    }
+			if (comboSound.SelectedIndex < comboSound.Items.Count - 1)
+				nudSoundId.Value = comboSound.SelectedIndex;
+		}
+
+		private void comboFlipeffectConditions_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			_command.Parameter2 &= unchecked((short)~0xC000);
+			_command.Parameter2 |= (short)(comboFlipeffectConditions.SelectedIndex << 14);
+			InvokeChanged();
+		}
+
+		private void butPlaySound_Click(object sender, EventArgs e)
+		{
+			if (_editor.Tool.ReferenceLevel == null ||
+				_editor.Tool.ReferenceLevel.Settings.GlobalSoundMap.Count == 0)
+				return;
+
+			var soundInfo = _editor.Tool.ReferenceLevel.Settings.GlobalSoundMap.FirstOrDefault(soundInfo_ => soundInfo_.Id == (int)nudSoundId.Value);
+			if (soundInfo != null)
+				try { WadSoundPlayer.PlaySoundInfo(_editor.Tool.ReferenceLevel, soundInfo); }
+				catch (Exception) { } // FIXME: do something!
+		}
+
+		private void nudSoundId_ValueChanged(object sender, EventArgs e)
+		{
+			_command.Parameter2 &= unchecked((short)~0xFFF);
+			_command.Parameter2 |= (short)nudSoundId.Value;
+
+			if (nudSoundId.Value < comboSound.Items.Count - 1)
+				comboSound.SelectedIndex = (int)nudSoundId.Value;
+			else
+				comboSound.SelectedIndex = comboSound.Items.Count - 1;
+
+			InvokeChanged();
+		}
+
+		private void tbFrameDisableInterpolation_ValueChanged(object sender, EventArgs e)
+		{
+			if (_command == null || _command.Type != WadAnimCommandType.DisableInterpolation)
+				return;
+			_command.Parameter1 = (short)tbFrameDisableInterpolation.Value;
+			InvokeChanged();
+		}
+	}
 }

@@ -349,6 +349,13 @@ namespace TombLib.LevelData.Compilers.TombEngine
                                 _animCommands.Add(command.Parameter2);
 
                                 break;
+
+                            case WadAnimCommandType.DisableInterpolation:
+                                _animCommands.Add(0x07);
+
+								_animCommands.Add(checked((short)(command.Parameter1 + newAnimation.FrameStart)));
+
+								break;
                         }
                     }
 

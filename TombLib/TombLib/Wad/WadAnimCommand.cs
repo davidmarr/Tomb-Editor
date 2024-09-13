@@ -56,6 +56,9 @@ namespace TombLib.Wad
                         return "Play FlipEffect ID = " + flipeffectId + " (left foot) on Frame = " + Parameter1;
                     else
                         return "Play FlipEffect ID = " + flipeffectId + " on Frame = " + Parameter1;
+
+                case WadAnimCommandType.DisableInterpolation:
+                    return "Disable in-game interpolation on Frame = " + Parameter1;
             }
 
             return "";

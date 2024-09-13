@@ -13,7 +13,10 @@
         EmptyHands = 3,
         KillEntity = 4,
         PlaySound = 5,
-        FlipEffect = 6
+        FlipEffect = 6,
+        
+        // TEN specific
+        DisableInterpolation = 7
     }
 
     public enum WadMeshLightingType : ushort
