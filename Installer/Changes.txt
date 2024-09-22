@@ -21,6 +21,8 @@ Tomb Editor:
  * Fixed title bar using dark mode even if Windows theme is not set to dark.
  * Fixed incorrect sounds for all classic override TEN sound catalogs.
  * Fixed "Set specified mesh visibility" TEN node.
+ * Fixed text nodes to allow usage of string keys in external script files.
+ * Fixed Trigger Window assigning wrong ExtraNG String IDs when path to Script directory is set up.
 
 WadTool:
  * Added "In quicksand" and "Underwater" sound conditions for TEN.
@@ -30,7 +32,8 @@ TombIDE:
  * Updated FLEP for new TRNG projects.
  * FLEP widescreen patch will now be installed by default for new projects.
  * Updated Plugin_Video for new TRNG projects - now makes the game DPI-aware.
- * Updated TR1X preset to 4.2.
+ * Updated TR1X preset to 4.4.
+ * When creating a new script file, the correct file format will now be automatically selected, depending on the current engine.
 
 Version 1.7.1
 =============
