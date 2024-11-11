@@ -38,7 +38,7 @@
 			darkLabel1 = new DarkUI.Controls.DarkLabel();
 			darkLabel2 = new DarkUI.Controls.DarkLabel();
 			tbPosY = new DarkUI.Controls.DarkNumericUpDown();
-			tabSetJumpDistance = new System.Windows.Forms.TabPage();
+			tabSetJumpVelocity = new System.Windows.Forms.TabPage();
 			darkLabel5 = new DarkUI.Controls.DarkLabel();
 			darkLabel6 = new DarkUI.Controls.DarkLabel();
 			tbVertical = new DarkUI.Controls.DarkNumericUpDown();
@@ -68,7 +68,7 @@
 			((System.ComponentModel.ISupportInitialize)tbPosX).BeginInit();
 			((System.ComponentModel.ISupportInitialize)tbPosZ).BeginInit();
 			((System.ComponentModel.ISupportInitialize)tbPosY).BeginInit();
-			tabSetJumpDistance.SuspendLayout();
+			tabSetJumpVelocity.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)tbVertical).BeginInit();
 			((System.ComponentModel.ISupportInitialize)tbHorizontal).BeginInit();
 			tabFlipeffect.SuspendLayout();
@@ -107,7 +107,7 @@
 			// 
 			commandControls.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
 			commandControls.Controls.Add(tabSetPosition);
-			commandControls.Controls.Add(tabSetJumpDistance);
+			commandControls.Controls.Add(tabSetJumpVelocity);
 			commandControls.Controls.Add(tabFlipeffect);
 			commandControls.Controls.Add(tabPlaySound);
 			commandControls.Controls.Add(tabDisableInterpolation);
@@ -203,19 +203,19 @@
 			tbPosY.ValueChanged += tbPosY_ValueChanged;
 			tbPosY.Click += tbPosY_ValueChanged;
 			// 
-			// tabSetJumpDistance
+			// tabSetJumpVelocity
 			// 
-			tabSetJumpDistance.BackColor = System.Drawing.Color.FromArgb(60, 63, 65);
-			tabSetJumpDistance.Controls.Add(darkLabel5);
-			tabSetJumpDistance.Controls.Add(darkLabel6);
-			tabSetJumpDistance.Controls.Add(tbVertical);
-			tabSetJumpDistance.Controls.Add(tbHorizontal);
-			tabSetJumpDistance.Location = new System.Drawing.Point(4, 24);
-			tabSetJumpDistance.Name = "tabSetJumpDistance";
-			tabSetJumpDistance.Padding = new System.Windows.Forms.Padding(3);
-			tabSetJumpDistance.Size = new System.Drawing.Size(362, 100);
-			tabSetJumpDistance.TabIndex = 1;
-			tabSetJumpDistance.Text = "setJumpDistance";
+			tabSetJumpVelocity.BackColor = System.Drawing.Color.FromArgb(60, 63, 65);
+			tabSetJumpVelocity.Controls.Add(darkLabel5);
+			tabSetJumpVelocity.Controls.Add(darkLabel6);
+			tabSetJumpVelocity.Controls.Add(tbVertical);
+			tabSetJumpVelocity.Controls.Add(tbHorizontal);
+			tabSetJumpVelocity.Location = new System.Drawing.Point(4, 24);
+			tabSetJumpVelocity.Name = "tabSetJumpVelocity";
+			tabSetJumpVelocity.Padding = new System.Windows.Forms.Padding(3);
+			tabSetJumpVelocity.Size = new System.Drawing.Size(362, 100);
+			tabSetJumpVelocity.TabIndex = 1;
+			tabSetJumpVelocity.Text = "SetJumpVelocity";
 			// 
 			// darkLabel5
 			// 
@@ -507,8 +507,8 @@
 			((System.ComponentModel.ISupportInitialize)tbPosX).EndInit();
 			((System.ComponentModel.ISupportInitialize)tbPosZ).EndInit();
 			((System.ComponentModel.ISupportInitialize)tbPosY).EndInit();
-			tabSetJumpDistance.ResumeLayout(false);
-			tabSetJumpDistance.PerformLayout();
+			tabSetJumpVelocity.ResumeLayout(false);
+			tabSetJumpVelocity.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)tbVertical).EndInit();
 			((System.ComponentModel.ISupportInitialize)tbHorizontal).EndInit();
 			tabFlipeffect.ResumeLayout(false);
@@ -538,7 +538,7 @@
         private DarkUI.Controls.DarkLabel darkLabel1;
         private DarkUI.Controls.DarkLabel darkLabel2;
         private DarkUI.Controls.DarkNumericUpDown tbPosY;
-        private System.Windows.Forms.TabPage tabSetJumpDistance;
+        private System.Windows.Forms.TabPage tabSetJumpVelocity;
         private DarkUI.Controls.DarkLabel darkLabel5;
         private DarkUI.Controls.DarkLabel darkLabel6;
         private DarkUI.Controls.DarkNumericUpDown tbVertical;
