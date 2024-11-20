@@ -158,6 +158,16 @@ LevelFuncs.Engine.Node.TestMoveableOCB = function(moveableName, value)
 	return (ocb == value)
 end
 
+-- !Name "If moveable is collidable..."
+-- !Section "Moveable state"
+-- !Description "Checks if moveable is collidable."
+-- !Conditional "True"
+-- !Arguments "NewLine, Moveables"
+
+LevelFuncs.Engine.Node.TestMoveableCollidability = function(moveableName)
+	return TEN.Objects.GetMoveableByName(moveableName):GetCollidable()
+end
+
 -- !Name "If mesh number of a moveable is visible..."
 -- !Section "Moveable parameters"
 -- !Description "Checks if moveable's mesh index is visible."
@@ -244,6 +254,15 @@ end
 
 LevelFuncs.Engine.Node.DisableMoveable = function(moveableName)
 	TEN.Objects.GetMoveableByName(moveableName):Disable()
+end
+
+-- !Name "Set moveable collision state"
+-- !Section "Moveable state"
+-- !Description "Sets collision state of a moveable."
+-- !Arguments "NewLine, Moveables, 70" "Boolean, 30, Collision state"
+
+LevelFuncs.Engine.Node.SetMoveableCollidability = function(moveableName, state)
+	return TEN.Objects.GetMoveableByName(moveableName):SetCollidable(state)
 end
 
 -- !Name "Set moveable's animation"
@@ -506,8 +525,7 @@ LevelFuncs.Engine.Node.CheckItemFlag = function(moveable, itemFlagLocation, item
         return false
     end
 end
-
-
+			   
 -- !Name "Create moveable"
 -- !Section "Moveable parameters"
 -- !Description "Create a new moveable object and activate it"
@@ -520,8 +538,22 @@ end
 -- !Arguments "Numerical, 20, [ 0 | 1000 | 0 ], Starting frame of animation (default 0)"
 -- !Arguments "Numerical, 20, [ 0 | 100 | 0 ], Starting health of moveable (default 100)"
 -- !Arguments "Numerical, 20, [ -1000 | 1000 | 0 ], OCB of moveable (default 0)"
+
+
 LevelFuncs.Engine.Node.CreateMoveable = function(moveableSlot, moveableName, pos, rot, roomName, anim, frame, health, ocb)
     local roomNumber = GetRoomByName(roomName):GetRoomNumber()
     local newMoveable = Moveable(moveableSlot, moveableName, pos, rot, roomNumber, anim, frame, health, ocb)
     newMoveable:Enable()
 end
+
+-- !Name "Remove moveable effect"
+-- !Section "Moveable parameters"
+-- !Description "Remove effect from moveable"
+-- !Arguments "NewLine, Moveables, Select moveable to remove effect from."
+
+LevelFuncs.Engine.Node.RemoveMoveableEffect = function(moveable)
+
+	TEN.Objects.GetMoveableByName(moveable):SetEffect(TEN.Effects.EffectID.NONE)
+	
+end
+	
