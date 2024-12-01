@@ -14,7 +14,7 @@ namespace TombLib.LevelData.Compilers
             var SoundDataTask = Task.Run(PrepareSoundsData);
             // Now begin to compile the geometry block in a MemoryStream
             byte[] geometryDataBuffer;
-            using (var geometryDataStream = new MemoryStream())
+            using (var geometryDataStream = new MemoryStream(65535))
             {
                 var writer = new BinaryWriter(geometryDataStream); // Don't dispose
                 ReportProgress(80, "Writing geometry data to memory buffer");
