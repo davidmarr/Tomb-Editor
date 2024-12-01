@@ -186,45 +186,44 @@ namespace TombLib.LevelData.Compilers
 
                 CompressionLevel compressionLevel = _level.Settings.FastMode ? CompressionLevel.NoCompression : CompressionLevel.SmallestSize;
 
-                using (Task Texture32task = Task.Factory.StartNew(() =>
+                var Texture32task = Task.Run(() =>
                 {
                     texture32 = ZLib.CompressData(_texture32Data, compressionLevel);
                     texture32UncompressedSize = _texture32Data.Length;
-                }))
-                using (Task Texture16task = Task.Factory.StartNew(() =>
+                });
+                var Texture16task = Task.Run(() =>
                 {
                     byte[] texture16Data = PackTextureMap32To16Bit(_texture32Data, _level.Settings);
                     texture16 = ZLib.CompressData(texture16Data, compressionLevel);
                     texture16UncompressedSize = texture16Data.Length;
-                }))
-                using (Task textureMiscTask = Task.Factory.StartNew(() =>
+                });
+                var textureMiscTask = Task.Run(() =>
                 {
                     Stream textureMiscData = PrepareFontAndSkyTexture();
                     textureMisc = ZLib.CompressData(textureMiscData, compressionLevel);
                     textureMiscUncompressedSize = (int)textureMiscData.Length;
-                }))
-                using (Task GeometryDataTask = Task.Factory.StartNew(() =>
+                });
+                var GeometryDataTask = Task.Run(() =>
                 {
                     geometryData = ZLib.CompressData(geometryDataBuffer, compressionLevel);
                     geometryDataUncompressedSize = geometryDataBuffer.Length;
-                }))
-                Task.WaitAll(Texture32task, Texture16task, textureMiscTask, GeometryDataTask);
+                });
 
                 // Write data
                 ReportProgress(96, "Writing compressed data to file.");
-
+                Texture32task.Wait();
                 writer.Write(texture32UncompressedSize);
                 writer.Write(texture32.Length);
                 writer.Write(texture32);
-
+                Texture16task.Wait();
                 writer.Write(texture16UncompressedSize);
                 writer.Write(texture16.Length);
                 writer.Write(texture16);
-
+                textureMiscTask.Wait();
                 writer.Write(textureMiscUncompressedSize);
                 writer.Write(textureMisc.Length);
                 writer.Write(textureMisc);
-
+                GeometryDataTask.Wait();
                 writer.Write(geometryDataUncompressedSize);
                 writer.Write(geometryData.Length);
                 writer.Write(geometryData);
