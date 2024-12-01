@@ -86,7 +86,7 @@ namespace TombLib.LevelData.Compilers
                 writer.WriteBlockArray(_staticMeshes);
 
                 // SPR block
-                writer.WriteBlockArray(new byte[] { 0x53, 0x50, 0x52 });
+                writer.Write(stackalloc byte[] { 0x53, 0x50, 0x52 });
 
                 writer.Write((uint)_spriteTextures.Count);
                 writer.WriteBlockArray(_spriteTextures);
@@ -137,7 +137,7 @@ namespace TombLib.LevelData.Compilers
 
                 // Write object textures
                 writer.Write(checked((byte)_textureInfoManager.UvRotateCount));
-                writer.Write(new byte[] { 0x54, 0x45, 0x58 });
+                writer.Write(stackalloc byte[] { 0x54, 0x45, 0x58 });
 
                 _textureInfoManager.WriteTextureInfos(writer, _level);
 
@@ -163,7 +163,7 @@ namespace TombLib.LevelData.Compilers
             using (var writer = new BinaryWriter(new FileStream(_dest, FileMode.Create, FileAccess.Write, FileShare.None)))
             {
                 ReportProgress(90, "Writing final level");
-                writer.WriteBlockArray(new byte[] { 0x54, 0x52, 0x34, 0x00 });
+                writer.Write(stackalloc byte[] { 0x54, 0x52, 0x34, 0x00 });
 
                 ReportProgress(91, "Writing textures");
 
