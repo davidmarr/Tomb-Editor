@@ -11,6 +11,7 @@ namespace TombLib.LevelData.Compilers
     {
         private void WriteLevelTr4(string ngVersion = null)
         {
+            var SoundDataTask = Task.Run(PrepareSoundsData);
             // Now begin to compile the geometry block in a MemoryStream
             byte[] geometryDataBuffer;
             using (var geometryDataStream = new MemoryStream())
@@ -146,9 +147,9 @@ namespace TombLib.LevelData.Compilers
 
                 writer.Write((uint)_aiItems.Count);
                 writer.WriteBlockArray(_aiItems);
-
+               
+                SoundDataTask.Wait();
                 // Write sound meta data
-                PrepareSoundsData();
                 WriteSoundMetadata(writer);
 
                 // Finish it

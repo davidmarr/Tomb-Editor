@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using TombLib.IO;
 
 namespace TombLib.LevelData.Compilers
@@ -10,6 +11,7 @@ namespace TombLib.LevelData.Compilers
     {
         private void WriteLevelTr2()
         {
+            var SoundDataTask = Task.Run(PrepareSoundsData);
             // Now begin to compile the geometry block in a MemoryStream
             using (var writer = new BinaryWriter(new FileStream(_dest, FileMode.Create, FileAccess.Write, FileShare.None)))
             {
@@ -196,8 +198,8 @@ namespace TombLib.LevelData.Compilers
                 const ushort numDemo = 0;
                 writer.Write(numDemo);
 
+                SoundDataTask.Wait();
                 // Write sound meta data
-                PrepareSoundsData();
                 WriteSoundMetadata(writer);
             }
         }

@@ -11,6 +11,8 @@ namespace TombLib.LevelData.Compilers
     {
         private void WriteLevelTr5()
         {
+            var SoundDataTask = Task.Run(PrepareSoundsData);
+            SoundDataTask.Wait();
             AddNecessaryTr5Items();
 
             // Now begin to compile the geometry block in a MemoryStream
@@ -152,9 +154,9 @@ namespace TombLib.LevelData.Compilers
 
                 writer.Write((uint)_aiItems.Count);
                 writer.WriteBlockArray(_aiItems);
-
+                
+                SoundDataTask.Wait();
                 // Write sound meta data
-                PrepareSoundsData();
                 WriteSoundMetadata(writer);
 
                 // Finish it
