@@ -9,8 +9,89 @@ namespace TombLib.LevelData.Compilers
 {
     public partial class LevelCompilerClassicTR
     {
+        private byte[] WriteObjectData()
+        {
+            using var stream = new MemoryStream(65535);
+            using var writer = new BinaryWriter(stream);
+            writer.Write((uint)_meshTrees.Count);
+            writer.WriteBlockArray(_meshTrees);
+
+            writer.Write((uint)_frames.Count);
+            writer.WriteBlockArray(_frames);
+
+            writer.Write((uint)_moveables.Count);
+            writer.WriteBlockArray(_moveables);
+
+            writer.Write((uint)_staticMeshes.Count);
+            writer.WriteBlockArray(_staticMeshes);
+            return stream.ToArray();
+        }
+        private byte[] WritePathfindingData()
+        {
+            using var stream = new MemoryStream(65535);
+            using var writer = new BinaryWriter(stream);
+            writer.Write((uint)_boxes.Length);
+            writer.WriteBlockArray(_boxes);
+
+            writer.Write((uint)_overlaps.Length);
+            writer.WriteBlockArray(_overlaps);
+
+            for (var i = 0; i < _boxes.Length; i++)
+                writer.Write(_zones[i].GroundZone1_Normal);
+            for (var i = 0; i < _boxes.Length; i++)
+                writer.Write(_zones[i].GroundZone2_Normal);
+            for (var i = 0; i < _boxes.Length; i++)
+                writer.Write(_zones[i].GroundZone3_Normal);
+            for (var i = 0; i < _boxes.Length; i++)
+                writer.Write(_zones[i].GroundZone4_Normal);
+            for (var i = 0; i < _boxes.Length; i++)
+                writer.Write(_zones[i].FlyZone_Normal);
+            for (var i = 0; i < _boxes.Length; i++)
+                writer.Write(_zones[i].GroundZone1_Alternate);
+            for (var i = 0; i < _boxes.Length; i++)
+                writer.Write(_zones[i].GroundZone2_Alternate);
+            for (var i = 0; i < _boxes.Length; i++)
+                writer.Write(_zones[i].GroundZone3_Alternate);
+            for (var i = 0; i < _boxes.Length; i++)
+                writer.Write(_zones[i].GroundZone4_Alternate);
+            for (var i = 0; i < _boxes.Length; i++)
+                writer.Write(_zones[i].FlyZone_Alternate);
+            return stream.ToArray();
+        }
+        private byte[] WriteCameraData()
+        {
+            using var stream = new MemoryStream(65535);
+            using var writer = new BinaryWriter(stream);
+            writer.Write((uint)_cameras.Count);
+            writer.WriteBlockArray(_cameras);
+
+            writer.Write((uint)_flyByCameras.Count);
+            writer.WriteBlockArray(_flyByCameras);
+
+            writer.Write((uint)_soundSources.Count);
+            writer.WriteBlockArray(_soundSources);
+            return stream.ToArray();
+        }
+        private byte[] WriteAnimData()
+        {
+            using var stream = new MemoryStream(65535);
+            using var writer = new BinaryWriter(stream);
+            writer.Write((uint)_stateChanges.Count);
+            writer.WriteBlockArray(_stateChanges);
+
+            writer.Write((uint)_animDispatches.Count);
+            writer.WriteBlockArray(_animDispatches);
+
+            writer.Write((uint)_animCommands.Count);
+            writer.WriteBlockArray(_animCommands);
+            return stream.ToArray();
+        }
         private void WriteLevelTr4(string ngVersion = null)
         {
+            var objectDataTask = Task.Run(WriteObjectData);
+            var pathfindingDataTask = Task.Run(WritePathfindingData);
+            var cameraDataTask = Task.Run(WriteCameraData);
+            var animationDataTask = Task.Run(WriteAnimData);
             var SoundDataTask = Task.Run(PrepareSoundsData);
             // Now begin to compile the geometry block in a MemoryStream
             byte[] geometryDataBuffer;
@@ -64,26 +145,9 @@ namespace TombLib.LevelData.Compilers
                 foreach (var anim in _animations)
                     anim.Write(writer, _level);
 
-                writer.Write((uint)_stateChanges.Count);
-                writer.WriteBlockArray(_stateChanges);
+                writer.Write(animationDataTask.Result);
 
-                writer.Write((uint)_animDispatches.Count);
-                writer.WriteBlockArray(_animDispatches);
-
-                writer.Write((uint)_animCommands.Count);
-                writer.WriteBlockArray(_animCommands);
-
-                writer.Write((uint)_meshTrees.Count);
-                writer.WriteBlockArray(_meshTrees);
-
-                writer.Write((uint)_frames.Count);
-                writer.WriteBlockArray(_frames);
-
-                writer.Write((uint)_moveables.Count);
-                writer.WriteBlockArray(_moveables);
-
-                writer.Write((uint)_staticMeshes.Count);
-                writer.WriteBlockArray(_staticMeshes);
+                writer.Write(objectDataTask.Result);
 
                 // SPR block
                 writer.Write(stackalloc byte[] { 0x53, 0x50, 0x52 });
@@ -95,42 +159,10 @@ namespace TombLib.LevelData.Compilers
                 writer.WriteBlockArray(_spriteSequences);
 
                 // Write camera, flyby and sound sources
-                writer.Write((uint)_cameras.Count);
-                writer.WriteBlockArray(_cameras);
-
-                writer.Write((uint)_flyByCameras.Count);
-                writer.WriteBlockArray(_flyByCameras);
-
-                writer.Write((uint)_soundSources.Count);
-                writer.WriteBlockArray(_soundSources);
+                writer.Write(cameraDataTask.Result);
 
                 // Write pathfinding data
-                writer.Write((uint)_boxes.Length);
-                writer.WriteBlockArray(_boxes);
-
-                writer.Write((uint)_overlaps.Length);
-                writer.WriteBlockArray(_overlaps);
-
-                for (var i = 0; i < _boxes.Length; i++)
-                    writer.Write(_zones[i].GroundZone1_Normal);
-                for (var i = 0; i < _boxes.Length; i++)
-                    writer.Write(_zones[i].GroundZone2_Normal);
-                for (var i = 0; i < _boxes.Length; i++)
-                    writer.Write(_zones[i].GroundZone3_Normal);
-                for (var i = 0; i < _boxes.Length; i++)
-                    writer.Write(_zones[i].GroundZone4_Normal);
-                for (var i = 0; i < _boxes.Length; i++)
-                    writer.Write(_zones[i].FlyZone_Normal);
-                for (var i = 0; i < _boxes.Length; i++)
-                    writer.Write(_zones[i].GroundZone1_Alternate);
-                for (var i = 0; i < _boxes.Length; i++)
-                    writer.Write(_zones[i].GroundZone2_Alternate);
-                for (var i = 0; i < _boxes.Length; i++)
-                    writer.Write(_zones[i].GroundZone3_Alternate);
-                for (var i = 0; i < _boxes.Length; i++)
-                    writer.Write(_zones[i].GroundZone4_Alternate);
-                for (var i = 0; i < _boxes.Length; i++)
-                    writer.Write(_zones[i].FlyZone_Alternate);
+                writer.Write(pathfindingDataTask.Result);
 
                 // Write animated textures
                 _textureInfoManager.WriteAnimatedTextures(writer);
