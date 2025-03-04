@@ -1,3 +1,22 @@
+Version 1.8
+===========
+
+Tomb Editor:
+ * Fixed tigger export returning wrong ConditionNg mask for non-Moveable objects.
+
+TombIDE:
+* Fixed archive creator not including `patches.fpd` for TRNG projects.
+
+Version 1.7.4
+=============
+
+Tomb Editor:
+ * Fixed occasional incorrect slide directions for flat slopes.
+ * Fixed incorrect wall collision generation near vertical portals in TEN.
+ 
+TEN Base WAD:
+ * Added WATERFALL_SPRITES (1378) for use with the waterfall emitter in TombEngine.
+
 Version 1.7.3
 =============
 
