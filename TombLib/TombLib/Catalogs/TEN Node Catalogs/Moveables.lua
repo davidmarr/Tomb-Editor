@@ -1,3 +1,6 @@
+local error = "Error, unable to find moveable with name "
+
+
 -- !Name "If moveable is active..."
 -- !Section "Moveable state"
 -- !Description "Checks if moveable is active."
@@ -5,7 +8,10 @@
 -- !Arguments "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.TestMoveableActivity = function(moveableName)
-	return TEN.Objects.GetMoveableByName(moveableName):GetActive()
+	if TEN.Objects.IsNameInUse(moveableName) then
+		return TEN.Objects.GetMoveableByName(moveableName):GetActive()
+	end
+	return false
 end
 
 -- !Name "If health of a moveable is..."
@@ -16,8 +22,12 @@ end
 -- !Arguments "Numerical, 30, Hit points value, [ 0 | 3000 | 0 | 1 | 5 ]"
 
 LevelFuncs.Engine.Node.TestHitPoints = function(moveableName, operator, value)
-	local health = TEN.Objects.GetMoveableByName(moveableName):GetHP()
-	return LevelFuncs.Engine.Node.CompareValue(health, value, operator)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local health = TEN.Objects.GetMoveableByName(moveableName):GetHP()
+		return LevelFuncs.Engine.Node.CompareValue(health, value, operator)
+	end
+	print(error .. moveableName)
+	return false
 end
 
 -- !Name "If ID of a moveable is..."
@@ -27,7 +37,10 @@ end
 -- !Arguments "NewLine, Moveables, Moveable to check" "NewLine, WadSlots, Object ID to compare to"
 
 LevelFuncs.Engine.Node.TestMoveableId = function(moveableName, objectId)
-	return TEN.Objects.GetMoveableByName(moveableName):GetObjectID() == objectId
+	if TEN.Objects.IsNameInUse(moveableName) then
+		return TEN.Objects.GetMoveableByName(moveableName):GetObjectID() == objectId
+	end
+	return false
 end
 
 -- !Name "If name of a moveable is..."
@@ -38,7 +51,10 @@ end
 -- !Arguments "NewLine, String, Moveable name to compare to"
 
 LevelFuncs.Engine.Node.TestMoveableName = function(moveableName, name)
-	return TEN.Objects.GetMoveableByName(moveableName):GetName() == name
+	if TEN.Objects.IsNameInUse(moveableName) then
+		return TEN.Objects.GetMoveableByName(moveableName):GetName() == name
+	end
+	return false
 end
 
 -- !Name "If name of a moveable contains..."
@@ -284,6 +300,16 @@ end
 
 LevelFuncs.Engine.Node.DisableMoveable = function(moveableName)
 	TEN.Objects.GetMoveableByName(moveableName):Disable()
+end
+
+-- !Name "Destroy moveable"
+-- !Section "Moveable state"
+-- !Description "Destroys moveable."
+-- !Arguments "NewLine, Moveables"
+
+LevelFuncs.Engine.Node.DestroyMoveable = function(moveableName)
+	TEN.Objects.GetMoveableByName(moveableName):Disable()
+	TEN.Objects.GetMoveableByName(moveableName):Destroy()
 end
 
 -- !Name "Set moveable collision state"
