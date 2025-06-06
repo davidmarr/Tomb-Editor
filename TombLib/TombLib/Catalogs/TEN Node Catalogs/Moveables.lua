@@ -1,6 +1,3 @@
-local error = "Error, unable to find moveable with name "
-
-
 -- !Name "If moveable is active..."
 -- !Section "Moveable state"
 -- !Description "Checks if moveable is active."
@@ -14,6 +11,17 @@ LevelFuncs.Engine.Node.TestMoveableActivity = function(moveableName)
 	return false
 end
 
+-- !Name "If name is in use..."
+-- !Section "Moveable parameters"
+-- !Description "Check if a given lua name is in use by any moveable."
+-- !Conditional "True"
+-- !Arguments "NewLine, Moveables, Moveable to check"
+
+LevelFuncs.Engine.Node.IsNameInUse = function(moveableName, operator, value)
+	return TEN.Objects.IsNameInUse(moveableName)
+end
+
+
 -- !Name "If health of a moveable is..."
 -- !Section "Moveable parameters"
 -- !Description "Compares selected moveable health with given value."
@@ -26,7 +34,6 @@ LevelFuncs.Engine.Node.TestHitPoints = function(moveableName, operator, value)
 		local health = TEN.Objects.GetMoveableByName(moveableName):GetHP()
 		return LevelFuncs.Engine.Node.CompareValue(health, value, operator)
 	end
-	print(error .. moveableName)
 	return false
 end
 
@@ -65,7 +72,10 @@ end
 -- !Arguments "NewLine, String, String to search in moveable name"
 
 LevelFuncs.Engine.Node.TestMoveableNamePart = function(moveableName, namePart)
-	return (string.find(TEN.Objects.GetMoveableByName(moveableName):GetName(), namePart))
+	if TEN.Objects.IsNameInUse(moveableName) then
+		return (string.find(TEN.Objects.GetMoveableByName(moveableName):GetName(), namePart))
+	end
+	return false
 end
 
 -- !Name "If animation of a moveable is..."
@@ -75,7 +85,10 @@ end
 -- !Arguments "NewLine, Moveables, 80" "Numerical, 20, [ 0 | 1000 ], Animation ID"
 
 LevelFuncs.Engine.Node.TestMoveableAnimation = function(moveableName, animationId)
-	return TEN.Objects.GetMoveableByName(moveableName):GetAnim() == animationId
+	if TEN.Objects.IsNameInUse(moveableName) then
+		return TEN.Objects.GetMoveableByName(moveableName):GetAnim() == animationId
+	end
+	return false
 end
 
 -- !Name "If animation slot of a moveable is..."
@@ -85,7 +98,10 @@ end
 -- !Arguments "NewLine, Moveables" "NewLine, WadSlots, Moveable slot ID to check"
 
 LevelFuncs.Engine.Node.TestMoveableAnimationSlot = function(moveableName, slotId)
-	return TEN.Objects.GetMoveableByName(moveableName):GetAnimSlot() == slotId
+	if TEN.Objects.IsNameInUse(moveableName) then
+		return TEN.Objects.GetMoveableByName(moveableName):GetAnimSlot() == slotId
+	end
+	return false
 end
 
 -- !Name "If animation of a moveable is complete..."
@@ -95,10 +111,12 @@ end
 -- !Arguments "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.TestMoveableAnimationComplete = function(moveableName)
-	local frameNumber = TEN.Objects.GetMoveableByName(moveableName):GetFrame()
-	local endFrameNumber = TEN.Objects.GetMoveableByName(moveableName):GetEndFrame()
-
-	return (frameNumber >= endFrameNumber)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local frameNumber = TEN.Objects.GetMoveableByName(moveableName):GetFrame()
+		local endFrameNumber = TEN.Objects.GetMoveableByName(moveableName):GetEndFrame()
+		return (frameNumber >= endFrameNumber)
+	end
+	return false
 end
 
 -- !Name "If frame number of a moveable is..."
@@ -109,9 +127,11 @@ end
 -- !Arguments "Numerical, 13, [ 0 | 9999 ], Lower frame bound" "Numerical, 13, [ 0 | 9999 ], Upper frame bound"
 
 LevelFuncs.Engine.Node.TestMoveableFrameNumber = function(moveableName, lower, upper)
-	local frameNumber = TEN.Objects.GetMoveableByName(moveableName):GetFrame()
-
-	return (frameNumber >= lower and frameNumber <= upper)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local frameNumber = TEN.Objects.GetMoveableByName(moveableName):GetFrame()
+		return (frameNumber >= lower and frameNumber <= upper)
+	end
+	return false
 end
 
 -- !Name "If state of a moveable is..."
@@ -121,7 +141,10 @@ end
 -- !Arguments "NewLine, Moveables, 80" "Numerical, 20, [ 0 | 1000 ], State ID"
 
 LevelFuncs.Engine.Node.TestMoveableCurrentState = function(moveableName, stateId)
-	return TEN.Objects.GetMoveableByName(moveableName):GetState() == stateId
+	if TEN.Objects.IsNameInUse(moveableName) then
+		return TEN.Objects.GetMoveableByName(moveableName):GetState() == stateId
+	end
+	return false
 end
 
 -- !Name "If position of a moveable is within range..."
@@ -133,10 +156,13 @@ end
 -- !Arguments "NewLine, Vector3, [ -1000000 | 1000000 ], Upper position bound" "NewLine, Vector3, [ -1000000 | 1000000 ], Lower position bound"
 
 LevelFuncs.Engine.Node.TestMoveablePosition = function(moveableName, pos1, pos2)
-	local pos = TEN.Objects.GetMoveableByName(moveableName):GetPosition()
-	return (pos.x >= pos1.x and pos.x <= pos2.x and
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local pos = TEN.Objects.GetMoveableByName(moveableName):GetPosition()
+		return (pos.x >= pos1.x and pos.x <= pos2.x and
 		pos.y >= pos1.y and pos.y <= pos2.y and
 		pos.z >= pos1.z and pos.z <= pos2.z)
+	end
+	return false
 end
 
 -- !Name "If rotation of a moveable is within range..."
@@ -147,8 +173,11 @@ end
 -- !Arguments "Numerical, 15, [ 0 | 359 ], In range (in degrees)" "Numerical, 15, [ 0 | 359 ], Out range (in degrees)"
 
 LevelFuncs.Engine.Node.TestMoveableRotation = function(moveableName, rot1, rot2)
-	local rot = TEN.Objects.GetMoveableByName(moveableName):GetRotation().y
-	return (rot >= rot1 and rot <= rot2)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local rot = TEN.Objects.GetMoveableByName(moveableName):GetRotation().y
+		return (rot >= rot1 and rot <= rot2)
+	end
+	return false
 end
 
 -- !Name "If speed of a moveable is..."
@@ -160,16 +189,19 @@ end
 -- !Arguments "Enumeration, 50, [ Horizontal | Vertical | Combined ], Speed direction to compare"
 
 LevelFuncs.Engine.Node.TestMoveableSpeed = function(moveableName, operator, value, type)
-	local spd = TEN.Objects.GetMoveableByName(moveableName):GetVelocity()
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local spd = TEN.Objects.GetMoveableByName(moveableName):GetVelocity()
 
-	if (type == 0) then
-		return LevelFuncs.Engine.Node.CompareValue(spd.z, value, operator)
-	elseif (type == 1) then
-		return LevelFuncs.Engine.Node.CompareValue(spd.y, value, operator)
-	else
-		local length = math.sqrt(spd.x * spd.x + spd.y * spd.y + spd.z * spd.z)
-		return LevelFuncs.Engine.Node.CompareValue(length, value, operator)
+		if (type == 0) then
+			return LevelFuncs.Engine.Node.CompareValue(spd.z, value, operator)
+		elseif (type == 1) then
+			return LevelFuncs.Engine.Node.CompareValue(spd.y, value, operator)
+		else
+			local length = math.sqrt(spd.x * spd.x + spd.y * spd.y + spd.z * spd.z)
+			return LevelFuncs.Engine.Node.CompareValue(length, value, operator)
+		end
 	end
+	return false
 end
 
 -- !Name "If OCB of a moveable is..."
@@ -180,8 +212,11 @@ end
 -- !Arguments "Numerical, 30, [ -65536 | 65535 ], OCB value"
 
 LevelFuncs.Engine.Node.TestMoveableOCB = function(moveableName, value)
-	local ocb = TEN.Objects.GetMoveableByName(moveableName):GetOCB()
-	return (ocb == value)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local ocb = TEN.Objects.GetMoveableByName(moveableName):GetOCB()
+		return (ocb == value)
+	end
+	return false
 end
 
 -- !Name "If moveable is collidable..."
@@ -191,7 +226,10 @@ end
 -- !Arguments "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.TestMoveableCollidability = function(moveableName)
-	return TEN.Objects.GetMoveableByName(moveableName):GetCollidable()
+	if TEN.Objects.IsNameInUse(moveableName) then
+		return TEN.Objects.GetMoveableByName(moveableName):GetCollidable()
+	end
+	return false
 end
 
 -- !Name "If mesh number of a moveable is visible..."
@@ -202,7 +240,10 @@ end
 -- !Arguments "Numerical, 30, [ 0 | 31 ], Mesh index to check"
 
 LevelFuncs.Engine.Node.TestMoveableMeshVisibility = function(moveableName, value)
-	return TEN.Objects.GetMoveableByName(moveableName):GetMeshVisible(value)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		return TEN.Objects.GetMoveableByName(moveableName):GetMeshVisible(value)
+	end
+	return false
 end
 
 -- !Name "If moveable is on the line of sight..."
@@ -213,9 +254,12 @@ end
 -- !Arguments "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.TestMoveableLOS = function(moveableName1, moveableName2)
-	local mov1 = TEN.Objects.GetMoveableByName(moveableName1)
-	local mov2 = TEN.Objects.GetMoveableByName(moveableName2)
-	return TEN.Util.HasLineOfSight(mov1:GetRoom(), mov1:GetPosition(), mov2:GetPosition())
+	if TEN.Objects.IsNameInUse(moveableName1) and TEN.Objects.IsNameInUse(moveableName2) then
+		local mov1 = TEN.Objects.GetMoveableByName(moveableName1)
+		local mov2 = TEN.Objects.GetMoveableByName(moveableName2)
+		return TEN.Util.HasLineOfSight(mov1:GetRoom(), mov1:GetPosition(), mov2:GetPosition())
+	end
+	return false
 end
 
 -- !Name "If distance between moveables is..."
@@ -228,17 +272,20 @@ end
 -- !Arguments "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.TestMoveableDistance = function(operator, value, type, moveableName1, moveableName2)
-	local mov1 = TEN.Objects.GetMoveableByName(moveableName1)
-	local mov2 = TEN.Objects.GetMoveableByName(moveableName2)
+	if TEN.Objects.IsNameInUse(moveableName1) and TEN.Objects.IsNameInUse(moveableName2) then
+		local mov1 = TEN.Objects.GetMoveableByName(moveableName1)
+		local mov2 = TEN.Objects.GetMoveableByName(moveableName2)
 
-	local distance = 0
-	if (type == 0) then
-		distance = TEN.Util.CalculateDistance(mov1:GetPosition(), mov2:GetPosition())
-	else
-		distance = TEN.Util.CalculateHorizontalDistance(mov1:GetPosition(), mov2:GetPosition())
+		local distance = 0
+		if (type == 0) then
+			distance = TEN.Util.CalculateDistance(mov1:GetPosition(), mov2:GetPosition())
+		else
+			distance = TEN.Util.CalculateHorizontalDistance(mov1:GetPosition(), mov2:GetPosition())
+		end
+
+		return LevelFuncs.Engine.Node.CompareValue(distance, value, operator)
 	end
-
-	return LevelFuncs.Engine.Node.CompareValue(distance, value, operator)
+	return false
 end
 
 -- !Name "If distance between static and moveable is..."
@@ -251,17 +298,20 @@ end
 -- !Arguments "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.TestMoveableDistanceWithStatic = function(operator, value, type, staticName, moveableName)
-	local stat     = TEN.Objects.GetStaticByName(staticName)
-	local mov      = TEN.Objects.GetMoveableByName(moveableName)
+	if TEN.Objects.IsNameInUse(staticName) and TEN.Objects.IsNameInUse(moveableName) then
+		local stat     = TEN.Objects.GetStaticByName(staticName)
+		local mov      = TEN.Objects.GetMoveableByName(moveableName)
 
-	local distance = 0
-	if (type == 0) then
-		distance = TEN.Util.CalculateDistance(mov:GetPosition(), stat:GetPosition())
-	else
-		distance = TEN.Util.CalculateHorizontalDistance(mov:GetPosition(), stat:GetPosition())
+		local distance = 0
+		if (type == 0) then
+			distance = TEN.Util.CalculateDistance(mov:GetPosition(), stat:GetPosition())
+		else
+			distance = TEN.Util.CalculateHorizontalDistance(mov:GetPosition(), stat:GetPosition())
+		end
+
+		return LevelFuncs.Engine.Node.CompareValue(distance, value, operator)
 	end
-
-	return LevelFuncs.Engine.Node.CompareValue(distance, value, operator)
+	return false
 end
 			   
 -- !Name "Create moveable"
@@ -290,7 +340,9 @@ end
 -- !Arguments "NewLine, Moveables, 80" "Numerical, 20, [ 0 | 256 | 2 | 0.1 | 1 ], {0}, Timer"
 
 LevelFuncs.Engine.Node.EnableMoveable = function(moveableName, timer)
-	TEN.Objects.GetMoveableByName(moveableName):Enable(timer)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):Enable(timer)
+	end
 end
 
 -- !Name "Disable moveable"
@@ -299,7 +351,9 @@ end
 -- !Arguments "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.DisableMoveable = function(moveableName)
-	TEN.Objects.GetMoveableByName(moveableName):Disable()
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):Disable()
+	end
 end
 
 -- !Name "Destroy moveable"
@@ -308,8 +362,10 @@ end
 -- !Arguments "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.DestroyMoveable = function(moveableName)
-	TEN.Objects.GetMoveableByName(moveableName):Disable()
-	TEN.Objects.GetMoveableByName(moveableName):Destroy()
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):Disable()
+		TEN.Objects.GetMoveableByName(moveableName):Destroy()
+	end
 end
 
 -- !Name "Set moveable collision state"
@@ -318,7 +374,9 @@ end
 -- !Arguments "NewLine, Moveables, 80" "Boolean, 20, Collidable"
 
 LevelFuncs.Engine.Node.SetMoveableCollidability = function(moveableName, state)
-	return TEN.Objects.GetMoveableByName(moveableName):SetCollidable(state)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		return TEN.Objects.GetMoveableByName(moveableName):SetCollidable(state)
+	end
 end
 
 -- !Name "Set moveable's animation"
@@ -327,7 +385,9 @@ end
 -- !Arguments "NewLine, Moveables, 80" "Numerical, 20, [ 0 | 1000 ], Animation ID"
 
 LevelFuncs.Engine.Node.SetMoveableAnimation = function(moveableName, animationId)
-	TEN.Objects.GetMoveableByName(moveableName):SetAnim(animationId)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):SetAnim(animationId)
+	end
 end
 
 -- !Name "Set moveable's animation from another slot"
@@ -336,7 +396,9 @@ end
 -- !Arguments "NewLine, Moveables, 80" "Numerical, 20, [ 0 | 1000 ], Animation ID"  "NewLine, WadSlots, Moveable slot ID"
 
 LevelFuncs.Engine.Node.SetMoveableAnimationFromAnotherSlot = function(moveableName, animationId, slotId)
-	TEN.Objects.GetMoveableByName(moveableName):SetAnim(animationId, slotId)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):SetAnim(animationId, slotId)
+	end
 end
 
 -- !Name "Set moveable's state"
@@ -345,7 +407,9 @@ end
 -- !Arguments "NewLine, Moveables, 80" "Numerical, 20, [ 0 | 1000 ], State ID"
 
 LevelFuncs.Engine.Node.SetMoveableState = function(moveableName, stateId)
-	TEN.Objects.GetMoveableByName(moveableName):SetState(stateId)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):SetState(stateId)
+	end
 end
 
 -- !Name "Shatter moveable"
@@ -354,7 +418,9 @@ end
 -- !Arguments "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.ShatterMoveable = function(moveableName)
-	TEN.Objects.GetMoveableByName(moveableName):Shatter()
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):Shatter()
+	end
 end
 
 -- !Name "Shatter specified moveable mesh"
@@ -364,7 +430,9 @@ end
 -- !Arguments "Numerical, 15, [ 0 | 31 ], Mesh index to shatter"
 
 LevelFuncs.Engine.Node.ShatterMoveableMesh = function(moveableName, value)
-	TEN.Objects.GetMoveableByName(moveableName):ShatterMesh(value)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):ShatterMesh(value)
+	end
 end
 
 -- !Name "Explode moveable"
@@ -373,7 +441,9 @@ end
 -- !Arguments "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.ExplodeMoveable = function(moveableName)
-	TEN.Objects.GetMoveableByName(moveableName):Explode()
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):Explode()
+	end
 end
 
 -- !Name "Play sound near moveable"
@@ -382,7 +452,9 @@ end
 -- !Arguments "NewLine, Moveables, Moveable to play sound around" "NewLine, SoundEffects, Sound to play"
 
 LevelFuncs.Engine.Node.PlaySoundAroundMoveable = function(moveableName, soundID)
-	TEN.Sound.PlaySound(soundID, TEN.Objects.GetMoveableByName(moveableName):GetPosition())
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Sound.PlaySound(soundID, TEN.Objects.GetMoveableByName(moveableName):GetPosition())
+	end
 end
 
 -- !Name "Modify health of a moveable"
@@ -392,11 +464,13 @@ end
 -- !Arguments "Numerical, [ -1000 | 1000 | 0 | 1 | 5 ], 15, Health value to define", "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.SetMoveableHitPoints = function(operation, value, moveableName)
-	if (operation == 0) then
-		local moveable = TEN.Objects.GetMoveableByName(moveableName)
-		moveable:SetHP(moveable:GetHP() + value)
-	else
-		TEN.Objects.GetMoveableByName(moveableName):SetHP(value)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		if (operation == 0) then
+			local moveable = TEN.Objects.GetMoveableByName(moveableName)
+			moveable:SetHP(moveable:GetHP() + value)
+		else
+			TEN.Objects.GetMoveableByName(moveableName):SetHP(value)
+		end
 	end
 end
 
@@ -406,7 +480,9 @@ end
 -- !Arguments "Numerical, [ -65536 | 65535 | 0 | 1 | 5 ], 20, OCB to define", "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.SetMoveableOCB = function(value, moveableName)
-	TEN.Objects.GetMoveableByName(moveableName):SetOCB(value)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):SetOCB(value)
+	end
 end
 
 -- !Name "Modify position of a moveable"
@@ -417,17 +493,20 @@ end
 -- !Arguments "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.SetMoveablePosition = function(operation, value, moveableName)
-	local moveable = TEN.Objects.GetMoveableByName(moveableName)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local moveable = TEN.Objects.GetMoveableByName(moveableName)
 
-	if (operation == 0) then
-		local position = moveable:GetPosition();
-		position.x = position.x + value.x
-		position.y = position.y + value.y
-		position.z = position.z + value.z
-		moveable:SetPosition(position)
-	else
-		moveable:SetPosition(value)
+		if (operation == 0) then
+			local position = moveable:GetPosition();
+			position.x = position.x + value.x
+			position.y = position.y + value.y
+			position.z = position.z + value.z
+			moveable:SetPosition(position)
+		else
+			moveable:SetPosition(value)
+		end
 	end
+	
 end
 
 -- !Name "Modify rotation of a moveable"
@@ -437,16 +516,18 @@ end
 -- !Arguments "Numerical, [ -360 | 360 | 2 | 1 | 5 ], 15, Rotation value to define", "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.SetMoveableRotation = function(operation, value, moveableName)
-	local moveable = TEN.Objects.GetMoveableByName(moveableName)
-	local rotation = moveable:GetRotation();
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local moveable = TEN.Objects.GetMoveableByName(moveableName)
+		local rotation = moveable:GetRotation();
 
-	if (operation == 0) then
-		rotation.y = LevelFuncs.Engine.Node.WrapRotation(rotation.y, value)
-	else
-		rotation.y = value
+		if (operation == 0) then
+			rotation.y = LevelFuncs.Engine.Node.WrapRotation(rotation.y, value)
+		else
+			rotation.y = value
+		end
+
+		moveable:SetRotation(rotation)
 	end
-
-	moveable:SetRotation(rotation)
 end
 
 -- !Name "Modify scale of a moveable"
@@ -457,16 +538,18 @@ end
 -- !Arguments "NewLine, Moveables"
 
 LevelFuncs.Engine.Node.SetMoveableScale = function(operation, value, moveableName)
-	local moveable = TEN.Objects.GetMoveableByName(moveableName)
-	local scale = moveable:GetScale();
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local moveable = TEN.Objects.GetMoveableByName(moveableName)
+		local scale = moveable:GetScale();
 
-	if (operation == 0) then
-		scale = scale + value
-	else
-		scale = value
+		if (operation == 0) then
+			scale = scale + value
+		else
+			scale = value
+		end
+
+		moveable:SetScale(scale)
 	end
-
-	moveable:SetScale(scale)
 end
 
 -- !Name "Move moveable to another moveable"
@@ -477,13 +560,15 @@ end
 -- !Arguments "NewLine, Moveables, Moveable to get position and rotation from"
 
 LevelFuncs.Engine.Node.SetMoveablePositionToAnotherMoveable = function(rotate, destMoveable, srcMoveable)
-	local src = TEN.Objects.GetMoveableByName(srcMoveable)
-	local dest = TEN.Objects.GetMoveableByName(destMoveable)
+	if TEN.Objects.IsNameInUse(destMoveable) and TEN.Objects.IsNameInUse(srcMoveable) then
+		local src = TEN.Objects.GetMoveableByName(srcMoveable)
+		local dest = TEN.Objects.GetMoveableByName(destMoveable)
 
-	dest:SetPosition(src:GetPosition())
+		dest:SetPosition(src:GetPosition())
 
-	if (rotate == true) then
-		dest:SetRotation(src:GetRotation())
+		if (rotate == true) then
+			dest:SetRotation(src:GetRotation())
+		end
 	end
 end
 
@@ -494,18 +579,20 @@ end
 -- !Arguments "Numerical, [ -65535 | 65535 ], {256}, 15, Distance"
 
 LevelFuncs.Engine.Node.ShiftMoveable = function(moveableName, distance)
-	local moveable = TEN.Objects.GetMoveableByName(moveableName)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local moveable = TEN.Objects.GetMoveableByName(moveableName)
 
-	local angle = math.rad(moveable:GetRotation().y)
-	local dx = distance * math.sin(angle)
-	local dz = distance * math.cos(angle)
+		local angle = math.rad(moveable:GetRotation().y)
+		local dx = distance * math.sin(angle)
+		local dz = distance * math.cos(angle)
 
-	local newPosition = moveable:GetPosition()
+		local newPosition = moveable:GetPosition()
 
-	newPosition.x = newPosition.x + dx
-	newPosition.z = newPosition.z + dz
+		newPosition.x = newPosition.x + dx
+		newPosition.z = newPosition.z + dz
 
-	moveable:SetPosition(newPosition)
+		moveable:SetPosition(newPosition)
+	end
 end
 
 -- !Name "Set moveable color"
@@ -514,8 +601,10 @@ end
 -- !Arguments "NewLine, Moveables, 80" "Color, 20, Moveable color"
 
 LevelFuncs.Engine.Node.SetMoveableColor = function(moveableName, color)
-	color.a = TEN.Objects.GetMoveableByName(moveableName):GetColor().a
-	TEN.Objects.GetMoveableByName(moveableName):SetColor(color)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		color.a = TEN.Objects.GetMoveableByName(moveableName):GetColor().a
+		TEN.Objects.GetMoveableByName(moveableName):SetColor(color)
+	end
 end
 
 -- !Name "Set moveable transparency"
@@ -524,9 +613,11 @@ end
 -- !Arguments "NewLine, Moveables, 80" "Numerical, 20, [ 0 | 255 | 0 | 1 | 5 ], {255}, Moveable transparency"
 
 LevelFuncs.Engine.Node.SetMoveableTransparency = function(moveableName, transparency)
-	local color = TEN.Objects.GetMoveableByName(moveableName):GetColor()
-	color.a = transparency
-	TEN.Objects.GetMoveableByName(moveableName):SetColor(color)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local color = TEN.Objects.GetMoveableByName(moveableName):GetColor()
+		color.a = transparency
+		TEN.Objects.GetMoveableByName(moveableName):SetColor(color)
+	end
 end
 
 -- !Name "Set moveable visibility"
@@ -535,8 +626,10 @@ end
 -- !Arguments "NewLine, Moveables, 80"
 -- !Arguments "Enumeration, [ Visible  | Invisible ], 20, Visibility"
 LevelFuncs.Engine.Node.SetMoveableVisibility = function(moveableName, state)
-	local visibility = (state == 0) and true or false
-	TEN.Objects.GetMoveableByName(moveableName):SetVisible(visibility)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local visibility = (state == 0) and true or false
+		TEN.Objects.GetMoveableByName(moveableName):SetVisible(visibility)
+	end
 end
 
 -- !Name "Set specified moveable mesh visibility"
@@ -546,7 +639,9 @@ end
 -- !Arguments "Numerical, 15, [ 0 | 31 ], Mesh index to check" "Boolean, 15, Visible"
 
 LevelFuncs.Engine.Node.SetMoveableMeshVisibility = function(moveableName, value, state)
-	TEN.Objects.GetMoveableByName(moveableName):SetMeshVisible(value,state)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):SetMeshVisible(value,state)
+	end
 end
 
 -- !Name "Swap specified moveable mesh with another"
@@ -556,7 +651,10 @@ end
 -- !Arguments "NewLine, 80, WadSlots, Source slot" "Numerical, 20, [ 0 | 31 ], Mesh index to use"
 
 LevelFuncs.Engine.Node.SwapMoveableMesh = function(dest, destIndex, srcSlot, srcIndex)
-	TEN.Objects.GetMoveableByName(dest):SwapMesh(destIndex, srcSlot, srcIndex)
+	if TEN.Objects.IsNameInUse(dest) then
+		TEN.Objects.GetMoveableByName(dest):SwapMesh(destIndex, srcSlot, srcIndex)
+	end
+	
 end
 
 -- !Name "If moveable has effect..."
@@ -567,12 +665,14 @@ end
 -- !Arguments "NewLine, Moveables, Moveable to check"
 
 LevelFuncs.Engine.Node.TestMoveableEffect = function(effectID, moveableName)
-	local effect = TEN.Objects.GetMoveableByName(moveableName):GetEffect()
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local effect = TEN.Objects.GetMoveableByName(moveableName):GetEffect()
 
-	if (effect == 0) then
-		return false
-	else
-		return effectID == effect - 1
+		if (effect == 0) then
+			return false
+		else
+			return effectID == effect - 1
+		end
 	end
 end
 
@@ -584,7 +684,9 @@ end
 -- !Arguments "NewLine, Moveables, Moveable to check"
 
 LevelFuncs.Engine.Node.SetMoveableEffect = function(effectID, timeout, moveableName)
-	TEN.Objects.GetMoveableByName(moveableName):SetEffect(effectID + 1, timeout)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):SetEffect(effectID + 1, timeout)
+	end
 end
 
 -- !Name "Set custom moveable effect"
@@ -596,7 +698,9 @@ end
 -- !Arguments "NewLine, Moveables, Moveable to check"
 
 LevelFuncs.Engine.Node.SetCustomMoveableEffect = function(primary, secondary, timeout, moveableName)
-	TEN.Objects.GetMoveableByName(moveableName):SetCustomEffect(primary, secondary, timeout)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):SetCustomEffect(primary, secondary, timeout)
+	end
 end
 
 -- !Name "Remove moveable effect"
@@ -604,8 +708,10 @@ end
 -- !Description "Remove effect from moveable"
 -- !Arguments "NewLine, Moveables, Select moveable to remove effect from."
 
-LevelFuncs.Engine.Node.RemoveMoveableEffect = function(moveable)
-	TEN.Objects.GetMoveableByName(moveable):SetEffect(TEN.Effects.EffectID.NONE)
+LevelFuncs.Engine.Node.RemoveMoveableEffect = function(moveableName)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):SetEffect(TEN.Effects.EffectID.NONE)
+	end
 end
 
 -- !Name "Modify ItemFlag of a moveable"
@@ -615,8 +721,10 @@ end
 -- !Arguments "Numerical, 13, [ 0 | 7 ], ItemFlag index to change"
 -- !Arguments "Numerical, 17, [ -32768 | 32767 | 0 ], Value to store in moveable's ItemFlags
 
-LevelFuncs.Engine.Node.ModifyItemFlag = function (moveable, itemFlagLocation, itemFlagValue)
-	TEN.Objects.GetMoveableByName(moveable):SetItemFlags(itemFlagValue,itemFlagLocation)
+LevelFuncs.Engine.Node.ModifyItemFlag = function (moveableName, itemFlagLocation, itemFlagValue)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):SetItemFlags(itemFlagValue,itemFlagLocation)
+	end
 end
 
 -- !Name "If value stored in moveable's ItemFlag is..."
@@ -627,13 +735,14 @@ end
 -- !Arguments "Numerical, 13, [ 0 | 7 ], ItemFlag index to check"
 -- !Arguments "Numerical, 17, [ -32768 | 32767 | 0 ], Value stored in ItemFlag
 
-LevelFuncs.Engine.Node.CheckItemFlag = function(moveable, itemFlagLocation, itemFlagValue)
-    local itemFlag = TEN.Objects.GetMoveableByName(moveable):GetItemFlags(itemFlagLocation)
-    
-    if itemFlag == itemFlagValue then
-        return true
-    else
-        return false
-    end
+LevelFuncs.Engine.Node.CheckItemFlag = function(moveableName, itemFlagLocation, itemFlagValue)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		local itemFlag = TEN.Objects.GetMoveableByName(moveableName):GetItemFlags(itemFlagLocation)
+
+    	if itemFlag == itemFlagValue then
+			return true
+    	else
+			return false
+		end
+	end
 end
-	
