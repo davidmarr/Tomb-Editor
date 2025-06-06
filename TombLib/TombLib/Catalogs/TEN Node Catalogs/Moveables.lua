@@ -342,6 +342,8 @@ end
 LevelFuncs.Engine.Node.EnableMoveable = function(moveableName, timer)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):Enable(timer)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -353,6 +355,8 @@ end
 LevelFuncs.Engine.Node.DisableMoveable = function(moveableName)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):Disable()
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -365,6 +369,8 @@ LevelFuncs.Engine.Node.DestroyMoveable = function(moveableName)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):Disable()
 		TEN.Objects.GetMoveableByName(moveableName):Destroy()
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -376,6 +382,8 @@ end
 LevelFuncs.Engine.Node.SetMoveableCollidability = function(moveableName, state)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		return TEN.Objects.GetMoveableByName(moveableName):SetCollidable(state)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -387,6 +395,8 @@ end
 LevelFuncs.Engine.Node.SetMoveableAnimation = function(moveableName, animationId)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):SetAnim(animationId)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -398,6 +408,8 @@ end
 LevelFuncs.Engine.Node.SetMoveableAnimationFromAnotherSlot = function(moveableName, animationId, slotId)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):SetAnim(animationId, slotId)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -409,6 +421,8 @@ end
 LevelFuncs.Engine.Node.SetMoveableState = function(moveableName, stateId)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):SetState(stateId)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -420,6 +434,8 @@ end
 LevelFuncs.Engine.Node.ShatterMoveable = function(moveableName)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):Shatter()
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -432,6 +448,8 @@ end
 LevelFuncs.Engine.Node.ShatterMoveableMesh = function(moveableName, value)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):ShatterMesh(value)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -443,6 +461,8 @@ end
 LevelFuncs.Engine.Node.ExplodeMoveable = function(moveableName)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):Explode()
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -454,6 +474,8 @@ end
 LevelFuncs.Engine.Node.PlaySoundAroundMoveable = function(moveableName, soundID)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Sound.PlaySound(soundID, TEN.Objects.GetMoveableByName(moveableName):GetPosition())
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -471,6 +493,8 @@ LevelFuncs.Engine.Node.SetMoveableHitPoints = function(operation, value, moveabl
 		else
 			TEN.Objects.GetMoveableByName(moveableName):SetHP(value)
 		end
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -482,6 +506,8 @@ end
 LevelFuncs.Engine.Node.SetMoveableOCB = function(value, moveableName)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):SetOCB(value)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -505,8 +531,9 @@ LevelFuncs.Engine.Node.SetMoveablePosition = function(operation, value, moveable
 		else
 			moveable:SetPosition(value)
 		end
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
-	
 end
 
 -- !Name "Modify rotation of a moveable"
@@ -527,6 +554,8 @@ LevelFuncs.Engine.Node.SetMoveableRotation = function(operation, value, moveable
 		end
 
 		moveable:SetRotation(rotation)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -549,6 +578,8 @@ LevelFuncs.Engine.Node.SetMoveableScale = function(operation, value, moveableNam
 		end
 
 		moveable:SetScale(scale)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -568,6 +599,13 @@ LevelFuncs.Engine.Node.SetMoveablePositionToAnotherMoveable = function(rotate, d
 
 		if (rotate == true) then
 			dest:SetRotation(src:GetRotation())
+		end
+	else
+		if TEN.Objects.IsNameInUse(destMoveable) then
+			TEN.Util.PrintLog("Moveable with name" .. destMoveable .. " not found", TEN.Util.LogLevel.ERROR)
+		end
+		if TEN.Objects.IsNameInUse(srcMoveable) then
+			TEN.Util.PrintLog("Moveable with name" .. srcMoveable .. " not found", TEN.Util.LogLevel.ERROR)
 		end
 	end
 end
@@ -592,6 +630,8 @@ LevelFuncs.Engine.Node.ShiftMoveable = function(moveableName, distance)
 		newPosition.z = newPosition.z + dz
 
 		moveable:SetPosition(newPosition)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -604,6 +644,8 @@ LevelFuncs.Engine.Node.SetMoveableColor = function(moveableName, color)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		color.a = TEN.Objects.GetMoveableByName(moveableName):GetColor().a
 		TEN.Objects.GetMoveableByName(moveableName):SetColor(color)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -617,6 +659,8 @@ LevelFuncs.Engine.Node.SetMoveableTransparency = function(moveableName, transpar
 		local color = TEN.Objects.GetMoveableByName(moveableName):GetColor()
 		color.a = transparency
 		TEN.Objects.GetMoveableByName(moveableName):SetColor(color)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -629,6 +673,8 @@ LevelFuncs.Engine.Node.SetMoveableVisibility = function(moveableName, state)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		local visibility = (state == 0) and true or false
 		TEN.Objects.GetMoveableByName(moveableName):SetVisible(visibility)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -641,6 +687,8 @@ end
 LevelFuncs.Engine.Node.SetMoveableMeshVisibility = function(moveableName, value, state)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):SetMeshVisible(value,state)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -653,8 +701,9 @@ end
 LevelFuncs.Engine.Node.SwapMoveableMesh = function(dest, destIndex, srcSlot, srcIndex)
 	if TEN.Objects.IsNameInUse(dest) then
 		TEN.Objects.GetMoveableByName(dest):SwapMesh(destIndex, srcSlot, srcIndex)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
-	
 end
 
 -- !Name "If moveable has effect..."
@@ -673,6 +722,8 @@ LevelFuncs.Engine.Node.TestMoveableEffect = function(effectID, moveableName)
 		else
 			return effectID == effect - 1
 		end
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -686,6 +737,8 @@ end
 LevelFuncs.Engine.Node.SetMoveableEffect = function(effectID, timeout, moveableName)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):SetEffect(effectID + 1, timeout)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -700,6 +753,8 @@ end
 LevelFuncs.Engine.Node.SetCustomMoveableEffect = function(primary, secondary, timeout, moveableName)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):SetCustomEffect(primary, secondary, timeout)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -711,6 +766,8 @@ end
 LevelFuncs.Engine.Node.RemoveMoveableEffect = function(moveableName)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):SetEffect(TEN.Effects.EffectID.NONE)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -724,6 +781,8 @@ end
 LevelFuncs.Engine.Node.ModifyItemFlag = function (moveableName, itemFlagLocation, itemFlagValue)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		TEN.Objects.GetMoveableByName(moveableName):SetItemFlags(itemFlagValue,itemFlagLocation)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
 
@@ -744,5 +803,7 @@ LevelFuncs.Engine.Node.CheckItemFlag = function(moveableName, itemFlagLocation, 
     	else
 			return false
 		end
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end
 end
