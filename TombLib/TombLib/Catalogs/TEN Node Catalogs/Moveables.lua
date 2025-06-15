@@ -11,17 +11,6 @@ LevelFuncs.Engine.Node.TestMoveableActivity = function(moveableName)
 	return false
 end
 
--- !Name "If name is in use..."
--- !Section "Moveable parameters"
--- !Description "Check if a given lua name is in use by any moveable."
--- !Conditional "True"
--- !Arguments "NewLine, Moveables, Moveable to check"
-
-LevelFuncs.Engine.Node.IsNameInUse = function(moveableName, operator, value)
-	return TEN.Objects.IsNameInUse(moveableName)
-end
-
-
 -- !Name "If health of a moveable is..."
 -- !Section "Moveable parameters"
 -- !Description "Compares selected moveable health with given value."
@@ -382,6 +371,20 @@ end
 LevelFuncs.Engine.Node.SetMoveableCollidability = function(moveableName, state)
 	if TEN.Objects.IsNameInUse(moveableName) then
 		return TEN.Objects.GetMoveableByName(moveableName):SetCollidable(state)
+	else
+		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
+	end
+end
+
+-- !Name "Set moveable's name"
+-- !Section "Moveable parameters"
+-- !Description "Sets moveable's name."
+-- !Arguments "NewLine, Moveables" 
+-- !Arguments "NewLine, String, New moveable name"
+
+LevelFuncs.Engine.Node.SetMoveableName = function(moveableName, name)
+	if TEN.Objects.IsNameInUse(moveableName) then
+		TEN.Objects.GetMoveableByName(moveableName):SetName(name)
 	else
 		TEN.Util.PrintLog("Moveable with name" .. moveableName .. " not found", TEN.Util.LogLevel.ERROR)
 	end

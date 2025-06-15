@@ -237,3 +237,13 @@ end
 LevelFuncs.Engine.Node.SetFreezeMode = function(mode)
 	TEN.Flow.SetFreezeMode(LevelFuncs.Engine.Node.GetFreezeMode(mode))
 end
+
+-- !Name "If name is in use..."
+-- !Section "Game flow"
+-- !Description "Check if a given lua name is in use by any moveable or any static."
+-- !Conditional "True"
+-- !Arguments "NewLine, String, Name to check"
+
+LevelFuncs.Engine.Node.IsNameInUse = function(moveableName, operator, value)
+	return TEN.Objects.IsNameInUse(moveableName)
+end
