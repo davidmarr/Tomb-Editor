@@ -1,3 +1,35 @@
+Version 1.9.2
+=============
+
+Tomb Editor:
+ * Make deselection by clicking outside rooms more responsive.
+ 
+WadTool:
+ * Fixed loading of certain dxtre3d levels with corrupted animcommand data.
+
+TombIDE:
+ * Added full TEN IntelliSense support for Visual Studio Code, including auto-complete, definition hinting and error underlining.
+ * Added TR2X support and engine preset (1.3.2).
+ * Updated TR1X preset to 4.13.2.
+
+Version 1.9.1
+=============
+
+Tomb Editor:
+ * Highlight flyby camera 2D icons for currently selected flyby sequence.
+ * Fixed volume rotation on roll axis.
+ * Fixed TRNG plugin trigger issues with Timer values above 255.
+ 
+WadTool:
+ * Fixed vertex weight coloring.
+ * Fixed texture replacement for skinned meshes.
+
+TombIDE:
+ * Added "Open project in Visual Studio Code" option for TEN projects.
+ 
+TEN nodes:
+ * Added clustering setting to weather node.
+
 Version 1.9
 ===========
 
