@@ -1,5 +1,10 @@
-﻿using System.ComponentModel;
+﻿using DarkUI.Config;
+using System.ComponentModel;
+using System.Drawing;
+using System.IO;
+using System.Windows.Forms;
 using TombLib.Controls;
+using TombLib.Utils;
 
 namespace WadTool.Controls
 {
@@ -40,6 +45,31 @@ namespace WadTool.Controls
         {
             //if (obj is WadToolClass.MeshEditorTextureChangedEvent)
             //    Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+
+            if (!File.Exists(VisibleTexture.AbsolutePath))
+            {
+                using (var brush = new SolidBrush(ForeColor.MixWith(Color.DarkRed, 0.55)))
+                    e.Graphics.FillRectangle(brush, ClientRectangle);
+            }
+
+            base.OnPaint(e);
+
+            if (!File.Exists(VisibleTexture.AbsolutePath))
+            {
+                var rect = new Rectangle(ClientRectangle.X, ClientRectangle.Y, 
+                    ClientRectangle.Width - _scrollSize, ClientRectangle.Height - Font.Height - _scrollSize);
+
+                using (var brush = new SolidBrush(Colors.LightestBackground))
+                {
+                    e.Graphics.DrawString("External texture not found:\n" +  VisibleTexture.AbsolutePath, Font, brush, rect,
+                        new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Far });
+                }
+            }
         }
     }
 }

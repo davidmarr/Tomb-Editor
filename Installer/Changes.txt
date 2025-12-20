@@ -2,7 +2,9 @@ Version 1.11
 ============
 
 WadTool:
+ * Added indication of missing external texture file.
  * Fixed crash while exporting meshes with degenerate textures.
+ * Fixed exception while loading wads with material xml files placed in the same folder as wad.
 
 TEN nodes:
  * Added nodes to check the color of a moveable or static mesh.

@@ -25,7 +25,14 @@ namespace TombLib.Wad
                 var xmlFile = Path.ChangeExtension(fileName, "xml");
                 if (File.Exists(xmlFile))
                 {
-                    result.Sounds = WadSounds.ReadFromFile(xmlFile);
+                    try
+                    {
+                        result.Sounds = WadSounds.ReadFromFile(xmlFile);
+                    }
+                    catch
+                    {
+                        // Xml file is not a sound catalog (possibly material xml).
+                    }
                 }
             }
 
