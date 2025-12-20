@@ -59,9 +59,9 @@ namespace TombLib.Types
         }
 
         public static readonly BezierCurve2 Linear = new BezierCurve2(Vector2.Zero, Vector2.One, Vector2.Zero, Vector2.One);
-        public static readonly BezierCurve2 EaseIn = new BezierCurve2(Vector2.Zero, Vector2.One, new Vector2(0.25f, 0.0f), Vector2.One);
-        public static readonly BezierCurve2 EaseOut = new BezierCurve2(Vector2.Zero, Vector2.One, Vector2.Zero, new Vector2(0.75f, 1.0f));
-        public static readonly BezierCurve2 EaseInOut = new BezierCurve2(Vector2.Zero, Vector2.One, new Vector2(0.25f, 0.0f), new Vector2(0.75f, 1.0f));
+        public static readonly BezierCurve2 EaseIn = new BezierCurve2(Vector2.Zero, Vector2.One, new Vector2(0.5f, 0.0f), Vector2.One);
+        public static readonly BezierCurve2 EaseOut = new BezierCurve2(Vector2.Zero, Vector2.One, Vector2.Zero, new Vector2(0.5f, 1.0f));
+        public static readonly BezierCurve2 EaseInOut = new BezierCurve2(Vector2.Zero, Vector2.One, new Vector2(0.5f, 0.0f), new Vector2(0.5f, 1.0f));
 
         public BezierCurve2()
         {
