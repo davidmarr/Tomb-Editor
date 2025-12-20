@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
+using System.Windows.Media.TextFormatting;
 using TombLib.Controls;
 using TombLib.Utils;
 
@@ -51,25 +52,26 @@ namespace WadTool.Controls
         {
             base.OnPaint(e);
 
-            if (!File.Exists(VisibleTexture.AbsolutePath))
-            {
-                using (var brush = new SolidBrush(ForeColor.MixWith(Color.DarkRed, 0.55)))
-                    e.Graphics.FillRectangle(brush, ClientRectangle);
-            }
+            var externalTextureMissing = !string.IsNullOrEmpty(VisibleTexture.AbsolutePath) && !File.Exists(VisibleTexture.AbsolutePath);
 
-            base.OnPaint(e);
+            if (!externalTextureMissing)
+                return;
 
-            if (!File.Exists(VisibleTexture.AbsolutePath))
-            {
-                var rect = new Rectangle(ClientRectangle.X, ClientRectangle.Y, 
-                    ClientRectangle.Width - _scrollSize, ClientRectangle.Height - Font.Height - _scrollSize);
+            var rect = new Rectangle(ClientRectangle.X, ClientRectangle.Y, 
+                                     ClientRectangle.Width - _scrollSize, ClientRectangle.Height - Font.Height - _scrollSize);
 
-                using (var brush = new SolidBrush(Colors.LightestBackground))
-                {
-                    e.Graphics.DrawString("External texture not found:\n" +  VisibleTexture.AbsolutePath, Font, brush, rect,
-                        new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Far });
-                }
-            }
+            var message = "External texture not found:\n" + VisibleTexture.AbsolutePath;
+            var format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Far };
+            var stringSize = e.Graphics.MeasureString(message, Font, rect.Size, format);
+
+            var textRect = new RectangleF(rect.X + (rect.Width - stringSize.Width) / 2, rect.Y + rect.Height - stringSize.Height,
+                                          stringSize.Width, stringSize.Height);
+
+            using (var brush = new SolidBrush(ForeColor.MixWith(Color.DarkRed, 0.55)))
+                e.Graphics.FillRectangle(brush, textRect);
+
+            using (var brush = new SolidBrush(Colors.LightestBackground))
+                e.Graphics.DrawString("External texture not found:\n" + VisibleTexture.AbsolutePath, Font, brush, rect, format);
         }
     }
 }
