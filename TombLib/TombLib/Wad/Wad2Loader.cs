@@ -257,7 +257,9 @@ namespace TombLib.Wad
 
                 if (!string.IsNullOrEmpty(relativePath))
                 {
-                    absolutePath = Path.GetFullPath(PathC.IsTrulyAbsolutePath(name) ? name : Path.Combine(Path.GetDirectoryName(wad.FileName), name));
+                    bool absPathExists = PathC.IsTrulyAbsolutePath(name) && File.Exists(name);
+                    absolutePath = Path.GetFullPath(absPathExists ? name : Path.Combine(Path.GetDirectoryName(wad.FileName), relativePath));
+
                     try
                     {
                         texture = ImageC.FromFile(absolutePath);
