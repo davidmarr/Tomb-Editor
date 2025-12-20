@@ -66,6 +66,7 @@ namespace WadTool.Controls
 
             var textRect = new RectangleF(rect.X + (rect.Width - stringSize.Width) / 2, rect.Y + rect.Height - stringSize.Height,
                                           stringSize.Width, stringSize.Height);
+            textRect.Inflate(6, 6);
 
             using (var brush = new SolidBrush(ForeColor.MixWith(Color.DarkRed, 0.55)))
                 e.Graphics.FillRectangle(brush, textRect);
