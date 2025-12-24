@@ -1,6 +1,9 @@
 Version 1.11
 ============
 
+Tomb Editor:
+* Fixed node parameter corruption after changing node background color.
+
 WadTool:
  * Added animation blending and root motion controls to animation editor for TEN target.
  * Added indication of missing external texture file.
