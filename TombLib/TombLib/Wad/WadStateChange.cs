@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using TombLib.Types;
 
 namespace TombLib.Wad
 {
@@ -13,7 +14,7 @@ namespace TombLib.Wad
             stateChange.Dispatches = new List<WadAnimDispatch>(Dispatches);
 
             foreach (var dispatch in Dispatches)
-                dispatch.BlendCurve = dispatch.BlendCurve.Clone();
+                dispatch.BlendCurve = dispatch.BlendCurve?.Clone() ?? BezierCurve2.Linear;
 
             return stateChange;
         }
