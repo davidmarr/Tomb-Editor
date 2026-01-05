@@ -14,7 +14,7 @@ namespace TombLib.Wad
             stateChange.Dispatches = new List<WadAnimDispatch>(Dispatches);
 
             foreach (var dispatch in Dispatches)
-                dispatch.BlendCurve = dispatch.BlendCurve?.Clone() ?? BezierCurve2.Linear;
+                dispatch.BlendCurve = dispatch.BlendCurve.Clone();
 
             return stateChange;
         }
