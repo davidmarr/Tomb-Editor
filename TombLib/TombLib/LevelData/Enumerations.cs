@@ -63,6 +63,9 @@ namespace TombLib.LevelData
 
         public static bool SupportsClimbing(this Game ver)
             => ver != Game.TR1;
+
+        public static bool SupportsLockedCameras(this Game ver)
+            => ver >= Game.TR4;
     }
 
     // Only for TR5+

@@ -12,6 +12,9 @@ WadTool:
  * Fixed exception while loading wads with material xml files placed in the same folder as wad.
  * Fixed exception while exporting meshes with degenerate textures.
 
+Tomb Editor:
+ * Added support for locked cameras in TRX
+
 TEN nodes:
  * Added nodes to check the color of a moveable or static mesh.
  * Added node to add an interaction highlight to a moveable.
