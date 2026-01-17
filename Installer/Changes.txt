@@ -2,13 +2,13 @@ Version 1.11
 ============
 
 Tomb Editor:
-* Fixed node parameter corruption after changing node background color.
-* Added support for locked cameras in TRX
-* Added support for drawing the skybox in the editor for TR1X levels
-* Added support for skybox and wind room flags in TR1X levels
-* Added support for quicksand rooms in TR1X and TR2X levels
-* Added support for additive blending in TR1X and TR2X levels
-* Added support for triangular geometry in TR1X and TR2X levels
+ * Added support for locked cameras in TRX.
+ * Added support for drawing the skybox in the editor for TR1X levels.
+ * Added support for skybox and wind room flags in TR1X levels.
+ * Added support for quicksand rooms in TR1X and TR2X levels.
+ * Added support for additive blending in TR1X and TR2X levels.
+ * Added support for triangular geometry in TR1X and TR2X levels.
+ * Fixed node parameter corruption after changing node background color.
 
 WadTool:
  * Added animation blending and root motion controls to animation editor for TEN target.
