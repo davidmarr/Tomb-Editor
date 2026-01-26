@@ -1,11 +1,44 @@
+Version 1.11
+============
+
+Tomb Editor:
+ * Added support for locked cameras in TRX.
+ * Added support for drawing the skybox in the editor for TR1X levels.
+ * Added support for skybox and wind room flags in TR1X levels.
+ * Added support for quicksand rooms in TR1X and TR2X levels.
+ * Added support for additive blending in TR1X and TR2X levels.
+ * Added support for triangular geometry in TR1X and TR2X levels.
+ * Fixed node parameter corruption after changing node background color.
+
+WadTool:
+ * Added animation blending and root motion controls to animation editor for TEN target.
+ * Added indication of missing external texture file.
+ * Automatically correct hair mesh connections when importing TR4 outfits to TEN wad.
+ * Fixed misplaced backholster meshes for classic engines.
+ * Fixed external textures not loading when wad was moved to another directory.
+ * Fixed exception while loading wads with material xml files placed in the same folder as wad.
+ * Fixed exception while exporting meshes with degenerate textures.
+
+TombIDE:
+ * Updated TR1X and TR2X presets to TRX 1.0.3.
+
+TEN nodes:
+ * Added nodes to check the color of a moveable or static mesh.
+ * Added node to add an interaction highlight to a moveable.
+
 Version 1.10.1
 ==============
 
-* General
+General
  * Delete external material xml file if material settings are reset to default.
 
 Tomb Editor:
+ * Fixed incorrect prompt about other missing resources when reconnecting an offline file.
+ * Fixed exceptions when attempting to open a project file while another project is already loading.
  * Copy main room attributes from the parent room when using portal digger tool.
+ 
+WadTool:
+ * Fixed incorrect bounding box resizing for several pushable objects while converting them to TEN.
 
 TEN nodes:
  * Fixed flipmap node accepting values only up to 16.
