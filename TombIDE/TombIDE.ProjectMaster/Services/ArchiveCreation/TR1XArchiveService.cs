@@ -15,11 +15,13 @@ public sealed class TR1XArchiveService : GameArchiveServiceBase
 		Path.Combine(engineDirectory, "music"),
 		Path.Combine(engineDirectory, "cfg"),
 		Path.Combine(engineDirectory, "data"),
-		Path.Combine(engineDirectory, "shaders")
+		Path.Combine(engineDirectory, "shaders"),
+		Path.Combine(engineDirectory, "scripting")
 	};
 
 	protected override IReadOnlyList<string> GetImportantFiles(string engineDirectory) => new List<string>(GetCommonFiles(engineDirectory))
 	{
+		Path.Combine(engineDirectory, "TRX.exe"),
 		Path.Combine(engineDirectory, "TR1X.exe"),
 		Path.Combine(engineDirectory, "Tomb1Main.exe"),
 		Path.Combine(engineDirectory, "TR1X_ConfigTool.exe"),

@@ -15,11 +15,13 @@ public sealed class TR2XArchiveService : GameArchiveServiceBase
 		Path.Combine(engineDirectory, "music"),
 		Path.Combine(engineDirectory, "cfg"),
 		Path.Combine(engineDirectory, "data"),
-		Path.Combine(engineDirectory, "shaders")
+		Path.Combine(engineDirectory, "shaders"),
+		Path.Combine(engineDirectory, "scripting")
 	};
 
 	protected override IReadOnlyList<string> GetImportantFiles(string engineDirectory) => new List<string>(GetCommonFiles(engineDirectory))
 	{
+		Path.Combine(engineDirectory, "TRX.exe"),
 		Path.Combine(engineDirectory, "TR2X.exe"),
 		Path.Combine(engineDirectory, "TR2X_ConfigTool.exe")
 	};

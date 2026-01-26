@@ -9,6 +9,8 @@ using TombIDE.Shared.NewStructure;
 
 namespace TombIDE.ProjectMaster.Services.EngineUpdate;
 
+// TODO: Merge TR1XUpdateService and TR2XUpdateService into a single generic service.
+
 public sealed class TR2XUpdateService : IEngineUpdateService
 {
 	private readonly IFileExtractionService _fileExtractionService;
@@ -18,14 +20,16 @@ public sealed class TR2XUpdateService : IEngineUpdateService
 
 	public bool CanAutoUpdate(Version currentVersion)
 	{
-		// 1.5 had breaking changes
-		return !(currentVersion.Major <= 1 && currentVersion.Minor <= 4);
+		if (currentVersion.Major < 1)
+			return false;
+
+		return true;
 	}
 
 	public string? GetAutoUpdateBlockReason(Version currentVersion)
 	{
-		if (currentVersion.Major <= 1 && currentVersion.Minor <= 4)
-			return "Cannot Auto-Update engine. TR2X 1.5 introduced breaking changes, which require manual migration.";
+		if (currentVersion.Major < 1)
+			return "Cannot Auto-Update engine. TRX 1.0 introduced breaking changes, which require manual migration.";
 
 		return null;
 	}
@@ -44,8 +48,7 @@ public sealed class TR2XUpdateService : IEngineUpdateService
 			"This update will replace the following directories and files:\n\n" +
 
 			"- Engine/shaders/\n" +
-			"- Engine/TR2X.exe\n" +
-			"- Engine/TR2X_ConfigTool.exe\n\n" +
+			"- Engine/TRX.exe\n\n" +
 
 			"If any of these directories / files are important to you, please update the engine manually or create a copy of these files before performing this update.\n\n" +
 
