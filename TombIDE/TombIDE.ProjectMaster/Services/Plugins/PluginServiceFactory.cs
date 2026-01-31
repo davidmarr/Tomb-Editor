@@ -46,11 +46,11 @@ public sealed class PluginServiceFactory : IPluginServiceFactory
 {
 	// Cache services per game version
 
-	private readonly Dictionary<TRVersion.Game, IPluginDiscoveryService> _discoveryServices = new();
-	private readonly Dictionary<TRVersion.Game, IPluginInstallationService> _installationServices = new();
-	private readonly Dictionary<TRVersion.Game, IPluginDeploymentService> _deploymentServices = new();
-	private readonly Dictionary<TRVersion.Game, IPluginMetadataService> _metadataServices = new();
-	private readonly Dictionary<TRVersion.Game, IPluginInitializationService> _initializationServices = new();
+	private readonly Dictionary<TRVersion.Game, IPluginDiscoveryService> _discoveryServices = [];
+	private readonly Dictionary<TRVersion.Game, IPluginInstallationService> _installationServices = [];
+	private readonly Dictionary<TRVersion.Game, IPluginDeploymentService> _deploymentServices = [];
+	private readonly Dictionary<TRVersion.Game, IPluginMetadataService> _metadataServices = [];
+	private readonly Dictionary<TRVersion.Game, IPluginInitializationService> _initializationServices = [];
 
 	public IPluginDiscoveryService? GetDiscoveryService(TRVersion.Game gameVersion)
 	{

@@ -13,6 +13,8 @@ namespace TombIDE.ProjectMaster.Services.EngineUpdate;
 
 public sealed class TombEngineUpdateService : IEngineUpdateService
 {
+	private static readonly Version MinAutoUpdateVersion = new(1, 0, 9);
+
 	private readonly IFileExtractionService _fileExtractionService;
 
 	public TombEngineUpdateService(IFileExtractionService fileExtractionService)
@@ -20,8 +22,7 @@ public sealed class TombEngineUpdateService : IEngineUpdateService
 
 	public bool CanAutoUpdate(Version currentVersion, [NotNullWhen(false)] out string? blockReason)
 	{
-		// 1.0.9 is the first version that supports auto-updating
-		if (currentVersion.Major <= 1 && currentVersion.Minor <= 0 && currentVersion.Build <= 8)
+		if (currentVersion < MinAutoUpdateVersion)
 		{
 			blockReason = "Cannot Auto-Update engine. Current version is too old.";
 			return false;
