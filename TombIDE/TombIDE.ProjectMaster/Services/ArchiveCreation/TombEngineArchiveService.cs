@@ -10,8 +10,7 @@ public sealed class TombEngineArchiveService : GameArchiveServiceBase
 	public override bool SupportsGameVersion(IGameProject project)
 		=> project.GameVersion == TRVersion.Game.TombEngine;
 
-	protected override IReadOnlyList<string> GetImportantFolders(string engineDirectory) => new List<string>
-	{
+	protected override IReadOnlyList<string> GetImportantFolders(string engineDirectory) => [
 		Path.Combine(engineDirectory, "Audio"),
 		Path.Combine(engineDirectory, "Bin"),
 		Path.Combine(engineDirectory, "Data"),
@@ -20,7 +19,7 @@ public sealed class TombEngineArchiveService : GameArchiveServiceBase
 		Path.Combine(engineDirectory, "Scripts"),
 		Path.Combine(engineDirectory, "Shaders"),
 		Path.Combine(engineDirectory, "Textures")
-	};
+	];
 
 	protected override IReadOnlyList<string> GetImportantFiles(string engineDirectory)
 	{

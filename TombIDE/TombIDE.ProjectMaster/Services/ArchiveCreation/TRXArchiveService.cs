@@ -13,17 +13,16 @@ public sealed class TRXArchiveService : GameArchiveServiceBase
 	public override bool SupportsGameVersion(IGameProject project)
 		=> project.GameVersion is TRVersion.Game.TR1 or TRVersion.Game.TR1X or TRVersion.Game.TR2X;
 
-	protected override IReadOnlyList<string> GetImportantFolders(string engineDirectory) => new List<string>
-	{
+	protected override IReadOnlyList<string> GetImportantFolders(string engineDirectory) => [
 		Path.Combine(engineDirectory, "music"),
 		Path.Combine(engineDirectory, "cfg"),
 		Path.Combine(engineDirectory, "data"),
-		Path.Combine(engineDirectory, "shaders"),
-		Path.Combine(engineDirectory, "scripting")
-	};
+		Path.Combine(engineDirectory, "shaders")
+	];
 
-	protected override IReadOnlyList<string> GetImportantFiles(string engineDirectory) => new List<string>(GetCommonFiles(engineDirectory))
-	{
+	protected override IReadOnlyList<string> GetImportantFiles(string engineDirectory) => [
+		.. GetCommonFiles(engineDirectory),
+
 		// TRX unified executable (current)
 		Path.Combine(engineDirectory, "TRX.exe"),
 
@@ -36,5 +35,5 @@ public sealed class TRXArchiveService : GameArchiveServiceBase
 		// TR2X legacy executables
 		Path.Combine(engineDirectory, "TR2X.exe"),
 		Path.Combine(engineDirectory, "TR2X_ConfigTool.exe")
-	};
+	];
 }

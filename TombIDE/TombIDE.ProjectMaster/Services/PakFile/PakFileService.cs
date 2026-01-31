@@ -7,7 +7,7 @@ namespace TombIDE.ProjectMaster.Services.PakFile;
 
 public sealed class PakFileService : IPakFileService
 {
-	private static readonly byte[] PakFilePrefix = { 0x00, 0x00, 0x06, 0x00 }; // Required prefix for TR4
+	private static readonly byte[] PakFilePrefix = [0x00, 0x00, 0x06, 0x00]; // Required prefix for TR4
 
 	public byte[] GetDecompressedData(string pakFilePath)
 	{
@@ -22,7 +22,7 @@ public sealed class PakFileService : IPakFileService
 			stream.Read(bytes, 0, (int)stream.Length);
 
 			// Skip the 4-byte prefix before decompression
-			bytes = bytes.Skip(4).ToArray();
+			bytes = [.. bytes.Skip(4)];
 
 			return ZLib.DecompressData(bytes);
 		}
@@ -48,6 +48,6 @@ public sealed class PakFileService : IPakFileService
 	private static byte[] CompressData(byte[] data)
 	{
 		byte[] compressedData = ZLib.CompressData(data);
-		return PakFilePrefix.Concat(compressedData).ToArray();
+		return [.. PakFilePrefix, .. compressedData];
 	}
 }

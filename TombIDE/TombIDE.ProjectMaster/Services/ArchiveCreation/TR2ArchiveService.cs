@@ -10,14 +10,13 @@ public sealed class TR2ArchiveService : GameArchiveServiceBase
 	public override bool SupportsGameVersion(IGameProject project)
 		=> project.GameVersion == TRVersion.Game.TR2;
 
-	protected override IReadOnlyList<string> GetImportantFolders(string engineDirectory) => new List<string>
-	{
+	protected override IReadOnlyList<string> GetImportantFolders(string engineDirectory) => [
 		Path.Combine(engineDirectory, "audio"),
 		Path.Combine(engineDirectory, "data"),
 		Path.Combine(engineDirectory, "ExtraOptions"),
 		Path.Combine(engineDirectory, "music"),
 		Path.Combine(engineDirectory, "pix")
-	};
+	];
 
 	protected override IReadOnlyList<string> GetImportantFiles(string engineDirectory)
 	{
