@@ -27,8 +27,9 @@ public sealed class EngineUpdateServiceFactory : IEngineUpdateServiceFactory
 	public IEngineUpdateService? GetUpdateService(TRVersion.Game gameVersion) => gameVersion switch
 	{
 		TRVersion.Game.TombEngine => new TombEngineUpdateService(_fileExtractionService),
-		TRVersion.Game.TR1 => new TR1XUpdateService(_fileExtractionService),
-		TRVersion.Game.TR2X => new TR2XUpdateService(_fileExtractionService),
+		TRVersion.Game.TR1 or
+		TRVersion.Game.TR1X or
+		TRVersion.Game.TR2X => new TRXUpdateService(_fileExtractionService, gameVersion),
 		_ => null
 	};
 }

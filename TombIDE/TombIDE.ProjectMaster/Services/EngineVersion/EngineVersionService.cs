@@ -34,8 +34,8 @@ public sealed class EngineVersionService : IEngineVersionService
 
 		if (updateService is not null && info.CurrentVersion is not null)
 		{
-			info.SupportsAutoUpdate = updateService.CanAutoUpdate(info.CurrentVersion);
-			info.AutoUpdateBlockReason = updateService.GetAutoUpdateBlockReason(info.CurrentVersion);
+			info.SupportsAutoUpdate = updateService.CanAutoUpdate(info.CurrentVersion, out string? blockReason);
+			info.AutoUpdateBlockReason = blockReason;
 		}
 		else
 		{

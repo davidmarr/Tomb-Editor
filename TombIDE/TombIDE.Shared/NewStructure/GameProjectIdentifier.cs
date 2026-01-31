@@ -341,7 +341,7 @@ namespace TombIDE.Shared.NewStructure
 
 			if (version == TRVersion.Game.TR1)
 			{
-				// Check if there are any .phd or .tr2 files in the Levels directory to distinguish between TR1X and TR2X
+				// Check if there are any .phd or .tr2 files in the data directory to distinguish between TR1X and TR2X
 				string engineDirectory = Path.GetDirectoryName(engineExecutableFilePath);
 				string dataDirectory = Path.Combine(engineDirectory, "data");
 

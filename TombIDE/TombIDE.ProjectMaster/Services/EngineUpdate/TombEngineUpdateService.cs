@@ -1,5 +1,6 @@
 using DarkUI.Forms;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -17,36 +18,34 @@ public sealed class TombEngineUpdateService : IEngineUpdateService
 	public TombEngineUpdateService(IFileExtractionService fileExtractionService)
 		=> _fileExtractionService = fileExtractionService ?? throw new ArgumentNullException(nameof(fileExtractionService));
 
-	public bool CanAutoUpdate(Version currentVersion)
+	public bool CanAutoUpdate(Version currentVersion, [NotNullWhen(false)] out string? blockReason)
 	{
 		// 1.0.9 is the first version that supports auto-updating
-		return currentVersion.Major > 1 || currentVersion.Minor > 0 || currentVersion.Build > 8;
-	}
+		if (currentVersion.Major <= 1 && currentVersion.Minor <= 0 && currentVersion.Build <= 8)
+		{
+			blockReason = "Cannot Auto-Update engine. Current version is too old.";
+			return false;
+		}
 
-	public string? GetAutoUpdateBlockReason(Version currentVersion)
-	{
-		if (!CanAutoUpdate(currentVersion))
-			return "Cannot Auto-Update engine. Current version is too old.";
-
-		return null;
+		blockReason = null;
+		return true;
 	}
 
 	public bool UpdateEngine(IGameProject project, Version currentVersion, Version latestVersion, IWin32Window owner)
 	{
-		if (!CanAutoUpdate(currentVersion))
+		if (!CanAutoUpdate(currentVersion, out string? blockReason))
 		{
-			MessageBox.Show(owner, GetAutoUpdateBlockReason(currentVersion),
+			MessageBox.Show(owner, blockReason,
 				"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
 			return false;
 		}
 
 		// In 1.6 onwards we need to upgrade settings file.
-		var settingsUpdate16 = latestVersion.Major == 1 && latestVersion.Minor >= 6
-			&& currentVersion.Major == 1 && currentVersion.Minor <= 6
-			&& currentVersion <= latestVersion;
+		bool settingsUpdate16 = latestVersion.Major == 1 && latestVersion.Minor >= 6
+			&& currentVersion.Major == 1 && currentVersion.Minor < 6;
 
-		var message =
+		string message =
 			"This update will replace the following directories and files:\n\n" +
 
 			"- Engine/Bin/\n" +
@@ -140,7 +139,7 @@ public sealed class TombEngineUpdateService : IEngineUpdateService
 		}
 	}
 
-	private void UpdateTENApi(IGameProject project, Version currentEngineVersion, IWin32Window owner)
+	private static void UpdateTENApi(IGameProject project, Version currentEngineVersion, IWin32Window owner)
 	{
 		try
 		{

@@ -1,44 +1,62 @@
 using DarkUI.Forms;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Windows.Forms;
 using TombIDE.ProjectMaster.Services.FileExtraction;
 using TombIDE.Shared.NewStructure;
+using TombLib.LevelData;
 
 namespace TombIDE.ProjectMaster.Services.EngineUpdate;
 
-// TODO: Merge TR1XUpdateService and TR2XUpdateService into a single generic service.
-
-public sealed class TR1XUpdateService : IEngineUpdateService
+/// <summary>
+/// Unified update service for TRX-based engines (TR1X and TR2X).
+/// </summary>
+public sealed class TRXUpdateService : IEngineUpdateService
 {
 	private readonly IFileExtractionService _fileExtractionService;
+	private readonly TRVersion.Game _gameVersion;
 
-	public TR1XUpdateService(IFileExtractionService fileExtractionService)
-		=> _fileExtractionService = fileExtractionService ?? throw new ArgumentNullException(nameof(fileExtractionService));
-
-	public bool CanAutoUpdate(Version currentVersion)
+	/// <summary>
+	/// Maps game versions to their corresponding preset archive names.
+	/// </summary>
+	private static readonly IReadOnlyDictionary<TRVersion.Game, string> PresetArchiveNames = new Dictionary<TRVersion.Game, string>
 	{
-		if (currentVersion.Major < 1)
-			return false;
+		{ TRVersion.Game.TR1, "TR1.zip" },
+		{ TRVersion.Game.TR1X, "TR1.zip" },
+		{ TRVersion.Game.TR2X, "TR2X.zip" }
+	};
 
-		return true;
+	public TRXUpdateService(IFileExtractionService fileExtractionService, TRVersion.Game gameVersion)
+	{
+		_fileExtractionService = fileExtractionService ?? throw new ArgumentNullException(nameof(fileExtractionService));
+
+		if (!PresetArchiveNames.ContainsKey(gameVersion))
+			throw new ArgumentException($"Unsupported game version: {gameVersion}", nameof(gameVersion));
+
+		_gameVersion = gameVersion;
 	}
 
-	public string? GetAutoUpdateBlockReason(Version currentVersion)
+	public bool CanAutoUpdate(Version currentVersion, [NotNullWhen(false)] out string? blockReason)
 	{
 		if (currentVersion.Major < 1)
-			return "Cannot Auto-Update engine. TRX 1.0 introduced breaking changes, which require manual migration.";
+		{
+			blockReason = "Cannot Auto-Update engine. TRX 1.0 introduced breaking changes, which require manual migration.";
+			return false;
+		}
 
-		return null;
+		blockReason = null;
+		return true;
 	}
 
 	public bool UpdateEngine(IGameProject project, Version currentVersion, Version latestVersion, IWin32Window owner)
 	{
-		if (!CanAutoUpdate(currentVersion))
+		if (!CanAutoUpdate(currentVersion, out string? blockReason))
 		{
-			MessageBox.Show(owner, GetAutoUpdateBlockReason(currentVersion),
+			MessageBox.Show(owner, blockReason,
 				"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
 			return false;
@@ -71,7 +89,8 @@ public sealed class TR1XUpdateService : IEngineUpdateService
 
 		try
 		{
-			string enginePresetPath = Path.Combine(DefaultPaths.PresetsDirectory, "TR1.zip");
+			string presetArchiveName = PresetArchiveNames[_gameVersion];
+			string enginePresetPath = Path.Combine(DefaultPaths.PresetsDirectory, presetArchiveName);
 			using var engineArchive = new ZipArchive(File.OpenRead(enginePresetPath));
 
 			var shaders = engineArchive.Entries.Where(entry => entry.FullName.StartsWith("Engine/shaders")).ToList();

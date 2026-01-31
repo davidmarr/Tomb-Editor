@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Windows.Forms;
 using TombIDE.Shared.NewStructure;
 
@@ -13,15 +14,9 @@ public interface IEngineUpdateService
 	/// Checks if the current engine version can be auto-updated.
 	/// </summary>
 	/// <param name="currentVersion">The current engine version installed in the project.</param>
+	/// <param name="blockReason">When the method returns <see langword="false"/>, contains the reason why auto-update is blocked; otherwise, <see langword="null"/>.</param>
 	/// <returns><see langword="true"/> if auto-update is supported for this version; otherwise, <see langword="false"/>.</returns>
-	bool CanAutoUpdate(Version currentVersion);
-
-	/// <summary>
-	/// Gets the reason why auto-update is not supported, if applicable.
-	/// </summary>
-	/// <param name="currentVersion">The current engine version installed in the project.</param>
-	/// <returns>A message explaining why auto-update is not supported, or <see langword="null"/> if it is supported.</returns>
-	string? GetAutoUpdateBlockReason(Version currentVersion);
+	bool CanAutoUpdate(Version currentVersion, [NotNullWhen(false)] out string? blockReason);
 
 	/// <summary>
 	/// Performs the engine update operation.
