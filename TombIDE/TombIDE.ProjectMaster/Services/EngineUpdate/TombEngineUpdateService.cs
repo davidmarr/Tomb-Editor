@@ -14,11 +14,12 @@ namespace TombIDE.ProjectMaster.Services.EngineUpdate;
 public sealed class TombEngineUpdateService : IEngineUpdateService
 {
 	private static readonly Version MinAutoUpdateVersion = new(1, 0, 9);
+	private static readonly Version SettingsUpdate16Version = new(1, 6);
 
 	private readonly IFileExtractionService _fileExtractionService;
 
 	public TombEngineUpdateService(IFileExtractionService fileExtractionService)
-		=> _fileExtractionService = fileExtractionService ?? throw new ArgumentNullException(nameof(fileExtractionService));
+		=> _fileExtractionService = fileExtractionService;
 
 	public bool CanAutoUpdate(Version currentVersion, [NotNullWhen(false)] out string? blockReason)
 	{
@@ -42,9 +43,8 @@ public sealed class TombEngineUpdateService : IEngineUpdateService
 			return false;
 		}
 
-		// In 1.6 onwards we need to upgrade settings file.
-		bool settingsUpdate16 = latestVersion.Major == 1 && latestVersion.Minor >= 6
-			&& currentVersion.Major == 1 && currentVersion.Minor < 6;
+		// In 1.6 onwards we need to upgrade settings file
+		bool settingsUpdate16 = latestVersion >= SettingsUpdate16Version && currentVersion < SettingsUpdate16Version;
 
 		string message =
 			"This update will replace the following directories and files:\n\n" +
@@ -91,7 +91,7 @@ public sealed class TombEngineUpdateService : IEngineUpdateService
 			var bin = engineArchive.Entries.Where(entry => entry.FullName.StartsWith("Engine/Bin")).ToList();
 			bin.AddRange(libsArchive.Entries);
 
-			_fileExtractionService.ExtractEntries(bin, project);
+			_fileExtractionService.ExtractEntries(bin, project.DirectoryPath);
 
 			// Delete the "Engine/Shaders/Bin" directory before extracting new shaders
 			string compiledShadersPath = Path.Combine(project.DirectoryPath, "Engine/Shaders/Bin");
@@ -100,7 +100,7 @@ public sealed class TombEngineUpdateService : IEngineUpdateService
 				Directory.Delete(compiledShadersPath, true);
 
 			var shaders = engineArchive.Entries.Where(entry => entry.FullName.StartsWith("Engine/Shaders")).ToList();
-			_fileExtractionService.ExtractEntries(shaders, project);
+			_fileExtractionService.ExtractEntries(shaders, project.DirectoryPath);
 
 			// Delete the "Engine/Scripts/Engine" directory before extracting new scripts
 			string engineScriptsPath = Path.Combine(project.DirectoryPath, "Engine/Scripts/Engine");
@@ -109,7 +109,7 @@ public sealed class TombEngineUpdateService : IEngineUpdateService
 				Directory.Delete(engineScriptsPath, true);
 
 			var scriptsEngine = engineArchive.Entries.Where(entry => entry.FullName.StartsWith("Engine/Scripts/Engine")).ToList();
-			_fileExtractionService.ExtractEntries(scriptsEngine, project);
+			_fileExtractionService.ExtractEntries(scriptsEngine, project.DirectoryPath);
 
 			ZipArchiveEntry? systemStrings = engineArchive.Entries.FirstOrDefault(entry => entry.Name.Equals("SystemStrings.lua"));
 			systemStrings?.ExtractToFile(Path.Combine(project.DirectoryPath, systemStrings.FullName), true);
@@ -122,7 +122,7 @@ public sealed class TombEngineUpdateService : IEngineUpdateService
 			}
 
 			// Extract resources, but don't overwrite
-			_fileExtractionService.ExtractEntries(resourcesArchive.Entries, project, false);
+			_fileExtractionService.ExtractEntries(resourcesArchive.Entries, project.DirectoryPath, false);
 
 			UpdateTENApi(project, latestVersion, owner);
 

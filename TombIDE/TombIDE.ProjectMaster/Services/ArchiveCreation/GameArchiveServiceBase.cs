@@ -124,8 +124,8 @@ public abstract class GameArchiveServiceBase : IGameArchiveService
 		bool hasReadmeContent)
 	{
 		int count = importantFiles.Count +
-				   (hasLauncherFile ? 1 : 0) +
-				   (hasReadmeContent ? 1 : 0);
+			(hasLauncherFile ? 1 : 0) +
+			(hasReadmeContent ? 1 : 0);
 
 		// Count files in folders
 		count += importantFolders

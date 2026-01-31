@@ -21,7 +21,7 @@ public partial class SettingsLogo : UserControl
 	{
 		InitializeComponent();
 
-		_logoService = logoService ?? throw new ArgumentNullException(nameof(logoService));
+		_logoService = logoService;
 	}
 
 	public void Initialize(IDE ide)

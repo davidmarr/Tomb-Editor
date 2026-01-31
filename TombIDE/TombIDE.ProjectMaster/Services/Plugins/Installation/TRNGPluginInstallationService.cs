@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.RegularExpressions;
+using TombIDE.ProjectMaster.Services.FileExtraction;
 using TombIDE.ProjectMaster.Services.Plugins.Metadata;
 using TombIDE.ProjectMaster.Services.Plugins.Models;
 using TombIDE.Shared.NewStructure;
@@ -17,9 +18,13 @@ public sealed class TRNGPluginInstallationService : IPluginInstallationService
 	private const string PluginDllRegexPattern = @"plugin_.*\.dll";
 
 	private readonly IPluginMetadataService _metadataService;
+	private readonly IFileExtractionService _fileExtractionService;
 
-	public TRNGPluginInstallationService(IPluginMetadataService metadataService)
-		=> _metadataService = metadataService ?? throw new ArgumentNullException(nameof(metadataService));
+	public TRNGPluginInstallationService(IPluginMetadataService metadataService, IFileExtractionService fileExtractionService)
+	{
+		_metadataService = metadataService;
+		_fileExtractionService = fileExtractionService;
+	}
 
 	public PluginInfo InstallPlugin(IGameProject project, PluginInstallationSource source) => source.Type switch
 	{
@@ -30,11 +35,8 @@ public sealed class TRNGPluginInstallationService : IPluginInstallationService
 
 	public void RemovePlugin(IGameProject project, PluginInfo plugin)
 	{
-		if (plugin?.DllFile is null)
-			throw new ArgumentNullException(nameof(plugin));
-
 		// Delete DLL file from engine directory
-		string engineDllFilePath = Path.Combine(project.GetEngineRootDirectoryPath(), plugin.DllFile.Name);
+		string engineDllFilePath = Path.Combine(project.GetEngineRootDirectoryPath(), plugin.DllFileName);
 
 		if (File.Exists(engineDllFilePath))
 			FileSystem.DeleteFile(engineDllFilePath, UIOption.AllDialogs, RecycleOption.SendToRecycleBin);
@@ -64,40 +66,20 @@ public sealed class TRNGPluginInstallationService : IPluginInstallationService
 		if (dllFileEntries.Count == 0)
 			throw new ArgumentException("Selected archive doesn't contain a valid plugin DLL file.");
 		else if (dllFileEntries.Count > 1)
-			throw new ArgumentException("Selected archive contains more than 1 valid plugin .dll file.");
+			throw new ArgumentException("Selected archive contains more than one valid plugin .dll file.");
 
 		ZipArchiveEntry dllFileEntry = dllFileEntries[0];
-
 		string dllFileName = dllFileEntry.Name;
+
+		// Find the sub-path of the DLL within the archive, as the plugin .dll may not be at the root
 		string dllSubPath = dllFileEntry.FullName[..^dllFileName.Length];
 
 		string unzipDirectoryPath = Path.Combine(pluginsDirectory.FullName, Path.GetFileNameWithoutExtension(dllFileName));
 
-		if (!Directory.Exists(unzipDirectoryPath))
-			Directory.CreateDirectory(unzipDirectoryPath);
-
 		IEnumerable<ZipArchiveEntry> entriesToExtract = archive.Entries.Where(entry =>
 			entry.FullName.StartsWith(dllSubPath, StringComparison.OrdinalIgnoreCase));
 
-		foreach (ZipArchiveEntry entry in entriesToExtract)
-		{
-			string unzipFilePath = Path.Combine(unzipDirectoryPath, entry.FullName[dllSubPath.Length..]);
-
-			if (string.IsNullOrWhiteSpace(Path.GetExtension(unzipFilePath)))
-			{
-				if (!Directory.Exists(unzipFilePath))
-					Directory.CreateDirectory(unzipFilePath);
-
-				continue;
-			}
-
-			string? fileSubDirectory = Path.GetDirectoryName(unzipFilePath);
-
-			if (fileSubDirectory is not null && !Directory.Exists(fileSubDirectory))
-				Directory.CreateDirectory(fileSubDirectory);
-
-			entry.ExtractToFile(unzipFilePath, true);
-		}
+		_fileExtractionService.ExtractEntries(entriesToExtract, unzipDirectoryPath, subPathToTrim: dllSubPath);
 
 		return _metadataService.ReadPluginMetadata(unzipDirectoryPath, dllFileName);
 	}
@@ -119,7 +101,7 @@ public sealed class TRNGPluginInstallationService : IPluginInstallationService
 		if (dllFiles.Length == 0)
 			throw new ArgumentException("Selected folder doesn't contain a valid plugin DLL file.");
 		else if (dllFiles.Length > 1)
-			throw new ArgumentException("Selected folder contains more than 1 valid plugin DLL file.");
+			throw new ArgumentException("Selected folder contains more than one valid plugin DLL file.");
 
 		FileInfo dllFile = dllFiles[0];
 
@@ -128,17 +110,10 @@ public sealed class TRNGPluginInstallationService : IPluginInstallationService
 
 		string copyDirectoryPath = Path.Combine(pluginsDirectory.FullName, Path.GetFileNameWithoutExtension(dllFileName));
 
-		if (!Directory.Exists(copyDirectoryPath))
-			Directory.CreateDirectory(copyDirectoryPath);
-
 		IEnumerable<FileInfo> filesToCopy = selectedDir.GetFiles("*", System.IO.SearchOption.TopDirectoryOnly)
 			.Where(file => file.FullName.StartsWith(dllSubPath, StringComparison.OrdinalIgnoreCase));
 
-		foreach (FileInfo file in filesToCopy)
-		{
-			string destFilePath = Path.Combine(copyDirectoryPath, file.FullName[dllSubPath.Length..]);
-			file.CopyTo(destFilePath, true);
-		}
+		_fileExtractionService.CopyFilesToDirectory(filesToCopy, copyDirectoryPath, subPathToTrim: dllSubPath);
 
 		return _metadataService.ReadPluginMetadata(copyDirectoryPath, dllFileName);
 	}

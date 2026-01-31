@@ -22,7 +22,7 @@ public partial class SettingsStartupImage : UserControl
 	{
 		InitializeComponent();
 
-		_startupImageService = startupImageService ?? throw new ArgumentNullException(nameof(startupImageService));
+		_startupImageService = startupImageService;
 	}
 
 	public void Initialize(IDE ide)

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,7 +14,7 @@ public sealed class TRNGPluginDiscoveryService : IPluginDiscoveryService
 	private readonly IPluginMetadataService _metadataService;
 
 	public TRNGPluginDiscoveryService(IPluginMetadataService metadataService)
-		=> _metadataService = metadataService ?? throw new ArgumentNullException(nameof(metadataService));
+		=> _metadataService = metadataService;
 
 	public IEnumerable<PluginInfo> DiscoverPlugins(IGameProject project)
 	{

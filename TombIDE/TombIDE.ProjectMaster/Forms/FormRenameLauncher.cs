@@ -21,7 +21,7 @@ public partial class FormRenameLauncher : DarkForm
 	public FormRenameLauncher(IDE ide, ILauncherManagementService launcherService)
 	{
 		_ide = ide;
-		_launcherService = launcherService ?? throw new ArgumentNullException(nameof(launcherService));
+		_launcherService = launcherService;
 
 		InitializeComponent();
 	}

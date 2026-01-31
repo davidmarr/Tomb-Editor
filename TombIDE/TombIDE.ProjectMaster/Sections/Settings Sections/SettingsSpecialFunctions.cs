@@ -27,8 +27,8 @@ public partial class SettingsSpecialFunctions : UserControl
 	{
 		InitializeComponent();
 
-		_launcherService = launcherService ?? throw new ArgumentNullException(nameof(launcherService));
-		_logCleaningService = logCleaningService ?? throw new ArgumentNullException(nameof(logCleaningService));
+		_launcherService = launcherService;
+		_logCleaningService = logCleaningService;
 	}
 
 	public void Initialize(IDE ide)

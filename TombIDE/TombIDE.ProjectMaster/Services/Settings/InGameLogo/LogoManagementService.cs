@@ -19,7 +19,7 @@ public sealed class LogoManagementService : ILogoManagementService
 	{ }
 
 	public LogoManagementService(IPakFileService pakFileService)
-		=> _pakFileService = pakFileService ?? throw new ArgumentNullException(nameof(pakFileService));
+		=> _pakFileService = pakFileService;
 
 	public Image? GetLogoImage(IGameProject project)
 	{

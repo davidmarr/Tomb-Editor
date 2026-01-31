@@ -21,12 +21,12 @@ public sealed class TRNGPluginDeploymentService : IPluginDeploymentService
 		// Copy all plugin DLL files to the engine directory
 		foreach (FileInfo dllFile in pluginsDirectory.GetFiles(PluginDllPattern, SearchOption.AllDirectories))
 		{
-			string destPath = Path.Combine(engineRootDirectoryPath, dllFile.Name);
-			dllFile.CopyTo(destPath, true);
+			string destinationPath = Path.Combine(engineRootDirectoryPath, dllFile.Name);
+			dllFile.CopyTo(destinationPath, true);
 		}
 	}
 
-	public void HandleScriptReferences(IGameProject project)
+	public void SynchronizeScriptReferences(IGameProject project)
 	{
 		// Delete all .script files from the internal /NGC/ folder
 		foreach (string file in Directory.GetFiles(DefaultPaths.InternalNGCDirectory, PluginScriptPattern, SearchOption.TopDirectoryOnly))
@@ -40,8 +40,8 @@ public sealed class TRNGPluginDeploymentService : IPluginDeploymentService
 		// Copy all plugin .script files to the internal NGC directory
 		foreach (FileInfo scriptFile in pluginsDirectory.GetFiles(PluginScriptPattern, SearchOption.AllDirectories))
 		{
-			string destPath = Path.Combine(DefaultPaths.InternalNGCDirectory, scriptFile.Name);
-			scriptFile.CopyTo(destPath, true);
+			string destinationPath = Path.Combine(DefaultPaths.InternalNGCDirectory, scriptFile.Name);
+			scriptFile.CopyTo(destinationPath, true);
 		}
 
 		// Refresh mnemonic data

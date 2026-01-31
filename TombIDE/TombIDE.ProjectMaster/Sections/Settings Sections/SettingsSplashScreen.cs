@@ -25,7 +25,7 @@ public partial class SettingsSplashScreen : UserControl
 	{
 		InitializeComponent();
 
-		_splashScreenService = splashScreenService ?? throw new ArgumentNullException(nameof(splashScreenService));
+		_splashScreenService = splashScreenService;
 	}
 
 	public void Initialize(IDE ide)

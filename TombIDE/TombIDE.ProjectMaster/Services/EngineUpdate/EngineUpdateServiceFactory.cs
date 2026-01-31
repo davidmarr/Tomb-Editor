@@ -1,4 +1,3 @@
-using System;
 using TombIDE.ProjectMaster.Services.FileExtraction;
 using TombLib.LevelData;
 
@@ -22,7 +21,7 @@ public sealed class EngineUpdateServiceFactory : IEngineUpdateServiceFactory
 	private readonly IFileExtractionService _fileExtractionService;
 
 	public EngineUpdateServiceFactory(IFileExtractionService fileExtractionService)
-		=> _fileExtractionService = fileExtractionService ?? throw new ArgumentNullException(nameof(fileExtractionService));
+		=> _fileExtractionService = fileExtractionService;
 
 	public IEngineUpdateService? GetUpdateService(TRVersion.Game gameVersion) => gameVersion switch
 	{

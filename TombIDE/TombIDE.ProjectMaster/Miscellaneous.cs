@@ -1,5 +1,4 @@
-﻿using System;
-using System.Windows.Forms;
+﻿using System.Windows.Forms;
 using TombIDE.ProjectMaster.Services;
 using TombIDE.Shared;
 
@@ -16,7 +15,7 @@ public partial class Miscellaneous : UserControl
 	{
 		InitializeComponent();
 
-		_uiResourceService = uiResourceService ?? throw new ArgumentNullException(nameof(uiResourceService));
+		_uiResourceService = uiResourceService;
 	}
 
 	public void Initialize(IDE ide)

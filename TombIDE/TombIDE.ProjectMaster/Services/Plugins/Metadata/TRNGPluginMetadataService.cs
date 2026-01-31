@@ -10,10 +10,14 @@ public sealed class TRNGPluginMetadataService : IPluginMetadataService
 	public PluginInfo ReadPluginMetadata(string pluginDirectoryPath, string dllFileName)
 	{
 		string dllFilePath = Path.Combine(pluginDirectoryPath, dllFileName);
-		var pluginInfo = new PluginInfo(dllFilePath);
+		string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(dllFileName);
 
-		// Read plugin name from .btn file
-		string btnFilePath = Path.Combine(pluginDirectoryPath, Path.GetFileNameWithoutExtension(dllFileName) + ".btn");
+		string pluginName = fileNameWithoutExtension;
+		string? pluginDescription = null;
+		Image? pluginLogo = null;
+
+		// Try to read name from .btn file
+		string btnFilePath = Path.Combine(pluginDirectoryPath, fileNameWithoutExtension + ".btn");
 
 		if (File.Exists(btnFilePath))
 		{
@@ -21,16 +25,16 @@ public sealed class TRNGPluginMetadataService : IPluginMetadataService
 				.FirstOrDefault(line => line.StartsWith("NAME#"));
 
 			if (nameLine is not null)
-				pluginInfo.Name = nameLine.Replace("NAME#", string.Empty).Trim();
+				pluginName = nameLine.Replace("NAME#", string.Empty).Trim();
 		}
 
-		// Read description from .txt file
-		string descriptionFilePath = Path.Combine(pluginDirectoryPath, Path.GetFileNameWithoutExtension(dllFileName) + ".txt");
+		// Try to read description from .txt file
+		string descriptionFilePath = Path.Combine(pluginDirectoryPath, fileNameWithoutExtension + ".txt");
 
 		if (File.Exists(descriptionFilePath))
-			pluginInfo.Description = File.ReadAllText(descriptionFilePath);
+			pluginDescription = File.ReadAllText(descriptionFilePath);
 
-		// Read logo image
+		// Try to read logo from image files
 		foreach (string file in Directory.GetFiles(pluginDirectoryPath))
 		{
 			string extension = Path.GetExtension(file).ToLower();
@@ -40,7 +44,7 @@ public sealed class TRNGPluginMetadataService : IPluginMetadataService
 				try
 				{
 					using var stream = new FileStream(file, FileMode.Open, FileAccess.Read);
-					pluginInfo.Logo = Image.FromStream(stream);
+					pluginLogo = Image.FromStream(stream);
 
 					break;
 				}
@@ -51,6 +55,6 @@ public sealed class TRNGPluginMetadataService : IPluginMetadataService
 			}
 		}
 
-		return pluginInfo;
+		return new PluginInfo(dllFilePath, pluginName, pluginDescription, pluginLogo);
 	}
 }

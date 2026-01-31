@@ -1,7 +1,5 @@
-using System;
 using TombIDE.ProjectMaster.Services.EngineUpdate;
 using TombIDE.Shared.NewStructure;
-using TombLib.LevelData;
 
 namespace TombIDE.ProjectMaster.Services.EngineVersion;
 
@@ -10,24 +8,15 @@ public sealed class EngineVersionService : IEngineVersionService
 	private readonly IEngineUpdateServiceFactory _updateServiceFactory;
 
 	public EngineVersionService(IEngineUpdateServiceFactory updateServiceFactory)
-		=> _updateServiceFactory = updateServiceFactory ?? throw new ArgumentNullException(nameof(updateServiceFactory));
+		=> _updateServiceFactory = updateServiceFactory;
 
 	public EngineVersionInfo GetVersionInfo(IGameProject project)
 	{
-		var info = new EngineVersionInfo();
-
-		// TR4 doesn't have version tracking
-		if (project.GameVersion is TRVersion.Game.TR4)
+		var info = new EngineVersionInfo
 		{
-			info.CurrentVersion = null;
-			info.LatestVersion = null;
-			info.SupportsAutoUpdate = false;
-
-			return info;
-		}
-
-		info.CurrentVersion = project.GetCurrentEngineVersion();
-		info.LatestVersion = project.GetLatestEngineVersion();
+			CurrentVersion = project.GetCurrentEngineVersion(),
+			LatestVersion = project.GetLatestEngineVersion()
+		};
 
 		// Check if auto-update is supported
 		var updateService = _updateServiceFactory.GetUpdateService(project.GameVersion);

@@ -15,23 +15,25 @@ public sealed class TRNGPluginInitializationService : IPluginInitializationServi
 		string pluginsPath = project.PluginsDirectoryPath;
 		var pluginsDirectory = new DirectoryInfo(pluginsPath);
 
-		if (!pluginsDirectory.Exists || !pluginsDirectory.EnumerateFiles("*", SearchOption.AllDirectories).Any())
+		if (pluginsDirectory.Exists && pluginsDirectory.EnumerateFiles("*", SearchOption.AllDirectories).Any())
+			return;
+
+		if (!pluginsDirectory.Exists)
 		{
-			if (!pluginsDirectory.Exists)
-			{
-				pluginsDirectory.Create();
-				pluginsDirectory = new DirectoryInfo(pluginsDirectory.FullName);
-			}
-
-			// TODO: Remove .parc support in future versions
-			string parcPath = Path.Combine(project.GetEngineRootDirectoryPath(), "plugins.parc");
-
-			if (File.Exists(parcPath))
-				CopyPluginsFromPARCToProject(project, parcPath, pluginsDirectory);
-
-			if (Directory.Exists(DefaultPaths.TRNGPluginsDirectory)) // Priority
-				CopyPluginsFromTIDEToProject(project, pluginsDirectory);
+			pluginsDirectory.Create();
+			pluginsDirectory = new DirectoryInfo(pluginsDirectory.FullName);
 		}
+
+		// TODO: Remove .parc support in future versions.
+		// This was a dirty hack to keep a copy of the user's plugins when TIDE stored plugins internally, rather than in the project folder.
+		// This is not the case anymore and .parc files are therefore deprecated.
+		string parcPath = Path.Combine(project.GetEngineRootDirectoryPath(), "plugins.parc");
+
+		if (File.Exists(parcPath))
+			CopyPluginsFromPARCToProject(project, parcPath, pluginsDirectory);
+
+		if (Directory.Exists(DefaultPaths.TRNGPluginsDirectory)) // Priority
+			CopyPluginsFromTIDEToProject(project, pluginsDirectory);
 	}
 
 	private static void CopyPluginsFromTIDEToProject(IGameProject project, DirectoryInfo pluginsDirectory)

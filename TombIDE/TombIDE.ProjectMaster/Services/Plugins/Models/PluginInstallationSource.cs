@@ -12,14 +12,8 @@ public enum PluginInstallationSourceType
 /// <summary>
 /// Represents a source from which a plugin can be installed.
 /// </summary>
-public sealed class PluginInstallationSource
+public sealed class PluginInstallationSource(string path, PluginInstallationSourceType type)
 {
-	public string Path { get; }
-	public PluginInstallationSourceType Type { get; }
-
-	public PluginInstallationSource(string path, PluginInstallationSourceType type)
-	{
-		Path = path;
-		Type = type;
-	}
+	public string Path { get; } = path;
+	public PluginInstallationSourceType Type { get; } = type;
 }

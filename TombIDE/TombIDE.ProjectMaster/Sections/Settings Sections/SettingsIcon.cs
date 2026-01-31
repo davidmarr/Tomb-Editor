@@ -23,7 +23,7 @@ public partial class SettingsIcon : UserControl
 	{
 		InitializeComponent();
 
-		_iconService = iconService ?? throw new ArgumentNullException(nameof(iconService));
+		_iconService = iconService;
 	}
 
 	public async void Initialize(IDE ide)

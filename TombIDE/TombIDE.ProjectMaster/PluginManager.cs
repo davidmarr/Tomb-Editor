@@ -38,8 +38,8 @@ public partial class PluginManager : UserControl
 	{
 		InitializeComponent();
 
-		_pluginServiceFactory = pluginServiceFactory ?? throw new ArgumentNullException(nameof(pluginServiceFactory));
-		_uiResourceService = uiResourceService ?? throw new ArgumentNullException(nameof(uiResourceService));
+		_pluginServiceFactory = pluginServiceFactory;
+		_uiResourceService = uiResourceService;
 	}
 
 	public void Initialize(IDE ide)
@@ -168,7 +168,7 @@ public partial class PluginManager : UserControl
 
 		var selectedPluginInfo = (PluginInfo)treeView.SelectedNodes[0].Tag;
 
-		if (selectedPluginInfo?.DllFile is null || !File.Exists(selectedPluginInfo.DllFilePath))
+		if (!File.Exists(selectedPluginInfo.DllFilePath))
 			return false;
 
 		pluginInfo = selectedPluginInfo;
@@ -191,7 +191,7 @@ public partial class PluginManager : UserControl
 		}
 
 		_deploymentService?.DeployPlugins(_ide.Project);
-		_deploymentService?.HandleScriptReferences(_ide.Project);
+		_deploymentService?.SynchronizeScriptReferences(_ide.Project);
 
 		_ide.RaiseEvent(new IDE.ScriptEditor_ReloadSyntaxHighlightingEvent());
 

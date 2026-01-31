@@ -25,7 +25,7 @@ public partial class SettingsProjectInfo : UserControl
 	{
 		InitializeComponent();
 
-		_projectInfoService = projectInfoService ?? throw new ArgumentNullException(nameof(projectInfoService));
+		_projectInfoService = projectInfoService;
 	}
 
 	public void Initialize(IDE ide)

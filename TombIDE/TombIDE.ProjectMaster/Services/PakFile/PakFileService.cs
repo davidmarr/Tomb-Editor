@@ -36,7 +36,7 @@ public sealed class PakFileService : IPakFileService
 	{
 		try
 		{
-			byte[] pakFileData = CompressData(rawData);
+			byte[] pakFileData = CompressDataAndAddPrefix(rawData);
 			File.WriteAllBytes(pakFilePath, pakFileData);
 		}
 		catch (Exception ex)
@@ -45,7 +45,7 @@ public sealed class PakFileService : IPakFileService
 		}
 	}
 
-	private static byte[] CompressData(byte[] data)
+	private static byte[] CompressDataAndAddPrefix(byte[] data)
 	{
 		byte[] compressedData = ZLib.CompressData(data);
 		return [.. PakFilePrefix, .. compressedData];

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TombIDE.ProjectMaster.Services.FileExtraction;
 using TombIDE.ProjectMaster.Services.Plugins.Deployment;
 using TombIDE.ProjectMaster.Services.Plugins.Discovery;
 using TombIDE.ProjectMaster.Services.Plugins.Initialization;
@@ -52,6 +53,8 @@ public sealed class PluginServiceFactory : IPluginServiceFactory
 	private readonly Dictionary<TRVersion.Game, IPluginMetadataService> _metadataServices = [];
 	private readonly Dictionary<TRVersion.Game, IPluginInitializationService> _initializationServices = [];
 
+	private readonly IFileExtractionService _fileExtractionService = new FileExtractionService();
+
 	public IPluginDiscoveryService? GetDiscoveryService(TRVersion.Game gameVersion)
 	{
 		if (_discoveryServices.TryGetValue(gameVersion, out var service))
@@ -81,7 +84,7 @@ public sealed class PluginServiceFactory : IPluginServiceFactory
 
 		service = gameVersion switch
 		{
-			TRVersion.Game.TRNG when metadataService is not null => new TRNGPluginInstallationService(metadataService),
+			TRVersion.Game.TRNG when metadataService is not null => new TRNGPluginInstallationService(metadataService, _fileExtractionService),
 			// Add other game versions here in the future
 			_ => null
 		};

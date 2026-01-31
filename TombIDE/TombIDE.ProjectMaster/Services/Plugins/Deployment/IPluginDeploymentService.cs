@@ -14,8 +14,8 @@ public interface IPluginDeploymentService
 	void DeployPlugins(IGameProject project);
 
 	/// <summary>
-	/// Handles plugin-specific script reference files.
+	/// Synchronizes plugin script reference files to enable IDE script editor support.
 	/// </summary>
-	/// <param name="project">The project containing the plugins.</param>
-	void HandleScriptReferences(IGameProject project);
+	/// <param name="project">The project whose plugin script references should be synchronized.</param>
+	void SynchronizeScriptReferences(IGameProject project);
 }

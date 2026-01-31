@@ -23,7 +23,7 @@ public partial class FormGameArchive : DarkForm
 		InitializeComponent();
 
 		_ide = ide;
-		_archiveServiceFactory = archiveServiceFactory ?? throw new ArgumentNullException(nameof(archiveServiceFactory));
+		_archiveServiceFactory = archiveServiceFactory;
 	}
 
 	private async void button_Generate_Click(object sender, EventArgs e)

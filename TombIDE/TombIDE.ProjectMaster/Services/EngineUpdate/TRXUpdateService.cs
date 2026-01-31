@@ -34,7 +34,7 @@ public sealed class TRXUpdateService : IEngineUpdateService
 
 	public TRXUpdateService(IFileExtractionService fileExtractionService, TRVersion.Game gameVersion)
 	{
-		_fileExtractionService = fileExtractionService ?? throw new ArgumentNullException(nameof(fileExtractionService));
+		_fileExtractionService = fileExtractionService;
 
 		if (!PresetArchiveNames.ContainsKey(gameVersion))
 			throw new ArgumentException($"Unsupported game version: {gameVersion}", nameof(gameVersion));
@@ -96,10 +96,10 @@ public sealed class TRXUpdateService : IEngineUpdateService
 			using var engineArchive = new ZipArchive(File.OpenRead(enginePresetPath));
 
 			var shaders = engineArchive.Entries.Where(entry => entry.FullName.StartsWith("Engine/shaders")).ToList();
-			_fileExtractionService.ExtractEntries(shaders, project);
+			_fileExtractionService.ExtractEntries(shaders, project.DirectoryPath);
 
 			var executables = engineArchive.Entries.Where(entry => entry.FullName.EndsWith(".exe")).ToList();
-			_fileExtractionService.ExtractEntries(executables, project);
+			_fileExtractionService.ExtractEntries(executables, project.DirectoryPath);
 
 			DarkMessageBox.Show(owner, "Engine has been updated successfully!", "Done.",
 				MessageBoxButtons.OK, MessageBoxIcon.Information);
