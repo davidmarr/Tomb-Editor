@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using TombIDE.Shared.NewStructure;
-using TombIDE.Shared.NewStructure.Implementations;
 using TombLib.LevelData;
 
 namespace TombIDE.ProjectMaster.Services.LevelCompile;
@@ -10,18 +10,13 @@ public sealed class LevelCompileService : ILevelCompileService
 {
 	public bool RebuildAllLevels(IGameProject project)
 	{
-		LevelProject[] levels = project.GetAllValidLevelProjects();
+		ILevelProject[] levels = project.GetAllValidLevelProjects();
 
 		if (levels.Length == 0)
 			return false;
 
 		var batchList = new BatchCompileList();
-
-		foreach (ILevelProject level in levels)
-		{
-			string prj2Path = GetPrj2Path(level);
-			batchList.Files.Add(prj2Path);
-		}
+		batchList.Files.AddRange(levels.Select(GetPrj2Path));
 
 		ExecuteBatchCompile(batchList);
 		return true;
