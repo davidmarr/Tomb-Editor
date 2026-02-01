@@ -47,11 +47,13 @@ public abstract class GameArchiveServiceBase : IGameArchiveService
 
 		bool hasLauncherFile = File.Exists(launchFilePath);
 		bool hasReadmeContent = !string.IsNullOrWhiteSpace(readmeText);
+		bool hasSavesFolder = CreateSavesFolder();
 
 		IReadOnlyList<string> importantFolders = GetImportantFolders(engineDirectory);
 		IReadOnlyList<string> importantFiles = GetImportantFiles(engineDirectory);
 
-		int totalFileCount = CalculateTotalFileCount(importantFolders, importantFiles, hasLauncherFile, hasReadmeContent);
+		int totalFileCount = CalculateTotalFileCount(
+			importantFolders, importantFiles, hasLauncherFile, hasReadmeContent, hasSavesFolder);
 
 		OnProgressChanged("Creating archive...", 0, totalFileCount);
 
@@ -121,11 +123,13 @@ public abstract class GameArchiveServiceBase : IGameArchiveService
 		IReadOnlyList<string> importantFolders,
 		IReadOnlyList<string> importantFiles,
 		bool hasLauncherFile,
-		bool hasReadmeContent)
+		bool hasReadmeContent,
+		bool hasSavesFolder)
 	{
 		int count = importantFiles.Count +
 			(hasLauncherFile ? 1 : 0) +
-			(hasReadmeContent ? 1 : 0);
+			(hasReadmeContent ? 1 : 0) +
+			(hasSavesFolder ? 1 : 0);
 
 		// Count files in folders
 		count += importantFolders
