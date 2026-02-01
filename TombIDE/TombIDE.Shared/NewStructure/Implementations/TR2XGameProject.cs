@@ -144,14 +144,6 @@ namespace TombIDE.Shared.NewStructure
 		/// </summary>
 		/// <param name="versionString">The version string to parse.</param>
 		private static Version GetActualVersion(string versionString)
-		{
-			bool isLegacyVersion = !versionString.StartsWith(VersionPrefix); // Legacy TR2X builds did not have similar version strings to TR1X
-
-			versionString = versionString.Replace(VersionPrefix, string.Empty);
-
-			return isLegacyVersion
-				? new Version("0." + versionString) // Legacy versions get a 0.x major version
-				: new Version(versionString);
-		}
+			=> TRXVersionHelper.ParseTRXVersion(versionString, legacyVersionPrefix: null);
 	}
 }
