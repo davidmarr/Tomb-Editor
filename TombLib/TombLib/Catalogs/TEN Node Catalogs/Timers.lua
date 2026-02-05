@@ -494,20 +494,17 @@ LevelFuncs.Engine.Node.IfRemainingTimeIs = function(name, operator, value)
                 local remainingTime = Timer.Get(name):GetRemainingTimeInSeconds()
                 if operator == 0 or operator == 1 then
                     -- Equal / Not Equal -- need to check if the timer is ticking
-                    if Timer.Get(name):IsTicking() then
-                        result = Timer.Get(name):IfRemainingTimeIs(operator, floatValue)
-                    else
-                        result = false
-                    end
-                    if LevelVars.nodeTimers[name].debug and Timer.Get(name):IsTicking() then
-                        TEN.Util.PrintLog("If the remaining time (".. remainingTime ..") is " .. textCompareOp[operator] .. " " ..  floatValue .. ". . Result: " .. tostring(result), TEN.Util.LogLevel.INFO, true)
-                    end
+                    result = Timer.Get(name):IsTicking() and Timer.Get(name):IfRemainingTimeIs(operator, floatValue) or false
                 else
                     -- Greater / Greater or Equal / Less / Less or Equal -- not need to check if the timer is ticking
                     result = Timer.Get(name):IfRemainingTimeIs(operator, floatValue)
-                    if LevelVars.nodeTimers[name].debug then
-                        TEN.Util.PrintLog("If the remaining time (".. remainingTime ..") is " .. textCompareOp[operator] .. " " ..  floatValue .. ". . Result: " .. tostring(result), TEN.Util.LogLevel.INFO, true)
-                    end
+                end
+                if LevelVars.nodeTimers[name].debug and (
+                    ((operator == 0 or operator == 1) and Timer.Get(name):IsTicking()) -- only log Equal / Not Equal if the timer is ticking
+                    or
+                    (operator ~= 0 and operator ~= 1)) -- log always for the other operators
+                    then
+                    TEN.Util.PrintLog("If the remaining time (".. remainingTime ..") is " .. textCompareOp[operator] .. " " ..  floatValue .. ". . Result: " .. tostring(result), TEN.Util.LogLevel.INFO, true)
                 end
                 return result
             end
