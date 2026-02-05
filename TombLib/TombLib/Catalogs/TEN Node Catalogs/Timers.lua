@@ -488,20 +488,22 @@ end
 LevelFuncs.Engine.Node.IfRemainingTimeIs = function(name, operator, value)
     if name ~= '' then
         if Timer.IfExists(name) then
-            if Timer.Get(name):IsActive()then
+            local timer = Timer.Get(name)
+            if timer:IsActive()then
                 local result
                 local floatValue = value + 0.0
-                local remainingTime = Timer.Get(name):GetRemainingTimeInSeconds()
-                local test = Timer.Get(name):IfRemainingTimeIs(operator, floatValue)
+                local remainingTime = timer:GetRemainingTimeInSeconds()
+                local test = timer:IfRemainingTimeIs(operator, floatValue)
+                local isTicking = timer:IsTicking()
                 if operator == 0 or operator == 1 then
                     -- Equal / Not Equal -- need to check if the timer is ticking
-                    result = Timer.Get(name):IsTicking() and test or false
+                    result = isTicking and test or false
                 else
                     -- Greater / Greater or Equal / Less / Less or Equal -- not need to check if the timer is ticking
                     result = test
                 end
                 if LevelVars.nodeTimers[name].debug and (
-                    ((operator == 0 or operator == 1) and Timer.Get(name):IsTicking()) -- only log Equal / Not Equal if the timer is ticking
+                    ((operator == 0 or operator == 1) and isTicking) -- only log Equal / Not Equal if the timer is ticking
                     or
                     (operator ~= 0 and operator ~= 1)) -- log always for the other operators
                     then
