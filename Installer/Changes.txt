@@ -22,6 +22,8 @@ WadTool:
 
 TombIDE:
  * Updated TR1X and TR2X presets to TRX 1.1.
+ * Updated PLAY.exe to fix TEN console window not showing in `-debug` mode.
+ * Updated "Ready to Play" archive creation dialog.
 
 TEN nodes:
  * Added nodes to check the color of a moveable or static mesh.
