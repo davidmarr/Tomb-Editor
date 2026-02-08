@@ -521,7 +521,12 @@ end
 LevelFuncs.Engine.Node.IfTotalTimeIs = function(name, operator, time)
     if name ~= '' then
         if Timer.IfExists(name) then
-            return Timer.Get(name):IfTotalTimeIs(operator, (time + 0.0))
+            local result = Timer.Get(name):IfTotalTimeIs(operator, (time))
+            if LevelVars.nodeTimers[name].debug then
+                local totalTime = Timer.Get(name):GetTotalTimeInSeconds()
+                TEN.Util.PrintLog("If the total time (".. totalTime ..") is " .. textCompareOp[operator] .. " " ..  (time + 0.0) .. ". Result: " .. tostring(result), TEN.Util.LogLevel.INFO, true)
+            end
+            return result
         else
             TEN.Util.PrintLog("Timer '" .. name .. "' does not exist", TEN.Util.LogLevel.ERROR)
         end
