@@ -489,24 +489,16 @@ LevelFuncs.Engine.Node.IfRemainingTimeIs = function(name, operator, value)
     if name ~= '' then
         if Timer.IfExists(name) then
             local timer = Timer.Get(name)
-            if timer:IsActive()then
+            if timer:IsActive() then
                 local result
-                local floatValue = value + 0.0
-                local remainingTime = timer:GetRemainingTimeInSeconds()
-                local test = timer:IfRemainingTimeIs(operator, floatValue)
-                local isTicking = timer:IsTicking()
-                if operator == 0 or operator == 1 then
-                    -- Equal / Not Equal -- need to check if the timer is ticking
-                    result = isTicking and test or false
-                else
-                    -- Greater / Greater or Equal / Less / Less or Equal -- not need to check if the timer is ticking
-                    result = test
-                end
-                if LevelVars.nodeTimers[name].debug and (
-                    ((operator == 0 or operator == 1) and isTicking) -- only log Equal / Not Equal if the timer is ticking
-                    or
-                    (operator ~= 0 and operator ~= 1)) -- log always for the other operators
-                    then
+                result = timer:IfRemainingTimeIs(operator, value)
+                -- Debug log conditions:
+                -- 1. For Equal (==) and Not Equal (!=) operators (operator == 0 or operator == 1), log only if the timer is ticking (to have consistent logs).
+                -- 2. For all other operators (>, >=, <, <=), always log (no tick check needed).
+                local checkOperator = (operator == 0 or operator == 1) and timer:IsTicking() or (operator ~= 0 and operator ~= 1)
+                if LevelVars.nodeTimers[name].debug and checkOperator then
+                    local floatValue = value + 0.0
+                    local remainingTime = timer:GetRemainingTimeInSeconds()
                     TEN.Util.PrintLog("If the remaining time (".. remainingTime ..") is " .. textCompareOp[operator] .. " " ..  floatValue .. ". . Result: " .. tostring(result), TEN.Util.LogLevel.INFO, true)
                 end
                 return result
@@ -529,7 +521,12 @@ end
 LevelFuncs.Engine.Node.IfTotalTimeIs = function(name, operator, time)
     if name ~= '' then
         if Timer.IfExists(name) then
-            return Timer.Get(name):IfTotalTimeIs(operator, (time + 0.0))
+            local result = Timer.Get(name):IfTotalTimeIs(operator, time)
+            if LevelVars.nodeTimers[name].debug then
+                local totalTime = Timer.Get(name):GetTotalTimeInSeconds()
+                TEN.Util.PrintLog("If the total time (".. totalTime ..") is " .. textCompareOp[operator] .. " " ..  (time + 0.0) .. ". Result: " .. tostring(result), TEN.Util.LogLevel.INFO, true)
+            end
+            return result
         else
             TEN.Util.PrintLog("Timer '" .. name .. "' does not exist", TEN.Util.LogLevel.ERROR)
         end
