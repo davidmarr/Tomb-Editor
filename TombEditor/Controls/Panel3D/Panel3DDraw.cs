@@ -1078,7 +1078,7 @@ namespace TombEditor.Controls.Panel3D
                         }
                     }
 
-                if (group.Key == typeof(CameraInstance))
+                if (group.Key == typeof(CameraInstance) && !_editor.CameraPreviewMode)
                     foreach (CameraInstance instance in group)
                     {
                         _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullBack);
@@ -1106,7 +1106,7 @@ namespace TombEditor.Controls.Panel3D
                         DrawOrQueueServiceObject(instance, _littleCube, color, effect, sprites);
                     }
 
-                if (group.Key == typeof(FlybyCameraInstance))
+                if (group.Key == typeof(FlybyCameraInstance) && !_editor.CameraPreviewMode)
                     foreach (FlybyCameraInstance instance in group)
                     {
                         _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullBack);
@@ -1300,87 +1300,89 @@ namespace TombEditor.Controls.Panel3D
                     }
             }
 
-            // Draw extra flyby cones
+            // Draw extra flyby cones (hidden during flyby preview)
+            if (!_editor.CameraPreviewMode)
+            {
+                _legacyDevice.SetVertexBuffer(_cone.VertexBuffer);
+                _legacyDevice.SetVertexInputLayout(_cone.InputLayout);
+                _legacyDevice.SetIndexBuffer(_cone.IndexBuffer, _cone.IsIndex32Bits);
+                _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullNone);
 
-            _legacyDevice.SetVertexBuffer(_cone.VertexBuffer);
-            _legacyDevice.SetVertexInputLayout(_cone.InputLayout);
-            _legacyDevice.SetIndexBuffer(_cone.IndexBuffer, _cone.IsIndex32Bits);
-            _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullNone);
-
-            bool wireframe = false;
-            foreach (Room room in roomsWhoseObjectsToDraw)
-                foreach (var instance in room.Objects.OfType<FlybyCameraInstance>())
-                {
-                    var color = MathC.GetRandomColorByIndex(instance.Sequence, 32, 0.7f);
-                    Matrix4x4 model;
-
-                    if (_highlightedObjects.Contains(instance))
-                        color = _editor.Configuration.UI_ColorScheme.ColorSelection;
-
-                    for (int pass = 0; pass < 2; pass++)
+                bool wireframe = false;
+                foreach (Room room in roomsWhoseObjectsToDraw)
+                    foreach (var instance in room.Objects.OfType<FlybyCameraInstance>())
                     {
-                        if (_editor.SelectedObject == instance)
-                        {
-                            float coneAngle = (float)Math.Atan2(512, 1024);
-                            float cutoffScaleH = 1;
-                            float cutoffScaleW = instance.Fov * (float)(Math.PI / 360) / coneAngle * cutoffScaleH;
+                        var color = MathC.GetRandomColorByIndex(instance.Sequence, 32, 0.7f);
+                        Matrix4x4 model;
 
-                            if (pass == 0)
+                        if (_highlightedObjects.Contains(instance))
+                            color = _editor.Configuration.UI_ColorScheme.ColorSelection;
+
+                        for (int pass = 0; pass < 2; pass++)
+                        {
+                            if (_editor.SelectedObject == instance)
                             {
-                                // Ordinary cone
-                                model = Matrix4x4.CreateScale(cutoffScaleW, cutoffScaleW, cutoffScaleH) * instance.ObjectMatrix;
+                                float coneAngle = (float)Math.Atan2(512, 1024);
+                                float cutoffScaleH = 1;
+                                float cutoffScaleW = instance.Fov * (float)(Math.PI / 360) / coneAngle * cutoffScaleH;
+
+                                if (pass == 0)
+                                {
+                                    // Ordinary cone
+                                    model = Matrix4x4.CreateScale(cutoffScaleW, cutoffScaleW, cutoffScaleH) * instance.ObjectMatrix;
+                                }
+                                else
+                                {
+                                    // Roll pointer
+                                    var step = 1 / _coneRadius;
+                                    var scale = _littleCubeRadius * 2;
+                                    var pScale = _littleCubeRadius / 5;
+                                    var vOffset = -cutoffScaleW / 2 * _coneRadius - scale;
+                                    var hOffset = cutoffScaleH * _coneRadius;
+
+                                    model = Matrix4x4.CreateScale(step * pScale, step * pScale, step * scale) *
+                                            Matrix4x4.CreateTranslation(new Vector3(0, hOffset, vOffset)) *
+                                            Matrix4x4.CreateRotationX((float)(Math.PI / 2)) *
+                                            instance.ObjectMatrix;
+                                }
+
+                                if (wireframe == false)
+                                {
+                                    _legacyDevice.SetRasterizerState(_rasterizerWireframe);
+                                    wireframe = true;
+                                }
                             }
                             else
                             {
-                                // Roll pointer
-                                var step = 1 / _coneRadius;
-                                var scale = _littleCubeRadius * 2;
-                                var pScale = _littleCubeRadius / 5;
-                                var vOffset = -cutoffScaleW / 2 * _coneRadius - scale;
-                                var hOffset = cutoffScaleH * _coneRadius;
+                                // Don't do second pass for non-selected flybys
+                                if (pass == 1)
+                                    break;
 
-                                model = Matrix4x4.CreateScale(step * pScale, step * pScale, step * scale) *
-                                        Matrix4x4.CreateTranslation(new Vector3(0, hOffset, vOffset)) *
-                                        Matrix4x4.CreateRotationX((float)(Math.PI / 2)) *
-                                        instance.ObjectMatrix;
+                                // Push unselected cone further away in sprite mode for neatness
+                                if (_editor.Configuration.Rendering3D_UseSpritesForServiceObjects)
+                                    model = Matrix4x4.CreateTranslation(new Vector3(0, 0, -_coneRadius * 0.5f));
+                                else
+                                    model = Matrix4x4.Identity;
+
+                                model *= Matrix4x4.CreateTranslation(new Vector3(0, 0, -_coneRadius * 1.2f)) *
+                                         Matrix4x4.CreateRotationY((float)Math.PI) *
+                                         Matrix4x4.CreateScale(1 / _coneRadius * _littleCubeRadius * 2.0f) *
+                                         instance.ObjectMatrix;
+
+                                if (wireframe == true)
+                                {
+                                    _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullNone);
+                                    wireframe = false;
+                                }
                             }
 
-                            if (wireframe == false)
-                            {
-                                _legacyDevice.SetRasterizerState(_rasterizerWireframe);
-                                wireframe = true;
-                            }
+                            effect.Parameters["ModelViewProjection"].SetValue((model * _viewProjection).ToSharpDX());
+                            effect.Parameters["Color"].SetValue(color);
+                            effect.CurrentTechnique.Passes[0].Apply();
+                            _legacyDevice.DrawIndexed(PrimitiveType.TriangleList, _cone.IndexBuffer.ElementCount);
                         }
-                        else
-                        {
-                            // Don't do second pass for non-selected flybys
-                            if (pass == 1)
-                                break;
-
-                            // Push unselected cone further away in sprite mode for neatness
-                            if (_editor.Configuration.Rendering3D_UseSpritesForServiceObjects)
-                                model = Matrix4x4.CreateTranslation(new Vector3(0, 0, -_coneRadius * 0.5f));
-                            else
-                                model = Matrix4x4.Identity;
-
-                            model *= Matrix4x4.CreateTranslation(new Vector3(0, 0, -_coneRadius * 1.2f)) *
-                                     Matrix4x4.CreateRotationY((float)Math.PI) *
-                                     Matrix4x4.CreateScale(1 / _coneRadius * _littleCubeRadius * 2.0f) *
-                                     instance.ObjectMatrix;
-
-                            if (wireframe == true)
-                            {
-                                _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullNone);
-                                wireframe = false;
-                            }
-                        }
-
-                        effect.Parameters["ModelViewProjection"].SetValue((model * _viewProjection).ToSharpDX());
-                        effect.Parameters["Color"].SetValue(color);
-                        effect.CurrentTechnique.Passes[0].Apply();
-                        _legacyDevice.DrawIndexed(PrimitiveType.TriangleList, _cone.IndexBuffer.ElementCount);
                     }
-                }
+            }
         }
 
         private void DrawOrQueueServiceObject(ISpatial instance, GeometricPrimitive primitive, Vector4 color, Effect effect, List<Sprite> sprites)
@@ -1893,7 +1895,16 @@ namespace TombEditor.Controls.Panel3D
             }
 
             // New rendering setup
-            _viewProjection = Camera.GetViewProjectionMatrix(ClientSize.Width, ClientSize.Height);
+            if (_editor.CameraPreviewMode && _flybyPreview != null && !_flybyPreview.IsFinished)
+            {
+                // Build custom view-projection with roll support for flyby preview
+                _viewProjection = BuildFlybyPreviewViewProjection(ClientSize.Width, ClientSize.Height);
+            }
+            else
+            {
+                _viewProjection = Camera.GetViewProjectionMatrix(ClientSize.Width, ClientSize.Height);
+            }
+
             _renderingStateBuffer.Set(new RenderingState
             {
                 ShowExtraBlendingModes = ShowExtraBlendingModes,
@@ -1984,8 +1995,9 @@ namespace TombEditor.Controls.Panel3D
                 DrawPlaceholders(effect, roomsToDraw, textToDraw, spritesToDraw);
                 // Draw light objects and bounding volumes
                 DrawLights(effect, roomsToDraw, textToDraw, spritesToDraw);
-                // Draw flyby path
-                DrawFlybyPath(effect);
+                // Draw flyby path (hidden during flyby preview)
+                if (!_editor.CameraPreviewMode)
+                    DrawFlybyPath(effect);
                 // Draw sector split highlights
                 DrawSectorSplitHighlights(effect);
             }
@@ -2025,9 +2037,12 @@ namespace TombEditor.Controls.Panel3D
 
             ((TombLib.Rendering.DirectX11.Dx11RenderingDevice)Device).ResetState();
 
-            // Draw the gizmo
-            SwapChain.ClearDepth();
-            _gizmo.Draw(_viewProjection);
+            // Draw the gizmo (hidden during camera preview)
+            if (!_editor.CameraPreviewMode)
+            {
+                SwapChain.ClearDepth();
+                _gizmo.Draw(_viewProjection);
+            }
 
             // Draw depth-independent sprites
             var flatSprites = spritesToDraw.Where(s => !s.Depth.HasValue).ToList();
@@ -2041,6 +2056,38 @@ namespace TombEditor.Controls.Panel3D
 
             // At last, construct additional labels and draw all in-game text
             DrawText(roomsToDraw, textToDraw);
+        }
+
+        /// <summary>
+        /// Builds a view-projection matrix with roll support for flyby camera preview.
+        /// </summary>
+        private Matrix4x4 BuildFlybyPreviewViewProjection(float width, float height)
+        {
+            var frame = _flybyPreview.LastFrame;
+
+            // Build rotation directly from frame values (already in radians)
+            // This bypasses Camera.RotationY which normalizes to [0,2π), undoing our angle unwrapping
+            Matrix4x4 rotation = Matrix4x4.CreateFromYawPitchRoll(frame.RotationY, frame.RotationX, 0);
+
+            Vector3 look = MathC.HomogenousTransform(Vector3.UnitZ, rotation);
+            Vector3 right = MathC.HomogenousTransform(Vector3.UnitX, rotation);
+            Vector3 up = Vector3.Cross(look, right);
+
+            // Apply roll by rotating the up vector around the look direction
+            if (Math.Abs(frame.Roll) > 0.001f)
+            {
+                Matrix4x4 rollMatrix = Matrix4x4.CreateFromAxisAngle(look, frame.Roll);
+                up = Vector3.TransformNormal(up, rollMatrix);
+            }
+
+            Vector3 target = frame.Position + (Level.SectorSizeUnit * look);
+            float fov = frame.Fov > 0.01f ? frame.Fov : Camera.FieldOfView;
+
+            Matrix4x4 view = MathC.Matrix4x4CreateLookAtLH(frame.Position, target, up);
+            float aspectRatio = width / height;
+            Matrix4x4 projection = MathC.Matrix4x4CreatePerspectiveFieldOfViewLH(fov, aspectRatio, 20.0f, 1000000.0f);
+
+            return view * projection;
         }
     }
 }
