@@ -63,8 +63,8 @@ namespace TombEditor
         // Current spline parameter: t ∈ [0, _numSegments]
         private float _currentT;
 
-		// Freeze state (SCF_STOP_MOVEMENT)
-		private float _freezeRemaining;
+        // Freeze state (SCF_STOP_MOVEMENT)
+        private float _freezeRemaining;
         private bool _frozenAtBoundary;
         private int _currentSegment;
 
