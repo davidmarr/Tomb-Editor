@@ -14,6 +14,7 @@ Tomb Editor:
 WadTool:
  * Added indication of missing external texture file.
  * Automatically correct hair mesh connections when importing TR4 outfits to TEN wad.
+ * Rearranged animation editor UI in preparation for animation blending feature.
  * Fixed gizmo behaviour in animation editor.
  * Fixed misplaced backholster meshes for classic engines.
  * Fixed external textures not loading when wad was moved to another directory.
