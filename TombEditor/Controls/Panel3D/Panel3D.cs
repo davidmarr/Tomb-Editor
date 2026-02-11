@@ -395,7 +395,7 @@ namespace TombEditor.Controls.Panel3D
         {
             base.OnPreviewKeyDown(e);
 
-            // Block keyboard input during camera preview (except Escape)
+            // Block keyboard input during camera preview (except ESC)
             if (_editor.CameraPreviewMode)
             {
                 if (e.KeyCode == Keys.Escape)
