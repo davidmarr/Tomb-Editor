@@ -1524,8 +1524,22 @@ custom menu creation, photo mode or time freeze.</description>
 		</function>
 		<function>
 			<module>Inventory</module>
+			<name>UseItem</name>
+			<summary>Try to use an item.</summary>
+			<description>For equippable or consumable items, standard game conditions will apply - for example, firearms can't be used underwater, and keys or puzzle items
+ can only be used in close proximity to a corresponding key or puzzle hole.</description>
+			<parameters>
+				<parameter>
+					<name>objectID</name>
+					<type>Objects.ObjID</type>
+					<description>Object ID to use. Must be preset in the inventory.</description>
+				</parameter>
+			</parameters>
+		</function>
+		<function>
+			<module>Inventory</module>
 			<name>GetUsedItem</name>
-			<summary>Get last item used in the player's inventory.</summary>
+			<summary>Get last item that was used in the player's inventory.</summary>
 			<description>This value will be valid only for a single frame after exiting inventory, after which Lara says "No".
  Therefore, this function must be preferably used either in OnLoop or OnUseItem events.</description>
 			<returns>
@@ -1538,14 +1552,13 @@ custom menu creation, photo mode or time freeze.</description>
 		<function>
 			<module>Inventory</module>
 			<name>SetUsedItem</name>
-			<summary>Set last item used in the player's inventory.</summary>
-			<description>You will be able to specify only objects which already exist in the inventory.
- Will only be valid for the next frame. If not processed by the game, Lara will say "No".</description>
+			<summary>Set last item that was used in the player's inventory.</summary>
+			<description>Will only be valid for the next frame. If not processed by the game, Lara will say "No".</description>
 			<parameters>
 				<parameter>
 					<name>objectID</name>
 					<type>Objects.ObjID</type>
-					<description>Object ID of the item to select from inventory.</description>
+					<description>Object ID of the item to select from inventory. Must be preset in the inventory.</description>
 				</parameter>
 			</parameters>
 		</function>
@@ -1558,9 +1571,9 @@ custom menu creation, photo mode or time freeze.</description>
 		</function>
 		<function>
 			<module>Inventory</module>
-			<name>GetEnterInventory</name>
-			<summary>Gets the item set to open custom inventory at.</summary>
-			<description>Used by Custom Inventory module.</description>
+			<name>GetFocusedItem</name>
+			<summary>Gets the item that is about to be focused in the inventory.</summary>
+			<description>Can be used to intercept inventory calls with a request to select a particular item.</description>
 			<returns>
 				<return>
 					<type>Objects.ObjID</type>
@@ -1570,14 +1583,13 @@ custom menu creation, photo mode or time freeze.</description>
 		</function>
 		<function>
 			<module>Inventory</module>
-			<name>SetEnterInventory</name>
-			<summary>Sets the item to open custom inventory at.</summary>
-			<description>Used by Custom Inventory module.</description>
+			<name>SetFocusedItem</name>
+			<summary>Opens the inventory and focuses on the specified item, if it is available.</summary>
 			<parameters>
 				<parameter>
 					<name>objectID</name>
 					<type>Objects.ObjID</type>
-					<description>Object ID of the item to set.</description>
+					<description>Object ID of the item to set. Must be preset in the inventory.</description>
 				</parameter>
 			</parameters>
 		</function>
@@ -1949,6 +1961,24 @@ custom menu creation, photo mode or time freeze.</description>
 				<return>
 					<type>bool</type>
 					<description>True if name is in use and an object with a given name is present, false if not.</description>
+				</return>
+			</returns>
+		</function>
+		<function>
+			<module>Objects</module>
+			<name>GetSlotName</name>
+			<summary>Converts moveable Object ID to a string with internal slot name.</summary>
+			<parameters>
+				<parameter>
+					<name>objectID</name>
+					<type>Objects.ObjID</type>
+					<description>Moveable object ID.</description>
+				</parameter>
+			</parameters>
+			<returns>
+				<return>
+					<type>string</type>
+					<description>Internal slot name.</description>
 				</return>
 			</returns>
 		</function>
@@ -2378,31 +2408,6 @@ allocated even after timeout is reached, and can be shown again without re-initi
 			</parameters>
 		</function>
 		<function>
-			<module>Util</module>
-			<name>GetObjectIDString</name>
-			<summary>Converts ObjectID to a string.</summary>
-			<description>Used by Custom Inventory module to retrieve examine texts.</description>
-			<parameters>
-				<parameter>
-					<name>objectID</name>
-					<type>Objects.ObjID</type>
-					<description>ID of the object.</description>
-				</parameter>
-			</parameters>
-			<returns>
-				<return>
-					<type>string</type>
-					<description>ObjectID converted to string.</description>
-				</return>
-			</returns>
-		</function>
-		<function>
-			<module>Util</module>
-			<name>OnUseItemCallBack</name>
-			<summary>Runs the OnUseItem callback.</summary>
-			<description>Used by Custom Inventory module to enable OnItemUse callbacks.</description>
-		</function>
-		<function>
 			<module>View</module>
 			<name>FadeIn</name>
 			<summary>Do a full-screen fade-in from black.</summary>
@@ -2759,11 +2764,6 @@ allocated even after timeout is reached, and can be shown again without re-initi
 					<description>Display resolution's aspect ratio.</description>
 				</return>
 			</returns>
-		</function>
-		<function>
-			<module>View</module>
-			<name>UseBinoculars</name>
-			<summary>Sets the view to binoculars mode.</summary>
 		</function>
 		<function>
 			<module>CustomBar</module>
