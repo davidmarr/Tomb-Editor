@@ -457,7 +457,6 @@ namespace TombLib.LevelData
 
         public bool IsTombEngine => Settings?.GameVersion == TRVersion.Game.TombEngine;
 
-        public bool IsTRX => Settings?.GameVersion == TRVersion.Game.TR1X
-            || Settings?.GameVersion == TRVersion.Game.TR2X;
+        public bool IsTRX => Settings?.GameVersion.IsTRX() ?? false;
     }
 }

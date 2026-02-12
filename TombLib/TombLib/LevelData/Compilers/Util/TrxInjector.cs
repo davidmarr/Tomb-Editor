@@ -79,6 +79,8 @@ public static class TrxInjector
 
         blockCount += WriteBlock(TrxBlockType.SectorEdits, data.SectorEdits.Count, writer,
             w => data.SectorEdits.ForEach(s => s.Serialize(w)));
+        blockCount += WriteBlock(TrxBlockType.TextureOverwrites, data.TexPages.Count, writer,
+            w => data.TexPages.ForEach(t => t.Serialize(w)));
 
         return blockCount;
     }
@@ -129,12 +131,14 @@ public static class TrxInjector
     private enum TrxBlockType
     {
         SectorEdits = 17,
+        TextureOverwrites = 20,
     }
 }
 
 public class TrxInjectionData
 {
     public List<TrxSectorEdit> SectorEdits { get; set; } = new();
+    public List<TrxTextureOverwrite> TexPages { get; set; } = new();
 }
 
 public abstract class TrxSectorEdit
@@ -220,6 +224,29 @@ public class TrxTriangulationEntry : TrxSectorEdit
         foreach (var val in data)
         {
             writer.Write(val);
+        }
+    }
+}
+
+public class TrxTextureOverwrite
+{
+    public ushort Page { get; set; }
+    public byte X { get; set; }
+    public byte Y { get; set; }
+    public ushort Width { get; set; } = 256;
+    public ushort Height { get; set; } = 256;
+    public uint[] Data { get; set; }
+
+    public void Serialize(BinaryWriterEx writer)
+    {
+        writer.Write(Page);
+        writer.Write(X);
+        writer.Write(Y);
+        writer.Write(Width);
+        writer.Write(Height);
+        for (int i = 0; i < Data.Length; i++)
+        {
+            writer.Write(Data[i]);
         }
     }
 }

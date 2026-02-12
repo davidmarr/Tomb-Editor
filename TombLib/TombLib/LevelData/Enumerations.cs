@@ -69,6 +69,9 @@ namespace TombLib.LevelData
 
         public static bool SupportsSplits(this Game ver)
             => ver >= Game.TR3;
+
+        public static bool IsTRX(this Game ver)
+            => ver == Game.TR1X || ver == Game.TR2X;
     }
 
     // Only for TR5+
@@ -86,6 +89,15 @@ namespace TombLib.LevelData
         Normal = 0,
         Rain = 1,
         Snow = 2
+    }
+
+    // Only for TRX
+    public enum TrxTextureBitDepth : byte
+    {
+        Default,
+        Bit8,
+        Bit16,
+        Bit32,
     }
 
     // Only for TEN
