@@ -9150,7 +9150,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<parameters>
 						<parameter>
 							<name>This</name>
-							<type>DisplayAnchors</type>
+							<type>View.DisplayAnchors</type>
 							<description>DisplayAnchors.</description>
 						</parameter>
 					</parameters>
