@@ -440,6 +440,12 @@ namespace TombEditor.Forms
                 objectFileDataGridView.Invalidate(true);
         }
 
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            ToggleTRXTab(_levelSettings.GameVersion.IsTRX());
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -730,8 +736,8 @@ namespace TombEditor.Forms
 
             // TRX platform
             currentVersionToCheck = _levelSettings.GameVersion.IsTRX();
-            panelTrxMisc.Visible = currentVersionToCheck;
             cbDither16BitTextures.Enabled |= currentVersionToCheck;
+            ToggleTRXTab(currentVersionToCheck);
 
             // MAIN.SFX options
             currentVersionToCheck = (_levelSettings.GameVersion.UsesMainSfx());
@@ -743,6 +749,26 @@ namespace TombEditor.Forms
             lblPathsPrompt.TextAlign = currentVersionToCheck ? ContentAlignment.MiddleCenter : ContentAlignment.TopLeft;
             lblPathsPrompt.AutoSize = !currentVersionToCheck;
             lblPathsPrompt.ForeColor = currentVersionToCheck ? Colors.DisabledText : Colors.LightText;
+        }
+
+        private void ToggleTRXTab(bool isVisible)
+        {
+            if (isVisible && !tabbedContainer.TabPages.Contains(tabTrx))
+            {
+                int miscIndex = tabbedContainer.TabPages.IndexOf(tabMisc);
+
+                if (miscIndex >= 0)
+                    tabbedContainer.TabPages.Insert(miscIndex, tabTrx);
+                else
+                    tabbedContainer.TabPages.Add(tabTrx);
+
+                tabbedContainer.LinkedControl = optionsList; // Refresh linked list
+            }
+            else if (!isVisible && tabbedContainer.TabPages.Contains(tabTrx))
+            {
+                tabbedContainer.TabPages.Remove(tabTrx);
+                tabbedContainer.LinkedControl = optionsList; // Refresh linked list
+            }
         }
 
         private static string GetDisplayName(TrxTextureBitDepth depth)
