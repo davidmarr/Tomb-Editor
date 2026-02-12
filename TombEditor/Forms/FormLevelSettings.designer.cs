@@ -170,6 +170,10 @@
             this.panelTr5LaraType = new System.Windows.Forms.Panel();
             this.comboLaraType = new DarkUI.Controls.DarkComboBox();
             this.lblLaraType = new DarkUI.Controls.DarkLabel();
+            this.panelTrxMisc = new System.Windows.Forms.Panel();
+            this.comboTrxTextureDepth = new DarkUI.Controls.DarkComboBox();
+            this.lblTrxTextureDepth = new DarkUI.Controls.DarkLabel();
+            this.lblTrxMisc = new DarkUI.Controls.DarkLabel();
             this.panel6 = new System.Windows.Forms.Panel();
             this.levelFilePathBut = new DarkUI.Controls.DarkButton();
             this.darkLabel6 = new DarkUI.Controls.DarkLabel();
@@ -224,6 +228,7 @@
             this.tabMisc.SuspendLayout();
             this.panelTr5Weather.SuspendLayout();
             this.panelTr5LaraType.SuspendLayout();
+            this.panelTrxMisc.SuspendLayout();
             this.panel6.SuspendLayout();
             this.panel12.SuspendLayout();
             this.tabPaths.SuspendLayout();
@@ -1943,6 +1948,7 @@
             this.tabMisc.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(63)))), ((int)(((byte)(65)))));
             this.tabMisc.Controls.Add(this.panelTr5Weather);
             this.tabMisc.Controls.Add(this.panelTr5LaraType);
+            this.tabMisc.Controls.Add(this.panelTrxMisc);
             this.tabMisc.Controls.Add(this.panel6);
             this.tabMisc.Controls.Add(this.panel12);
             this.tabMisc.ForeColor = System.Drawing.SystemColors.ControlText;
@@ -2011,6 +2017,46 @@
             this.lblLaraType.Size = new System.Drawing.Size(439, 17);
             this.lblLaraType.TabIndex = 3;
             this.lblLaraType.Text = "TR5 Lara type:";
+            // 
+            // panelTrxMisc
+            // 
+            this.panelTrxMisc.Controls.Add(this.comboTrxTextureDepth);
+            this.panelTrxMisc.Controls.Add(this.lblTrxTextureDepth);
+            this.panelTrxMisc.Controls.Add(this.lblTrxMisc);
+            this.panelTrxMisc.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panelTrxMisc.Location = new System.Drawing.Point(0, 364);
+            this.panelTrxMisc.Name = "panelTrxMisc";
+            this.panelTrxMisc.Size = new System.Drawing.Size(778, 51);
+            this.panelTrxMisc.TabIndex = 150;
+            // 
+            // comboTrxTextureDepth
+            // 
+            this.comboTrxTextureDepth.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.comboTrxTextureDepth.FormattingEnabled = true;
+            this.comboTrxTextureDepth.Location = new System.Drawing.Point(129, 23);
+            this.comboTrxTextureDepth.Name = "comboTrxTextureDepth";
+            this.comboTrxTextureDepth.Size = new System.Drawing.Size(81, 23);
+            this.comboTrxTextureDepth.TabIndex = 4;
+            this.comboTrxTextureDepth.SelectedIndexChanged += new System.EventHandler(this.comboTrxTextureDepth_SelectedIndexChanged);
+            // 
+            // lblTrxTextureDepth
+            // 
+            this.lblTrxTextureDepth.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.lblTrxTextureDepth.Location = new System.Drawing.Point(0, 25);
+            this.lblTrxTextureDepth.Name = "lblTrxTextureDepth";
+            this.lblTrxTextureDepth.Size = new System.Drawing.Size(123, 17);
+            this.lblTrxTextureDepth.TabIndex = 3;
+            this.lblTrxTextureDepth.Text = "Texture depth:";
+            // 
+            // lblTrxMisc
+            // 
+            this.lblTrxMisc.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.lblTrxMisc.Location = new System.Drawing.Point(0, 3);
+            this.lblTrxMisc.Name = "lblTrxMisc";
+            this.lblTrxMisc.Size = new System.Drawing.Size(439, 17);
+            this.lblTrxMisc.TabIndex = 3;
+            this.lblTrxMisc.Text = "TRX:";
             // 
             // panel6
             // 
@@ -2304,6 +2350,7 @@
             this.tabMisc.ResumeLayout(false);
             this.panelTr5Weather.ResumeLayout(false);
             this.panelTr5LaraType.ResumeLayout(false);
+            this.panelTrxMisc.ResumeLayout(false);
             this.panel6.ResumeLayout(false);
             this.panel6.PerformLayout();
             this.panel12.ResumeLayout(false);
@@ -2393,6 +2440,10 @@
         private DarkUI.Controls.DarkTextBox levelFilePathTxt;
         private DarkUI.Controls.DarkDataGridView textureFileDataGridView;
         private DarkUI.Controls.DarkLabel darkLabel4;
+        private System.Windows.Forms.Panel panelTrxMisc;
+        private DarkUI.Controls.DarkComboBox comboTrxTextureDepth;
+        private DarkUI.Controls.DarkLabel lblTrxTextureDepth;
+        private DarkUI.Controls.DarkLabel lblTrxMisc;
         private TombLib.Controls.DarkDataGridViewControls textureFileDataGridViewControls;
         private System.Windows.Forms.DataGridViewTextBoxColumn objectFileDataGridViewPathColumn;
         private DarkUI.Controls.DarkDataGridViewButtonColumn objectFileDataGridViewSearchColumn;

@@ -229,6 +229,9 @@ namespace TombLib.LevelData
         public Tr5LaraType Tr5LaraType { get; set; } = Tr5LaraType.Normal;
         public Tr5WeatherType Tr5WeatherType { get; set; } = Tr5WeatherType.Normal;
 
+        // For TRX only
+        public TrxTextureBitDepth TrxTextureBitDepth { get; set; } = TrxTextureBitDepth.Default;
+
         public LevelSettings Clone()
         {
             LevelSettings result = (LevelSettings)MemberwiseClone();

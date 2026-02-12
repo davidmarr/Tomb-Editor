@@ -409,6 +409,12 @@ namespace TombEditor.Forms
             comboTr5Weather.Items.AddRange(Enum.GetValues(typeof(Tr5WeatherType)).Cast<object>().ToArray());
             comboLaraType.Items.AddRange(Enum.GetValues(typeof(Tr5LaraType)).Cast<object>().ToArray());
 
+            // Populate TRX lists
+            comboTrxTextureDepth.Items.AddRange(Enum.GetValues(typeof(TrxTextureBitDepth))
+                .Cast<TrxTextureBitDepth>()
+                .Select(t => GetDisplayName(t))
+                .ToArray());
+
             // Initialize options list
             tabbedContainer.LinkedControl = optionsList;
 
@@ -509,6 +515,7 @@ namespace TombEditor.Forms
             comboTr5Weather.Text = _levelSettings.Tr5WeatherType.ToString(); // Must also accept none enum values.
             comboLaraType.Text = _levelSettings.Tr5LaraType.ToString(); // Must also accept none enum values.
             tbLuaPath.Text = _levelSettings.TenLuaScriptFile;
+            comboTrxTextureDepth.Text = GetDisplayName(_levelSettings.TrxTextureBitDepth);
 
             fontTextureFilePathOptAuto.Checked = string.IsNullOrEmpty(_levelSettings.FontTextureFilePath);
             fontTextureFilePathOptCustom.Checked = !string.IsNullOrEmpty(_levelSettings.FontTextureFilePath);
@@ -721,6 +728,11 @@ namespace TombEditor.Forms
             panelFont.Enabled = currentVersionToCheck;
             panelSky.Enabled = currentVersionToCheck;
 
+            // TRX platform
+            currentVersionToCheck = _levelSettings.GameVersion.IsTRX();
+            panelTrxMisc.Visible = currentVersionToCheck;
+            cbDither16BitTextures.Enabled |= currentVersionToCheck;
+
             // MAIN.SFX options
             currentVersionToCheck = (_levelSettings.GameVersion.UsesMainSfx());
             lblCatalogsPrompt.Text = _catalogsPromptBase + (currentVersionToCheck ? _catalogsPromptMSFX : _catalogsPromptNew);
@@ -731,6 +743,28 @@ namespace TombEditor.Forms
             lblPathsPrompt.TextAlign = currentVersionToCheck ? ContentAlignment.MiddleCenter : ContentAlignment.TopLeft;
             lblPathsPrompt.AutoSize = !currentVersionToCheck;
             lblPathsPrompt.ForeColor = currentVersionToCheck ? Colors.DisabledText : Colors.LightText;
+        }
+
+        private static string GetDisplayName(TrxTextureBitDepth depth)
+        {
+            return depth switch
+            {
+                TrxTextureBitDepth.Bit8 => "8-bit",
+                TrxTextureBitDepth.Bit16 => "16-bit",
+                TrxTextureBitDepth.Bit32 => "32-bit",
+                _ => "Default",
+            };
+        }
+
+        private static TrxTextureBitDepth GetTrxTextureDepth(string name)
+        {
+            return name switch
+            {
+                "8-bit" => TrxTextureBitDepth.Bit8,
+                "16-bit" => TrxTextureBitDepth.Bit16,
+                "32-bit" => TrxTextureBitDepth.Bit32,
+                _ => TrxTextureBitDepth.Default,
+            };
         }
 
         private void FitPreview(Control form, Rectangle screenArea)
@@ -1332,6 +1366,15 @@ namespace TombEditor.Forms
             if (_levelSettings.Tr5WeatherType == weather)
                 return;
             _levelSettings.Tr5WeatherType = weather; // Must also check none enum values
+            UpdateDialog();
+        }
+
+        private void comboTrxTextureDepth_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            var depth = GetTrxTextureDepth(comboTrxTextureDepth.Text);
+            if (_levelSettings.TrxTextureBitDepth == depth)
+                return;
+            _levelSettings.TrxTextureBitDepth = depth;
             UpdateDialog();
         }
 

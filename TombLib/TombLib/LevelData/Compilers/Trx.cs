@@ -30,6 +30,7 @@ public partial class LevelCompilerClassicTR
 
         var injData = new TrxInjectionData();
         injData.SectorEdits.AddRange(GenerateTrxSectorEdits());
+        injData.TexPages.AddRange(GenerateTrxTexPages());
 
         using var writer = new BinaryWriterEx(new FileStream(_dest, FileMode.Append));
         TrxInjector.Serialize(injData, writer);
@@ -152,5 +153,116 @@ public partial class LevelCompilerClassicTR
         }
 
         return result;
+    }
+
+    private IEnumerable<TrxTextureOverwrite> GenerateTrxTexPages()
+    {
+        var depth = _level.Settings.TrxTextureBitDepth;
+        var version = _level.Settings.GameVersion;
+
+        if (depth == TrxTextureBitDepth.Default)
+            yield break;
+
+        if (version == TRVersion.Game.TR1X && depth == TrxTextureBitDepth.Bit8)
+            yield break;
+
+        if (version == TRVersion.Game.TR2X && depth == TrxTextureBitDepth.Bit16)
+            yield break;
+
+        const int size = 256 * 256;
+        const int bpp32 = 4;
+        const int pageSize32 = size * bpp32;
+
+        int numPages = _texture32Data.Length / pageSize32;
+
+        byte[] data8 = null;
+        ushort[] data16 = null;
+        tr_color[] palette = null;
+
+        if (depth == TrxTextureBitDepth.Bit8)
+        {
+            data8 = PackTextureMap32To8Bit(_texture32Data, out palette);
+        }
+        else if (depth == TrxTextureBitDepth.Bit16)
+        {
+            var packed = PackTextureMap32To16Bit(_texture32Data, _level.Settings);
+            data16 = new ushort[size * numPages];
+            Buffer.BlockCopy(packed, 0, data16, 0, data16.Length * sizeof(ushort));
+        }
+
+        for (ushort page = 0; page < numPages; page++)
+        {
+            var pixels = depth switch
+            {
+                TrxTextureBitDepth.Bit8 => Build8BitPage(page, size, data8, palette),
+                TrxTextureBitDepth.Bit16 => Build16BitPage(page, size, data16),
+                _ => Build32BitPage(page, size, pageSize32),
+            };
+            yield return new()
+            {
+                Page = page,
+                Data = pixels,
+            };
+        }
+    }
+
+    private static uint[] Build8BitPage(int page, int size, byte[] data, tr_color[] palette)
+    {
+        var pixels = new uint[size];
+        var baseIndex = page * size;
+
+        for (var i = 0; i < size; i++)
+        {
+            var idx = data[baseIndex + i];
+            if (idx == 0)
+                continue;
+
+            var c = palette[idx];
+            pixels[i] = (uint)(
+                (0xFF << 24) |
+                (c.Blue << 16) |
+                (c.Green << 8) |
+                c.Red);
+        }
+
+        return pixels;
+    }
+
+    private static uint[] Build16BitPage(int page, int size, ushort[] data)
+    {
+        var pixels = new uint[size];
+        var baseIndex = page * size;
+
+        for (var i = 0; i < size; i++)
+        {
+            var c = data[baseIndex + i];
+
+            var a = (c & 0x8000) != 0 ? 0xFF : 0;
+            var r = ((c >> 10) & 0x1F) * 255 / 31;
+            var g = ((c >> 5) & 0x1F) * 255 / 31;
+            var b = (c & 0x1F) * 255 / 31;
+
+            pixels[i] = (uint)((a << 24) | (b << 16) | (g << 8) | r);
+        }
+
+        return pixels;
+    }
+
+    private uint[] Build32BitPage(int page, int size, int pageSize)
+    {
+        var pixels = new uint[size];
+        Buffer.BlockCopy(_texture32Data, page * pageSize, pixels, 0, pageSize);
+
+        for (var i = 0; i < size; i++)
+        {
+            // Swap Red and Blue channels
+            var c = pixels[i];
+            pixels[i] =
+                (c & 0xFF00FF00) | // A + G
+                ((c & 0x000000FF) << 16) |
+                ((c & 0x00FF0000) >> 16);
+        }
+
+        return pixels;
     }
 }
