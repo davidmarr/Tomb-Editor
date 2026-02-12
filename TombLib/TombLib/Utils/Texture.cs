@@ -363,8 +363,6 @@ namespace TombLib.Utils
         public bool TextureIsTriangle => TexCoord2 == TexCoord3;
         public bool TextureIsDegenerate => (!TextureIsTriangle && QuadArea == 0) || (TextureIsTriangle && TriangleArea == 0);
 
-        public bool TriangleCoordsOutOfBounds => AreTriangleCoordsOutOfBounds(1024.0f);
-
         public bool AreTriangleCoordsOutOfBounds(float maxCoordSpan)
         {
             if (TextureIsInvisible || TextureIsUnavailable)
@@ -376,8 +374,6 @@ namespace TombLib.Utils
             return min.X < 0.0f || min.Y < 0.0f || max.X > Texture.Image.Width || max.Y > Texture.Image.Height ||
                    max.X - min.X > maxCoordSpan || max.Y - min.Y > maxCoordSpan;
         }
-
-        public bool QuadCoordsOutOfBounds => AreQuadCoordsOutOfBounds(1024.0f);
 
         public bool AreQuadCoordsOutOfBounds(float maxCoordSpan)
         {
