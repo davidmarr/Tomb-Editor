@@ -1528,7 +1528,9 @@ namespace TombEditor
                                     break;
 
                                 case TextureSearchType.Broken:
-                                    if (tex.TriangleCoordsOutOfBounds || tex.QuadCoordsOutOfBounds)
+                                    float maxTexCoordSpan = _editor.Level?.IsTombEngine == true ? 1024.0f : 256.0f;
+
+                                    if (tex.AreTriangleCoordsOutOfBounds(maxTexCoordSpan) || tex.AreQuadCoordsOutOfBounds(maxTexCoordSpan))
                                         result.Add(entry);
 
                                     if (!tex.TextureIsInvisible)
