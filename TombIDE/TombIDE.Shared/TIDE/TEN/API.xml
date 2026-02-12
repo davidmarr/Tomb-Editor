@@ -9328,7 +9328,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					</parameters>
 					<returns>
 						<return>
-							<type>DisplayAnchors</type>
+							<type>View.DisplayAnchors</type>
 							<description> An object containing the anchor points of the display sprite.&lt;br&gt;
  The object contains the following fields:&lt;br&gt;
  - `TOP_LEFT`&lt;br&gt;
