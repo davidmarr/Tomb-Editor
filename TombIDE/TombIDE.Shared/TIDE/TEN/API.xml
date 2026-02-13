@@ -7390,7 +7390,7 @@ most can just be ignored (see usage).</description>
 				</method>
 				<method>
 					<name>Moveable:ShowInteractionHighlight</name>
-					<summary>Show interaction highlight for the object.</summary>
+					<summary>Show interaction highlight for the object for current game frame.</summary>
 					<description>Can be useful if you have scripted an interaction with it.</description>
 					<parameters>
 						<parameter>
@@ -7400,6 +7400,11 @@ most can just be ignored (see usage).</description>
 							<description>Interaction icon type to show.</description>
 						</parameter>
 					</parameters>
+				</method>
+				<method>
+					<name>Moveable:HideInteractionHighlight</name>
+					<summary>Suppresses interaction highlight for the object for current game frame.</summary>
+					<description>Can be useful when you need to manually block interaction highlight for a particular object or in a particular area.</description>
 				</method>
 			</members>
 		</class>
