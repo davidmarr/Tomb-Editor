@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using TombLib.IO;
 using TombLib.LevelData.Compilers.Util;
 using TombLib.LevelData.SectorEnums;
@@ -11,6 +12,7 @@ public partial class LevelCompilerClassicTR
 {
     private const int _legacyRoomLimit = 255;
     private const int _noRoom = -1;
+    private const int _maxSamples = 1000;
 
     private void WriteLevelTrx()
     {
@@ -31,6 +33,7 @@ public partial class LevelCompilerClassicTR
         var injData = new TrxInjectionData();
         injData.SectorEdits.AddRange(GenerateTrxSectorEdits());
         injData.TexPages.AddRange(GenerateTrxTexPages());
+        injData.SFX.AddRange(GenerateTrxSFXData());
 
         using var writer = new BinaryWriterEx(new FileStream(_dest, FileMode.Append));
         TrxInjector.Serialize(injData, writer);
@@ -264,5 +267,28 @@ public partial class LevelCompilerClassicTR
         }
 
         return pixels;
+    }
+
+    private IEnumerable<TrxSFXData> GenerateTrxSFXData()
+    {
+        var samples = new Queue<Wad.WadSample>(_finalSamplesList);
+        var sampleCount = 0;
+        for (int i = 0; i < _finalSoundMap.Length; i++)
+        {
+            if (_finalSoundMap[i] == -1)
+                continue;
+
+            var soundInfo = _finalSoundInfosList[_finalSoundMap[i]];
+            var details = GetTR12SoundDetails(soundInfo);
+            var data = TrxSFXData.Create(i, details);
+            data.Samples.AddRange(
+                Enumerable.Range(0, soundInfo.Samples.Count)
+                .Select(_ => samples.Dequeue().Data));
+            sampleCount += data.Samples.Count;
+            yield return data;
+        }
+
+        if (sampleCount > _maxSamples)
+            _progressReporter.ReportWarn($"{sampleCount} samples included - limit is {_maxSamples}. This may lead to crashes.");
     }
 }
