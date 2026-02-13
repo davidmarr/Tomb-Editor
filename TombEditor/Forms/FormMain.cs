@@ -31,6 +31,7 @@ namespace TombEditor.Forms
             new RoomOptions(),
             new ItemBrowser(),
             new ImportedGeometryBrowser(),
+            new ContentBrowser(),
             new SectorOptions(),
             new Lighting(),
             new Palette(),
@@ -559,6 +560,7 @@ namespace TombEditor.Forms
             roomOptionsToolStripMenuItem.Checked = dockArea.ContainsContent(GetWindow<RoomOptions>());
             itemBrowserToolStripMenuItem.Checked = dockArea.ContainsContent(GetWindow<ItemBrowser>());
             importedGeometryBrowserToolstripMenuItem.Checked = dockArea.ContainsContent(GetWindow<ImportedGeometryBrowser>());
+            contentBrowserToolStripMenuItem.Checked = dockArea.ContainsContent(GetWindow<ContentBrowser>());
             triggerListToolStripMenuItem.Checked = dockArea.ContainsContent(GetWindow<TriggerList>());
             objectListToolStripMenuItem.Checked = dockArea.ContainsContent(GetWindow<ObjectList>());
             lightingToolStripMenuItem.Checked = dockArea.ContainsContent(GetWindow<Lighting>());
