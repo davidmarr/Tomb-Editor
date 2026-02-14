@@ -118,7 +118,7 @@ public partial class LevelCompilerClassicTR
     private TrxTriangulationEntry GetTriangulation(Room teRoom, ushort x, ushort z)
     {
         var teSector = teRoom.Sectors[x, z];
-        if (teSector.IsAnyWall)
+        if (teSector.IsFullWall)
         {
             return null;
         }
@@ -126,8 +126,8 @@ public partial class LevelCompilerClassicTR
         var pos = new VectorInt2(x, z);
         var floorPortalType = teRoom.GetFloorRoomConnectionInfo(pos, true).TraversableType;
         var ceilingPortalType = teRoom.GetCeilingRoomConnectionInfo(pos, true).TraversableType;
-        var floorShape = new RoomSectorShape(teSector, true, floorPortalType, false);
-        var ceilingShape = new RoomSectorShape(teSector, false, ceilingPortalType, false);
+        var floorShape = new RoomSectorShape(teSector, true, floorPortalType, teSector.IsAnyWall);
+        var ceilingShape = new RoomSectorShape(teSector, false, ceilingPortalType, teSector.IsAnyWall);
 
         if (!floorShape.IsSplit && !ceilingShape.IsSplit)
         {
