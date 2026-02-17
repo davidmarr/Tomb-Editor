@@ -9169,6 +9169,514 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			</members>
 		</class>
 		<class>
+			<name>View.DisplayItem</name>
+			<type>tenclass</type>
+			<summary>Represents a display item.</summary>
+			<description>Display item is a 3D model of any object available in the level that can be drawn in 2D screen space.</description>
+			<members>
+				<method>
+					<name>DisplayItem.SetAmbientLight</name>
+					<summary>Set the ambient color for all display items.</summary>
+					<parameters>
+						<parameter>
+							<name>color</name>
+							<type>Color</type>
+							<description>New ambient color for all display items.</description>
+						</parameter>
+					</parameters>
+				</method>
+				<method>
+					<name>DisplayItem.SetCameraPosition</name>
+					<summary>Set the camera location.</summary>
+					<description>This single camera is used for all display items.</description>
+					<parameters>
+						<parameter>
+							<name>pos</name>
+							<type>Vec3</type>
+							<description>New camera position.</description>
+						</parameter>
+						<parameter>
+							<name>disableInterpolation</name>
+							<type>bool</type>
+							<optional>true</optional>
+							<defaultValue>false</defaultValue>
+							<description>Disable interpolation to allow snap movements.</description>
+						</parameter>
+					</parameters>
+				</method>
+				<method>
+					<name>DisplayItem.SetTargetPosition</name>
+					<summary>Set the camera target location.</summary>
+					<parameters>
+						<parameter>
+							<name>pos</name>
+							<type>Vec3</type>
+							<description>New target camera position.</description>
+						</parameter>
+						<parameter>
+							<name>disableInterpolation</name>
+							<type>bool</type>
+							<optional>true</optional>
+							<defaultValue>false</defaultValue>
+							<description>Disable interpolation to allow snap movements.</description>
+						</parameter>
+					</parameters>
+				</method>
+				<method>
+					<name>DisplayItem.SetFOV</name>
+					<summary>Set the field of view for all display items.</summary>
+					<parameters>
+						<parameter>
+							<name>fov</name>
+							<type>float</type>
+							<optional>true</optional>
+							<defaultValue>80</defaultValue>
+							<description>Field of view angle in degrees (clamped to [10, 170]).</description>
+						</parameter>
+						<parameter>
+							<name>disableInterpolation</name>
+							<type>bool</type>
+							<optional>true</optional>
+							<defaultValue>false</defaultValue>
+							<description>Disable interpolation to allow snap movements.</description>
+						</parameter>
+					</parameters>
+				</method>
+				<method>
+					<name>DisplayItem.GetAmbientLight</name>
+					<summary>Get the ambient color of all the display items.</summary>
+					<returns>
+						<return>
+							<type>Color</type>
+							<description>Ambient color.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem.GetCameraPosition</name>
+					<summary>Get the camera position.</summary>
+					<description>This single camera is used for all display items.</description>
+					<returns>
+						<return>
+							<type>Vec3</type>
+							<description>Camera position for all display items.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem.GetTargetPosition</name>
+					<summary>Get the position of the camera target.</summary>
+					<returns>
+						<return>
+							<type>Vec3</type>
+							<description>The camera target position for all of the display items.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem.GetFOV</name>
+					<summary>Get field of view angle for display items.</summary>
+					<returns>
+						<return>
+							<type>float</type>
+							<description>Current FOV angle in degrees.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem.ResetCamera</name>
+					<summary>Reset the camera position, camera target position, and field of view.</summary>
+				</method>
+				<method>
+					<name>DisplayItem</name>
+					<summary>Create a DisplayItem object.</summary>
+					<parameters>
+						<parameter>
+							<name>name</name>
+							<type>string</type>
+							<description>Lua name of the display item.</description>
+						</parameter>
+						<parameter>
+							<name>objectID</name>
+							<type>Objects.ObjID</type>
+							<description>Slot object ID.</description>
+						</parameter>
+						<parameter>
+							<name>pos</name>
+							<type>Vec3</type>
+							<optional>true</optional>
+							<defaultValue>Vec3(0, 0, 0)</defaultValue>
+							<description>Position in 3D display space.</description>
+						</parameter>
+						<parameter>
+							<name>rot</name>
+							<type>Rotation</type>
+							<optional>true</optional>
+							<defaultValue>Rotation(0, 0, 0)</defaultValue>
+							<description>Rotation on the XYZ axes.</description>
+						</parameter>
+						<parameter>
+							<name>scale</name>
+							<type>Vec3</type>
+							<optional>true</optional>
+							<defaultValue>Vec3(1, 1, 1)</defaultValue>
+							<description>Visual scale.</description>
+						</parameter>
+						<parameter>
+							<name>meshBits</name>
+							<type>int</type>
+							<optional>true</optional>
+							<description>Packed meshbits.</description>
+						</parameter>
+					</parameters>
+					<returns>
+						<return>
+							<type>DisplayItem</type>
+							<description>A new DisplayItem object.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem:SetObjectID</name>
+					<summary>Change the display item's object ID.</summary>
+					<parameters>
+						<parameter>
+							<name>objectID</name>
+							<type>Objects.ObjID</type>
+							<description>New slot object ID.</description>
+						</parameter>
+					</parameters>
+				</method>
+				<method>
+					<name>DisplayItem:SetPosition</name>
+					<summary>Set the display item's position.</summary>
+					<parameters>
+						<parameter>
+							<name>pos</name>
+							<type>Vec3</type>
+							<description>New position.</description>
+						</parameter>
+						<parameter>
+							<name>disableInterpolation</name>
+							<type>bool</type>
+							<optional>true</optional>
+							<defaultValue>false</defaultValue>
+							<description>Disable interpolation to allow snap movements.</description>
+						</parameter>
+					</parameters>
+				</method>
+				<method>
+					<name>DisplayItem:SetRotation</name>
+					<summary>Set the display item's rotation.</summary>
+					<parameters>
+						<parameter>
+							<name>rot</name>
+							<type>Rotation</type>
+							<description>New rotation.</description>
+						</parameter>
+						<parameter>
+							<name>disableInterpolation</name>
+							<type>bool</type>
+							<optional>true</optional>
+							<defaultValue>false</defaultValue>
+							<description>Disable interpolation to allow snap movements.</description>
+						</parameter>
+					</parameters>
+				</method>
+				<method>
+					<name>DisplayItem:SetScale</name>
+					<summary>Set the display item's scale.</summary>
+					<parameters>
+						<parameter>
+							<name>scale</name>
+							<type>Vec3</type>
+							<description>New scale.</description>
+						</parameter>
+						<parameter>
+							<name>disableInterpolation</name>
+							<type>bool</type>
+							<optional>true</optional>
+							<defaultValue>false</defaultValue>
+							<description>Disable interpolation to allow snap movements.</description>
+						</parameter>
+					</parameters>
+				</method>
+				<method>
+					<name>DisplayItem:SetColor</name>
+					<summary>Set the display item's color.</summary>
+					<parameters>
+						<parameter>
+							<name>color</name>
+							<type>Color</type>
+							<description>New color.</description>
+						</parameter>
+						<parameter>
+							<name>disableInterpolation</name>
+							<type>bool</type>
+							<optional>true</optional>
+							<defaultValue>false</defaultValue>
+							<description>Disable interpolation to allow snap color changes.</description>
+						</parameter>
+					</parameters>
+				</method>
+				<method>
+					<name>DisplayItem:SetMeshBits</name>
+					<summary>Set the packed mesh bits for the display item.</summary>
+					<description>Mesh bits represent the visibility of every mesh in a given display item. Can be used in advanced workflows, such
+ as drawing a revolver with or without a lasersight.</description>
+					<parameters>
+						<parameter>
+							<name>meshBits</name>
+							<type>int</type>
+							<description>Packed MeshBits to be set.</description>
+						</parameter>
+					</parameters>
+				</method>
+				<method>
+					<name>DisplayItem:SetMeshVisible</name>
+					<summary>Make the specified mesh of a display item visible or invisible.</summary>
+					<parameters>
+						<parameter>
+							<name>meshIndex</name>
+							<type>int</type>
+							<description>Mesh index.</description>
+						</parameter>
+						<parameter>
+							<name>isVisible</name>
+							<type>bool</type>
+							<description>True to set visible, false to set invisible.</description>
+						</parameter>
+					</parameters>
+				</method>
+				<method>
+					<name>DisplayItem:SetJointRotation</name>
+					<summary>Set the display item's joint rotation.</summary>
+					<parameters>
+						<parameter>
+							<name>meshIndex</name>
+							<type>int</type>
+							<description>Joint index..</description>
+						</parameter>
+						<parameter>
+							<name>rot</name>
+							<type>Rotation</type>
+							<description>New rotation.</description>
+						</parameter>
+						<parameter>
+							<name>disableInterpolation</name>
+							<type>bool</type>
+							<optional>true</optional>
+							<defaultValue>false</defaultValue>
+							<description>Disables interpolation to allow for snap movements.</description>
+						</parameter>
+					</parameters>
+				</method>
+				<method>
+					<name>DisplayItem:SetAnim</name>
+					<summary>Set the animation number of a display item.</summary>
+					<parameters>
+						<parameter>
+							<name>animNumber</name>
+							<type>int</type>
+							<description>Animation number to set.</description>
+						</parameter>
+					</parameters>
+				</method>
+				<method>
+					<name>DisplayItem:SetFrame</name>
+					<summary>Set the frame number of a display item's current animation.</summary>
+					<description>This will set the specified animation to the given frame.
+ The number of frames in an animation can be seen under the heading "End frame" in the WadTool animation editor.</description>
+					<parameters>
+						<parameter>
+							<name>frameNumber</name>
+							<type>int</type>
+							<description>Frame number to set.</description>
+						</parameter>
+					</parameters>
+				</method>
+				<method>
+					<name>DisplayItem:GetObjectID</name>
+					<summary>Retrieve the object ID from a display item.</summary>
+					<returns>
+						<return>
+							<type>Objects.ObjID</type>
+							<description>Slot object ID.</description>
+						</return>
+						<return>
+							<type>nil</type>
+							<description>If the display item does not exist.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem:GetPosition</name>
+					<summary>Get the display item's position.</summary>
+					<returns>
+						<return>
+							<type>Vec3</type>
+							<description>Position.</description>
+						</return>
+						<return>
+							<type>nil</type>
+							<description>If the display item does not exist.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem:GetRotation</name>
+					<summary>Get the display item's rotation.</summary>
+					<returns>
+						<return>
+							<type>Rotation</type>
+							<description>Rotation.</description>
+						</return>
+						<return>
+							<type>nil</type>
+							<description>If the display item does not exist.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem:GetScale</name>
+					<summary>Get the display item's scale.</summary>
+					<returns>
+						<return>
+							<type>float</type>
+							<description>Scale.</description>
+						</return>
+						<return>
+							<type>nil</type>
+							<description>If the display item does not exist.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem:GetColor</name>
+					<summary>Get the display item's color.</summary>
+					<returns>
+						<return>
+							<type>Color</type>
+							<description>Color.</description>
+						</return>
+						<return>
+							<type>nil</type>
+							<description>If the display item does not exist.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem:GetMeshVisible</name>
+					<summary>Get the visibility state of a specified mesh in the display item.</summary>
+					<parameters>
+						<parameter>
+							<name>index</name>
+							<type>int</type>
+							<description>Index of a mesh.</description>
+						</parameter>
+					</parameters>
+					<returns>
+						<return>
+							<type>bool</type>
+							<description>Visibility status.</description>
+						</return>
+						<return>
+							<type>bool</type>
+							<description>False if the display item does not exist.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem:GetJointRotation</name>
+					<summary>Get the display item's joint rotation.</summary>
+					<parameters>
+						<parameter>
+							<name>meshIndex</name>
+							<type>int</type>
+							<description>Index of the joint to check.</description>
+						</parameter>
+					</parameters>
+					<returns>
+						<return>
+							<type>Rotation</type>
+							<description>Joint rotation.</description>
+						</return>
+						<return>
+							<type>nil</type>
+							<description>If the display item does not exist.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem:GetAnim</name>
+					<summary>Get the current animation number of a display item.</summary>
+					<description>This corresponds to the number shown in the item's animation list in WadTool.</description>
+					<returns>
+						<return>
+							<type>int</type>
+							<description>Active animation number.</description>
+						</return>
+						<return>
+							<type>nil</type>
+							<description>If the display item does not exist.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem:GetFrame</name>
+					<summary>Get the current frame number of the active animation of a display item.</summary>
+					<returns>
+						<return>
+							<type>int</type>
+							<description>Current frame number of the active animation.</description>
+						</return>
+						<return>
+							<type>nil</type>
+							<description>If the display item does not exist.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem:GetEndFrame</name>
+					<summary>Get the end frame number of the display item's active animation.</summary>
+					<description>This is the "End Frame" set in WadTool for the animation.()</description>
+					<returns>
+						<return>
+							<type>int</type>
+							<description>End frame number of the active animation.</description>
+						</return>
+						<return>
+							<type>nil</type>
+							<description>If the display item does not exist.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem:GetBounds</name>
+					<summary>Get the projected 2D bounding box of the display item.</summary>
+					<description>Projects the display item into display space and returns two Vec2 values.</description>
+					<returns>
+						<return>
+							<type>Vec2</type>
+							<description>center Projected center position in display space in percent.</description>
+						</return>
+						<return>
+							<type>Vec2</type>
+							<description>size The projected width/height in display space in percent.</description>
+						</return>
+						<return>
+							<type>nil</type>
+							<description>If the display item does not exist or has no bounds.</description>
+						</return>
+					</returns>
+				</method>
+				<method>
+					<name>DisplayItem:Draw</name>
+					<summary>Draw the display item in display space for the current frame.</summary>
+				</method>
+			</members>
+		</class>
+		<class>
 			<name>View.DisplaySprite</name>
 			<type>tenclass</type>
 			<summary>Represents a display sprite.</summary>
