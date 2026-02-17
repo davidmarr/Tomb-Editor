@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using TombLib.IO;
@@ -184,7 +185,7 @@ public partial class LevelCompilerClassicTR
 
         if (depth == TrxTextureBitDepth.Bit8)
         {
-            data8 = PackTextureMap32To8Bit(_texture32Data, out palette);
+            data8 = PackTextureMap32To8Bit(_texture32Data, new List<Color> { Color.FromArgb(2, 0, 0) }, out palette);
         }
         else if (depth == TrxTextureBitDepth.Bit16)
         {
@@ -214,6 +215,7 @@ public partial class LevelCompilerClassicTR
         var pixels = new uint[size];
         var baseIndex = page * size;
 
+        const int scaleShift = 2; // Undo PackTextureMap32To8Bit component division
         for (var i = 0; i < size; i++)
         {
             var idx = data[baseIndex + i];
@@ -221,11 +223,10 @@ public partial class LevelCompilerClassicTR
                 continue;
 
             var c = palette[idx];
-            pixels[i] = (uint)(
-                (0xFF << 24) |
-                (c.Blue << 16) |
-                (c.Green << 8) |
-                c.Red);
+            pixels[i] = (0xFFu << 24) |
+                ((uint)c.Blue << (16 + scaleShift)) |
+                ((uint)c.Green << (8 + scaleShift)) |
+                ((uint)c.Red << scaleShift);
         }
 
         return pixels;
