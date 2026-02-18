@@ -1132,6 +1132,18 @@ custom menu creation, photo mode or time freeze.</description>
 		</function>
 		<function>
 			<module>Flow</module>
+			<name>GetGlobalGameTime</name>
+			<summary>Get global game session time.</summary>
+			<description>Represents a global session time elapsed since the game launch. Does not correspond to time values in level or game statistics.</description>
+			<returns>
+				<return>
+					<type>Time</type>
+					<description>Global game session time elapsed since the game launch.</description>
+				</return>
+			</returns>
+		</function>
+		<function>
+			<module>Flow</module>
 			<name>FlipMap</name>
 			<summary>Do FlipMap with specific group ID.</summary>
 			<parameters>
@@ -1532,7 +1544,7 @@ custom menu creation, photo mode or time freeze.</description>
 				<parameter>
 					<name>objectID</name>
 					<type>Objects.ObjID</type>
-					<description>Object ID to use. Must be preset in the inventory.</description>
+					<description>Object ID to use. Must be present in the inventory.</description>
 				</parameter>
 			</parameters>
 		</function>
@@ -1558,7 +1570,7 @@ custom menu creation, photo mode or time freeze.</description>
 				<parameter>
 					<name>objectID</name>
 					<type>Objects.ObjID</type>
-					<description>Object ID of the item to select from inventory. Must be preset in the inventory.</description>
+					<description>Object ID of the item to select from inventory. Must be present in the inventory.</description>
 				</parameter>
 			</parameters>
 		</function>
@@ -1589,7 +1601,7 @@ custom menu creation, photo mode or time freeze.</description>
 				<parameter>
 					<name>objectID</name>
 					<type>Objects.ObjID</type>
-					<description>Object ID of the item to set. Must be preset in the inventory.</description>
+					<description>Object ID of the item to set. Must be present in the inventory.</description>
 				</parameter>
 			</parameters>
 		</function>
