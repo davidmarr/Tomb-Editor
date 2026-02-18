@@ -18,7 +18,7 @@ end
 -- !Description "Creates a simple countdown.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 57, [ NoMultiline ], Timer name"
--- !Arguments "Numerical, 30, [ 0 | 1000 | 1 | 0.1 | 1 ], The duration of the timer in seconds"
+-- !Arguments "Numerical, 30, [ 0 | 1000 | 2 | 0.1 | 1 ], The duration of the timer in seconds"
 -- !Arguments "Boolean , 13, {false}, Loop"
 -- !Arguments "NewLine, Boolean, 25, {false}, Hours"
 -- !Arguments "Boolean, 25, {true}, Minutes"
@@ -50,7 +50,7 @@ end
 -- !Description "Creates a countdown which will execute a `LevelFuncs` lua function upon ending.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 57, [ NoMultiline ], Timer name"
--- !Arguments "Numerical, 30, [ 0 | 1000 | 1 | 0.1 | 1 ], The duration of the timer in seconds"
+-- !Arguments "Numerical, 30, [ 0 | 1000 | 2 | 0.1 | 1 ], The duration of the timer in seconds"
 -- !Arguments "Boolean , 13, {false}, Loop"
 -- !Arguments "NewLine, Boolean, 25, {false}, Hours"
 -- !Arguments "Boolean, 25, {true}, Minutes"
@@ -85,7 +85,7 @@ end
 -- !Description "Creates a countdown that triggers a volume event set upon ending.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 57, [ NoMultiline ], Timer name"
--- !Arguments "Numerical, 30, [ 0 | 1000 | 1 | 0.1 | 1 ], The duration of the timer in seconds"
+-- !Arguments "Numerical, 30, [ 0 | 1000 | 2 | 0.1 | 1 ], The duration of the timer in seconds"
 -- !Arguments "Boolean , 13, {false}, Loop"
 -- !Arguments "NewLine, Boolean, 25, {false}, Hours"
 -- !Arguments "Boolean, 25, {true}, Minutes"
@@ -120,7 +120,7 @@ end
 -- !Description "Creates a countdown that triggers a global event set upon ending.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 57, [ NoMultiline ], Timer name"
--- !Arguments "Numerical, 30, [ 0 | 1000 | 1 | 0.1 | 1 ], The duration of the timer in seconds"
+-- !Arguments "Numerical, 30, [ 0 | 1000 | 2 | 0.1 | 1 ], The duration of the timer in seconds"
 -- !Arguments "Boolean , 13, {false}, Loop"
 -- !Arguments "NewLine, Boolean, 25, {false}, Hours"
 -- !Arguments "Boolean, 25, {true}, Minutes"
@@ -221,7 +221,7 @@ end
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 70, [ NoMultiline ], Timer name"
 -- !Arguments "Enumeration, 10, [ + | - | * | / | = ], {4}, Mathematical operation to perform"
--- !Arguments "Numerical, 20, [ 0 | 65535 | 1 | 0.1 | 1 ], New time remaining (in seconds)"
+-- !Arguments "Numerical, 20, [ 0 | 65535 | 2 | 0.1 | 1 ], New time remaining (in seconds)"
 LevelFuncs.Engine.Node.SetRemainingTime = function(name, operator, remainingTime)
     if name ~= '' then
         if Timer.IfExists(name) then
@@ -248,7 +248,7 @@ end
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 70, [ NoMultiline ], Timer name"
 -- !Arguments "Enumeration, 10, [ + | - | * | / | = ], {4}, Mathematical operation to perform"
--- !Arguments "Numerical, 20, [ 0 | 1000 | 1 | 0.1 | 1 ], New total time (in seconds)"
+-- !Arguments "Numerical, 20, [ 0 | 65535 | 2 | 0.1 | 1 ], New total time (in seconds)"
 LevelFuncs.Engine.Node.SetTotalTime = function(name, operator, totalTime)
     if name ~= '' then
         if Timer.IfExists(name) then
@@ -397,9 +397,7 @@ end
 LevelFuncs.Engine.Node.GetRemainingTime = function(name)
     if name ~= '' then
         if Timer.IfExists(name) then
-            if Timer.Get(name):IsTicking() then
-                TEN.Util.PrintLog("Timer '" .. name .. "' remaining time: " .. tostring(Timer.Get(name):GetRemainingTimeInSeconds()), TEN.Util.LogLevel.INFO, true)
-            end
+            TEN.Util.PrintLog("Timer '" .. name .. "' remaining time: " .. tostring(Timer.Get(name):GetRemainingTimeInSeconds()), TEN.Util.LogLevel.INFO, true)
         else
             TEN.Util.PrintLog("Timer '" .. name .. "' does not exist", TEN.Util.LogLevel.ERROR)
         end
@@ -416,9 +414,7 @@ end
 LevelFuncs.Engine.Node.GetTotalTime = function(name)
     if name ~= '' then
         if Timer.IfExists(name) then
-            if Timer.Get(name):IsTicking() then
-                TEN.Util.PrintLog("Timer '" .. name .. "' total time: " .. Timer.Get(name):GetTotalTimeInSeconds(), TEN.Util.LogLevel.INFO, true)
-            end
+            TEN.Util.PrintLog("Timer '" .. name .. "' total time: " .. Timer.Get(name):GetTotalTimeInSeconds(), TEN.Util.LogLevel.INFO, true)
         else
             TEN.Util.PrintLog("Timer '" .. name .. "' does not exist", TEN.Util.LogLevel.ERROR)
         end
@@ -484,7 +480,7 @@ end
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 50, [ NoMultiline ], Timer name"
 -- !Arguments "CompareOperator, 30"
--- !Arguments "Numerical, 20, [ 0 | 1000 | 1 | 0.1 | 1 ], Remaining time (in seconds)"
+-- !Arguments "Numerical, 20, [ 0 | 1000 | 2 | 0.1 | 1 ], Remaining time (in seconds)"
 LevelFuncs.Engine.Node.IfRemainingTimeIs = function(name, operator, value)
     if name ~= '' then
         if Timer.IfExists(name) then
@@ -492,12 +488,8 @@ LevelFuncs.Engine.Node.IfRemainingTimeIs = function(name, operator, value)
             if timer:IsActive() then
                 local result
                 result = timer:IfRemainingTimeIs(operator, value)
-                -- Debug log conditions:
-                -- 1. For Equal (==) and Not Equal (!=) operators (operator == 0 or operator == 1), log only if the timer is ticking (to have consistent logs).
-                -- 2. For all other operators (>, >=, <, <=), always log (no tick check needed).
-                local checkOperator = (operator == 0 or operator == 1) and timer:IsTicking() or (operator ~= 0 and operator ~= 1)
-                if LevelVars.nodeTimers[name].debug and checkOperator then
-                    local floatValue = value + 0.0
+                if LevelVars.nodeTimers[name].debug then
+                    local floatValue = value + 0.00
                     local remainingTime = timer:GetRemainingTimeInSeconds()
                     TEN.Util.PrintLog("If the remaining time (".. remainingTime ..") is " .. textCompareOp[operator] .. " " ..  floatValue .. ". . Result: " .. tostring(result), TEN.Util.LogLevel.INFO, true)
                 end
@@ -517,7 +509,7 @@ end
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 50, [ NoMultiline ], Timer name"
 -- !Arguments "CompareOperator, 30"
--- !Arguments "Numerical, 20, [ 0 | 1000 | 1 | 0.1 | 1 ], Total Time (in seconds)"
+-- !Arguments "Numerical, 20, [ 0 | 1000 | 2 | 0.1 | 1 ], Total Time (in seconds)"
 LevelFuncs.Engine.Node.IfTotalTimeIs = function(name, operator, time)
     if name ~= '' then
         if Timer.IfExists(name) then
