@@ -55,25 +55,6 @@ public static class RoomExtensionMethods
 				adjoiningRoom = adjoiningRoom.AlternateRoom;
 			}
 
-			// Get the near sector in current room
-			Sector nearSector = room.Sectors[x, 1];
-
-			int qaNearStart = nearSector.Floor.XpZn;
-			int qaNearEnd = nearSector.Floor.XnZn;
-
-			if (nearSector.Floor.DiagonalSplit is DiagonalSplit.XpZp)
-				qaNearStart = qaNearEnd;
-			else if (nearSector.Floor.DiagonalSplit is DiagonalSplit.XnZp)
-				qaNearEnd = qaNearStart;
-
-			int wsNearStart = nearSector.Ceiling.XpZn;
-			int wsNearEnd = nearSector.Ceiling.XnZn;
-
-			if (nearSector.Ceiling.DiagonalSplit is DiagonalSplit.XpZp)
-				wsNearStart = wsNearEnd;
-			else if (nearSector.Ceiling.DiagonalSplit is DiagonalSplit.XnZp)
-				wsNearEnd = wsNearStart;
-
 			// Now get the facing sector on the adjoining room and calculate the correct heights
 			int facingX = x + (room.Position.X - adjoiningRoom.Position.X);
 
@@ -261,25 +242,6 @@ public static class RoomExtensionMethods
 			{
 				adjoiningRoom = adjoiningRoom.AlternateRoom;
 			}
-
-			// Get the near sector in current room
-			Sector nearSector = room.Sectors[x, room.NumZSectors - 2];
-
-			int qaNearStart = nearSector.Floor.XnZp;
-			int qaNearEnd = nearSector.Floor.XpZp;
-
-			if (nearSector.Floor.DiagonalSplit is DiagonalSplit.XnZn)
-				qaNearStart = qaNearEnd;
-			else if (nearSector.Floor.DiagonalSplit is DiagonalSplit.XpZn)
-				qaNearEnd = qaNearStart;
-
-			int wsNearStart = nearSector.Ceiling.XnZp;
-			int wsNearEnd = nearSector.Ceiling.XpZp;
-
-			if (nearSector.Ceiling.DiagonalSplit is DiagonalSplit.XnZn)
-				wsNearStart = wsNearEnd;
-			else if (nearSector.Ceiling.DiagonalSplit is DiagonalSplit.XpZn)
-				wsNearEnd = wsNearStart;
 
 			// Now get the facing sector on the adjoining room and calculate the correct heights
 			int facingX = x + (room.Position.X - adjoiningRoom.Position.X);
@@ -469,25 +431,6 @@ public static class RoomExtensionMethods
 				adjoiningRoom = adjoiningRoom.AlternateRoom;
 			}
 
-			// Get the near sector in current room
-			Sector nearSector = room.Sectors[1, z];
-
-			int qaNearStart = nearSector.Floor.XnZn;
-			int qaNearEnd = nearSector.Floor.XnZp;
-
-			if (nearSector.Floor.DiagonalSplit is DiagonalSplit.XpZn)
-				qaNearStart = qaNearEnd;
-			else if (nearSector.Floor.DiagonalSplit is DiagonalSplit.XpZp)
-				qaNearEnd = qaNearStart;
-
-			int wsNearStart = nearSector.Ceiling.XnZn;
-			int wsNearEnd = nearSector.Ceiling.XnZp;
-
-			if (nearSector.Ceiling.DiagonalSplit is DiagonalSplit.XpZn)
-				wsNearStart = wsNearEnd;
-			else if (nearSector.Ceiling.DiagonalSplit is DiagonalSplit.XpZp)
-				wsNearEnd = wsNearStart;
-
 			// Now get the facing sector on the adjoining room and calculate the correct heights
 			int facingZ = z + (room.Position.Z - adjoiningRoom.Position.Z);
 
@@ -675,25 +618,6 @@ public static class RoomExtensionMethods
 			{
 				adjoiningRoom = adjoiningRoom.AlternateRoom;
 			}
-
-			// Get the near sector in current room
-			Sector nearSector = room.Sectors[room.NumXSectors - 2, z];
-
-			int qaNearStart = nearSector.Floor.XpZp;
-			int qaNearEnd = nearSector.Floor.XpZn;
-
-			if (nearSector.Floor.DiagonalSplit is DiagonalSplit.XnZp)
-				qaNearStart = qaNearEnd;
-			else if (nearSector.Floor.DiagonalSplit is DiagonalSplit.XnZn)
-				qaNearEnd = qaNearStart;
-
-			int wsNearStart = nearSector.Ceiling.XpZp;
-			int wsNearEnd = nearSector.Ceiling.XpZn;
-
-			if (nearSector.Ceiling.DiagonalSplit is DiagonalSplit.XnZp)
-				wsNearStart = wsNearEnd;
-			else if (nearSector.Ceiling.DiagonalSplit is DiagonalSplit.XnZn)
-				wsNearEnd = wsNearStart;
 
 			// Now get the facing sector on the adjoining room and calculate the correct heights
 			int facingZ = z + (room.Position.Z - adjoiningRoom.Position.Z);
