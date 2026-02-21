@@ -1158,7 +1158,7 @@ namespace TombLib.LevelData
             float distance = lightVector.Length();
             float outerRadius = light.OuterRange * Level.SectorSizeUnit;
 
-            if (distance + DistanceMargin > outerRadius || distance > outerRadius)
+            if (distance + DistanceMargin > outerRadius)
                 return Vector3.Zero;
 
             lightVector = Vector3.Normalize(lightVector);
@@ -1178,7 +1178,8 @@ namespace TombLib.LevelData
                 return Vector3.Zero;
 
             float raytraceResult = GetRaytraceResult(room, light, position, highQuality);
-            float finalIntensity = Math.Max(0, dotN * attenuation * raytraceResult) * (light.Intensity * IntensityScale);
+            int diffuse = (int)(light.Intensity * IntensityScale);
+            float finalIntensity = Math.Max(0, dotN * attenuation * raytraceResult) * diffuse;
 
             return finalIntensity * light.Color * ColorNormalization;
         }
@@ -1231,7 +1232,7 @@ namespace TombLib.LevelData
             float outerRadius = light.OuterRange * Level.SectorSizeUnit;
             float distance = (position - light.Position).Length();
 
-            if (distance + DistanceMargin > outerRadius || distance > outerRadius)
+            if (distance + DistanceMargin > outerRadius)
                 return Vector3.Zero;
 
             Vector3 lightVector = Vector3.Normalize(position - light.Position);
