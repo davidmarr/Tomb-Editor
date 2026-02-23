@@ -4,8 +4,25 @@ using TombLib.LevelData.SectorEnums.Extensions;
 
 namespace TombLib.LevelData.SectorGeometry;
 
+/// <summary>
+/// Extension methods on <see cref="Room"/> for computing per-sector wall geometry data
+/// (<see cref="SectorWallData"/>) in each cardinal and diagonal direction.
+/// <para>
+/// Each method gathers the floor/ceiling heights from the sector and its neighbor (or adjoining
+/// portal room), applies diagonal split corrections, and optionally normalizes the result to
+/// prevent overdraw artifacts.
+/// </para>
+/// </summary>
 public static class RoomExtensionMethods
 {
+	/// <summary>
+	/// Computes the wall data for the +Z (north-facing) edge of sector (<paramref name="x"/>, <paramref name="z"/>).
+	/// The wall runs from corner (x+1, z+1) to (x, z+1), facing toward the +Z neighbor.
+	/// </summary>
+	/// <param name="room">The room containing the sector.</param>
+	/// <param name="x">Sector X coordinate.</param>
+	/// <param name="z">Sector Z coordinate.</param>
+	/// <param name="normalize">Whether to normalize splits to prevent overdraw.</param>
 	public static SectorWallData GetPositiveZWallData(this Room room, int x, int z, bool normalize)
 	{
 		Sector sector = room.Sectors[x, z];
@@ -194,6 +211,14 @@ public static class RoomExtensionMethods
 			: wall;
 	}
 
+	/// <summary>
+	/// Computes the wall data for the -Z (south-facing) edge of sector (<paramref name="x"/>, <paramref name="z"/>).
+	/// The wall runs from corner (x, z) to (x+1, z), facing toward the -Z neighbor.
+	/// </summary>
+	/// <param name="room">The room containing the sector.</param>
+	/// <param name="x">Sector X coordinate.</param>
+	/// <param name="z">Sector Z coordinate.</param>
+	/// <param name="normalize">Whether to normalize splits to prevent overdraw.</param>
 	public static SectorWallData GetNegativeZWallData(this Room room, int x, int z, bool normalize)
 	{
 		Sector sector = room.Sectors[x, z];
@@ -382,6 +407,14 @@ public static class RoomExtensionMethods
 			: wall;
 	}
 
+	/// <summary>
+	/// Computes the wall data for the +X (east-facing) edge of sector (<paramref name="x"/>, <paramref name="z"/>).
+	/// The wall runs from corner (x+1, z) to (x+1, z+1), facing toward the +X neighbor.
+	/// </summary>
+	/// <param name="room">The room containing the sector.</param>
+	/// <param name="x">Sector X coordinate.</param>
+	/// <param name="z">Sector Z coordinate.</param>
+	/// <param name="normalize">Whether to normalize splits to prevent overdraw.</param>
 	public static SectorWallData GetPositiveXWallData(this Room room, int x, int z, bool normalize)
 	{
 		Sector sector = room.Sectors[x, z];
@@ -570,6 +603,14 @@ public static class RoomExtensionMethods
 			: wall;
 	}
 
+	/// <summary>
+	/// Computes the wall data for the -X (west-facing) edge of sector (<paramref name="x"/>, <paramref name="z"/>).
+	/// The wall runs from corner (x, z+1) to (x, z), facing toward the -X neighbor.
+	/// </summary>
+	/// <param name="room">The room containing the sector.</param>
+	/// <param name="x">Sector X coordinate.</param>
+	/// <param name="z">Sector Z coordinate.</param>
+	/// <param name="normalize">Whether to normalize splits to prevent overdraw.</param>
 	public static SectorWallData GetNegativeXWallData(this Room room, int x, int z, bool normalize)
 	{
 		Sector sector = room.Sectors[x, z];
@@ -758,6 +799,17 @@ public static class RoomExtensionMethods
 			: wall;
 	}
 
+	/// <summary>
+	/// Computes the wall data for a diagonal edge of sector (<paramref name="x"/>, <paramref name="z"/>).
+	/// The diagonal direction is determined by the sector's floor or ceiling <see cref="DiagonalSplit"/>.
+	/// Overdraw is always disabled for diagonal walls since the logic differs from cardinal walls.
+	/// </summary>
+	/// <param name="room">The room containing the sector.</param>
+	/// <param name="x">Sector X coordinate.</param>
+	/// <param name="z">Sector Z coordinate.</param>
+	/// <param name="isDiagonalCeiling">If <see langword="true"/>, uses the ceiling's diagonal split;
+	/// otherwise uses the floor's diagonal split.</param>
+	/// <param name="normalize">Whether to normalize splits to prevent overdraw.</param>
 	public static SectorWallData GetDiagonalWallData(this Room room, int x, int z, bool isDiagonalCeiling, bool normalize)
 	{
 		Sector sector = room.Sectors[x, z];
@@ -992,6 +1044,16 @@ public static class RoomExtensionMethods
 			: wall;
 	}
 
+	/// <summary>
+	/// Determines whether the wall at the given sector and direction is allowed to "overdraw" —
+	/// i.e., extend face geometry beyond the strict floor/ceiling bounds.
+	/// <para>
+	/// Overdraw is allowed when:<br/>
+	/// • The sector is not a wall (non-portal case), OR<br/>
+	/// • The sector has a wall portal with <see cref="PortalOpacity.None"/>, and the adjoining
+	///   sector is not a solid wall (or is a diagonal wall whose split faces toward this direction).
+	/// </para>
+	/// </summary>
 	private static bool CanOverdraw(Sector sector, Direction direction, Sector adjoiningSector)
 	{
 		if (sector.WallPortal is not null)

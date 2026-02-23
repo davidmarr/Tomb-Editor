@@ -711,41 +711,60 @@ namespace TombLib.LevelData
             }
         }
 
-        private void AddVerticalFaces(Room room, int x, int z, FaceDirection faceDirection, bool hasFloorPart, bool hasCeilingPart, bool hasMiddlePart, bool useLegacyCode = false)
+        /// <summary>
+        /// Builds and adds vertical wall face polygons (floor part, ceiling part, and/or middle part)
+        /// for a single sector edge in the given <paramref name="faceDirection"/>.
+        /// <para>
+        /// The wall data is retrieved from the room based on the direction, then each requested
+        /// wall section (floor, ceiling, middle) is decomposed into triangles/quads and appended
+        /// to the geometry buffers via <see cref="AddFace"/>.
+        /// </para>
+        /// </summary>
+        /// <param name="room">The room containing the sector.</param>
+        /// <param name="x">Sector X coordinate.</param>
+        /// <param name="z">Sector Z coordinate.</param>
+        /// <param name="faceDirection">The wall direction (cardinal or diagonal).</param>
+        /// <param name="hasFloorPart">Whether to generate the floor portion of the wall (QA + extra floor splits).</param>
+        /// <param name="hasCeilingPart">Whether to generate the ceiling portion of the wall (WS + extra ceiling splits).</param>
+        /// <param name="hasMiddlePart">Whether to generate the middle wall face between floor and ceiling portions.</param>
+        /// <param name="useLegacyCode">When <see langword="true"/>, uses legacy PRJ wall geometry logic
+        /// and skips wall data normalization.</param>
+        private void AddVerticalFaces(Room room, int x, int z, FaceDirection faceDirection,
+            bool hasFloorPart, bool hasCeilingPart, bool hasMiddlePart, bool useLegacyCode = false)
         {
-            bool shouldNormalizeWallData = !useLegacyCode;
+            bool normalize = !useLegacyCode;
 
             SectorWallData wallData = faceDirection switch
             {
-                FaceDirection.PositiveZ => room.GetPositiveZWallData(x, z, normalize: shouldNormalizeWallData),
-                FaceDirection.NegativeZ => room.GetNegativeZWallData(x, z, normalize: shouldNormalizeWallData),
-                FaceDirection.PositiveX => room.GetPositiveXWallData(x, z, normalize: shouldNormalizeWallData),
-                FaceDirection.NegativeX => room.GetNegativeXWallData(x, z, normalize: shouldNormalizeWallData),
-                FaceDirection.DiagonalFloor => room.GetDiagonalWallData(x, z, isDiagonalCeiling: false, normalize: shouldNormalizeWallData),
-                FaceDirection.DiagonalCeiling => room.GetDiagonalWallData(x, z, isDiagonalCeiling: true, normalize: shouldNormalizeWallData),
-                _ => throw new NotSupportedException("Unsupported face direction.")
+                FaceDirection.PositiveZ => room.GetPositiveZWallData(x, z, normalize),
+                FaceDirection.NegativeZ => room.GetNegativeZWallData(x, z, normalize),
+                FaceDirection.PositiveX => room.GetPositiveXWallData(x, z, normalize),
+                FaceDirection.NegativeX => room.GetNegativeXWallData(x, z, normalize),
+                FaceDirection.DiagonalFloor => room.GetDiagonalWallData(x, z, isDiagonalCeiling: false, normalize),
+                FaceDirection.DiagonalCeiling => room.GetDiagonalWallData(x, z, isDiagonalCeiling: true, normalize),
+                _ => throw new NotSupportedException($"Face direction '{faceDirection}' is not supported for vertical faces.")
             };
 
             Sector sector = room.Sectors[x, z];
 
             if (hasFloorPart)
             {
-                IReadOnlyList<SectorFaceData> verticalFloorPartFaces = useLegacyCode
+                IReadOnlyList<SectorFaceData> floorFaces = useLegacyCode
                     ? LegacyWallGeometry.GetVerticalFloorPartFaces(wallData, sector.IsAnyWall)
                     : wallData.GetVerticalFloorPartFaces(sector.Floor.DiagonalSplit);
 
-                for (int i = 0; i < verticalFloorPartFaces.Count; i++)
-                    AddFace(room, x, z, verticalFloorPartFaces[i]);
+                for (int i = 0; i < floorFaces.Count; i++)
+                    AddFace(room, x, z, floorFaces[i]);
             }
 
             if (hasCeilingPart)
             {
-                IReadOnlyList<SectorFaceData> verticalCeilingPartFaces = useLegacyCode
+                IReadOnlyList<SectorFaceData> ceilingFaces = useLegacyCode
                     ? LegacyWallGeometry.GetVerticalCeilingPartFaces(wallData, sector.IsAnyWall)
                     : wallData.GetVerticalCeilingPartFaces(sector.Ceiling.DiagonalSplit);
 
-                for (int i = 0; i < verticalCeilingPartFaces.Count; i++)
-                    AddFace(room, x, z, verticalCeilingPartFaces[i]);
+                for (int i = 0; i < ceilingFaces.Count; i++)
+                    AddFace(room, x, z, ceilingFaces[i]);
             }
 
             if (hasMiddlePart)
@@ -759,6 +778,10 @@ namespace TombLib.LevelData
             }
         }
 
+        /// <summary>
+        /// Adds a single vertical wall face (triangle or quad) to the geometry buffers.
+        /// Applies the default texture if the face has no texture assigned.
+        /// </summary>
         private void AddFace(Room room, int x, int z, SectorFaceData face)
         {
             Sector sector = room.Sectors[x, z];
