@@ -480,7 +480,7 @@ end
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 50, [ NoMultiline ], Timer name"
 -- !Arguments "CompareOperator, 30"
--- !Arguments "Numerical, 20, [ 0 | 1000 | 2 | 0.1 | 1 ], Remaining time (in seconds) that can be rounded internally to the nearest game frame (1/30 of a second)"
+-- !Arguments "Numerical, 20, [ 0 | 65535 | 2 | 0.1 | 1 ], Remaining time (in seconds) that can be rounded internally to the nearest game frame (1/30 of a second)"
 LevelFuncs.Engine.Node.IfRemainingTimeIs = function(name, operator, value)
     if name ~= '' then
         if Timer.IfExists(name) then
@@ -509,7 +509,7 @@ end
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 50, [ NoMultiline ], Timer name"
 -- !Arguments "CompareOperator, 30"
--- !Arguments "Numerical, 20, [ 0 | 1000 | 2 | 0.1 | 1 ], Total Time (in seconds) that can be rounded internally to the nearest game frame (1/30 of a second)"
+-- !Arguments "Numerical, 20, [ 0 | 65535 | 2 | 0.1 | 1 ], Total Time (in seconds) that can be rounded internally to the nearest game frame (1/30 of a second)"
 LevelFuncs.Engine.Node.IfTotalTimeIs = function(name, operator, time)
     if name ~= '' then
         if Timer.IfExists(name) then
