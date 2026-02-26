@@ -19,6 +19,7 @@ WadTool:
  * Automatically correct hair mesh connections when importing TR4 outfits to TEN wad.
  * Rearranged animation editor UI in preparation for animation blending feature.
  * Fixed gizmo behaviour in animation editor.
+ * Fixed Y/P numerical rotation controls being reversed.
  * Fixed misplaced backholster meshes for classic engines.
  * Fixed external textures not loading when wad was moved to another directory.
  * Fixed exception while loading wads with material xml files placed in the same folder as wad.
