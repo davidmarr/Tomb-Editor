@@ -19,6 +19,7 @@ WadTool:
  * Automatically correct hair mesh connections when importing TR4 outfits to TEN wad.
  * Rearranged animation editor UI in preparation for animation blending feature.
  * Fixed gizmo behaviour in animation editor.
+ * Fixed Y/P numerical rotation controls being reversed.
  * Fixed misplaced backholster meshes for classic engines.
  * Fixed external textures not loading when wad was moved to another directory.
  * Fixed exception while loading wads with material xml files placed in the same folder as wad.
@@ -33,6 +34,7 @@ TEN nodes:
  * Added nodes to check the color of a moveable or static mesh.
  * Added nodes to show or hide interaction highlight for a moveable.
  * Added nodes to use inventory item, set inventory item count and to reset inventory to default.
+ * Added a node to clear all input keys.
  * Fixed crash with keypad nodes on certain system configurations.
 
 Version 1.10.1
