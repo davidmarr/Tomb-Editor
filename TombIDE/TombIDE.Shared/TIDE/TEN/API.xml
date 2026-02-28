@@ -9304,11 +9304,6 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<summary>Create a DisplayItem object.</summary>
 					<parameters>
 						<parameter>
-							<name>name</name>
-							<type>string</type>
-							<description>Lua name of the display item.</description>
-						</parameter>
-						<parameter>
 							<name>objectID</name>
 							<type>Objects.ObjID</type>
 							<description>Slot object ID.</description>
@@ -9979,43 +9974,35 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			<members>
 				<field>
 					<name>crawlExtended</name>
-					<summary>(bool) Extended crawl moveset.</summary>
-					<description>When enabled, player will be able to traverse across one-click steps in crawlspaces.</description>
+					<summary>Extended crawl moveset.</summary>
 				</field>
 				<field>
 					<name>crouchRoll</name>
-					<summary>(bool) Crouch roll.</summary>
-					<description>When enabled, player can perform crawlspace roll by pressing sprint key.</description>
+					<summary>Crouch roll.</summary>
 				</field>
 				<field>
 					<name>crawlspaceSwandive</name>
-					<summary>(bool) Crawlspace dive.</summary>
-					<description>When enabled, player will be able to swandive into crawlspaces.</description>
+					<summary>Crawlspace dive.</summary>
 				</field>
 				<field>
 					<name>overhangClimb</name>
-					<summary>(bool) Overhang climbing.</summary>
-					<description>Enables overhang climbing feature. Currently does not work.</description>
+					<description>(bool) Overhang climbing.</description>
 				</field>
 				<field>
 					<name>slideExtended</name>
-					<summary>(bool) Extended slide mechanics.</summary>
-					<description>If enabled, player will be able to change slide direction with controls. Currently does not work.</description>
+					<description>(bool) Extended slide mechanics.</description>
 				</field>
 				<field>
 					<name>sprintJump</name>
-					<summary>(bool) Sprint jump.</summary>
-					<description>If enabled, player will be able to perform extremely long jump when sprinting.</description>
+					<summary>Sprint jump.</summary>
 				</field>
 				<field>
 					<name>ledgeJumps</name>
-					<summary>(bool) Ledge jumps.</summary>
-					<description>If this setting is enabled, player will be able to jump upwards while hanging on the ledge.</description>
+					<summary>Ledge jumps.</summary>
 				</field>
 				<field>
 					<name>poseTimeout</name>
-					<summary>(int) Pose timeout.</summary>
-					<description>If this setting is larger than 0, idle standing pose animation will be performed after given timeout (in seconds).</description>
+					<summary>Pose timeout.</summary>
 				</field>
 			</members>
 		</class>
@@ -10027,53 +10014,43 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			<members>
 				<field>
 					<name>color</name>
-					<summary>(Color) Flare color.</summary>
-					<description>Flare color. Used for sparks and lensflare coloring as well.</description>
+					<summary>Flare color.</summary>
 				</field>
 				<field>
 					<name>offset</name>
-					<summary>(Vec3) Muzzle offset.</summary>
-					<description>A relative muzzle offset where light and particle effects originate from.</description>
+					<summary>Muzzle offset.</summary>
 				</field>
 				<field>
 					<name>range</name>
-					<summary>(int) Light range.</summary>
-					<description>Flare light radius or range. Represented in "clicks" equal to 256 world units.</description>
+					<summary>Light range.</summary>
 				</field>
 				<field>
 					<name>timeout</name>
-					<summary>(int) Burn timeout.</summary>
-					<description>Flare burn timeout. Flare will stop working after given timeout (specified in seconds).</description>
+					<summary>Burn timeout.</summary>
 				</field>
 				<field>
 					<name>pickupCount</name>
-					<summary>(int) Default flare pickup count.</summary>
-					<description>Specifies amount of flares that you get when you pick up a box of flares.</description>
+					<summary>Default flare pickup count.</summary>
 				</field>
 				<field>
 					<name>lensflareBrightness</name>
-					<summary>(float) Lens flare brightness.</summary>
-					<description>Brightness multiplier. Specifies how bright lens flare is in relation to light (on a range from 0 to 1).</description>
+					<summary>Lens flare brightness.</summary>
 				</field>
 				<field>
 					<name>sparks</name>
-					<summary>(bool) Toggle spark effect.</summary>
-					<description>Spark effect. Determines whether flare generates sparks when burning.</description>
+					<summary>Toggle spark effect.</summary>
 				</field>
 				<field>
 					<name>smoke</name>
-					<summary>(bool) Toggle smoke effect.</summary>
-					<description>Smoke effect. Determines whether flare generates smoke when burning.</description>
+					<summary>Toggle smoke effect.</summary>
 				</field>
 				<field>
 					<name>muzzleGlow</name>
-					<summary>(bool) Toggle muzzle glow effect.</summary>
-					<description>Glow effect. Determines whether flare generates glow when burning.</description>
+					<summary>Toggle muzzle glow effect.</summary>
 				</field>
 				<field>
 					<name>flicker</name>
-					<summary>(bool) Toggle flicker effect.</summary>
-					<description>Light and lensflare flickering. When turned off, flare light will be constant.</description>
+					<summary>Toggle flicker effect.</summary>
 				</field>
 			</members>
 		</class>
@@ -10085,8 +10062,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			<members>
 				<field>
 					<name>rootMesh</name>
-					<summary>(int) Root mesh to which hair object will attach to.</summary>
-					<description>Index of a root mesh to which hair will attach. Root mesh may be different for each hair object.</description>
+					<summary>Root mesh to which hair object will attach to.</summary>
 				</field>
 				<field>
 					<name>offset</name>
@@ -10104,7 +10080,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			<name>Flow.WeaponSettings</name>
 			<type>tenclass</type>
 			<ctor>false</ctor>
-			<description>This is a table of weapon settings, with several parameters available for every weapon. Access particular weapon's settings by using @{Objects.WeaponType} as an index for this table, e.g. `settings.Weapons[Flow.WeaponType.PISTOLS]`.</description>
+			<description>This is a table of weapon settings, with several parameters available for every weapon. Access particular weapon's settings by using @{Objects.WeaponType} as an index for this table, e.g. `settings.Weapons[Flow.WeaponType.PISTOLS]`.  Default values for these settings are different for different weapons. Refer to *settings.lua* file to see them.</description>
 			<members>
 				<field>
 					<name>accuracy</name>
@@ -10196,53 +10172,44 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			<members>
 				<field>
 					<name>headerTextColor</name>
-					<summary>(Color) Header text color.</summary>
-					<description>A color used for displaying header text in system menus.</description>
+					<summary>Header text color.</summary>
 				</field>
 				<field>
 					<name>optionTextColor</name>
-					<summary>(Color) Option text color.</summary>
-					<description>A color used for displaying option text in system menus.</description>
+					<summary>Option text color.</summary>
 				</field>
 				<field>
 					<name>plainTextColor</name>
-					<summary>(Color) Plain text color.</summary>
-					<description>A color used for displaying plain text in system menus.</description>
+					<summary>Plain text color.</summary>
 				</field>
 				<field>
 					<name>disabledTextColor</name>
-					<summary>(Color) Disabled text color.</summary>
-					<description>A color used for displaying any header text in menus.</description>
+					<summary>Disabled text color.</summary>
 				</field>
 				<field>
 					<name>shadowTextColor</name>
-					<summary>(Color) Shadow text color.</summary>
-					<description>A color used for drawing a shadow under any rendered text.</description>
+					<summary>Shadow text color.</summary>
 				</field>
 				<field>
 					<name>titleLogoPosition</name>
-					<summary>(Vec2) Title logo center point position.</summary>
-					<description>Center point of a title level logo position.</description>
+					<summary>Title logo center point position.</summary>
 				</field>
 				<field>
 					<name>titleLogoScale</name>
-					<summary>(Vec2) Title logo scale.</summary>
-					<description>Title level logo scale.</description>
+					<summary>Title logo scale.</summary>
 				</field>
 				<field>
 					<name>titleLogoColor</name>
-					<summary>(Color) Title logo color.</summary>
-					<description>Title level logo color.</description>
+					<summary>Title logo color.</summary>
 				</field>
 				<field>
 					<name>titleMenuPosition</name>
-					<summary>(Vec2) Title menu position.</summary>
+					<summary>Title menu position.</summary>
 					<description>while vertical coordinate represents a first menu entry's vertical position.</description>
 				</field>
 				<field>
 					<name>titleMenuScale</name>
-					<summary>(float) Title menu scale.</summary>
-					<description>Title level menu scale.</description>
+					<summary>Title menu scale.</summary>
 				</field>
 				<field>
 					<name>titleMenuAlignment</name>
@@ -10263,12 +10230,12 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 				</field>
 				<field>
 					<name>multithreaded</name>
-					<summary>(bool) Use multithreading in certain calculations. &lt;br&gt;</summary>
+					<summary>Use multithreading in certain calculations. &lt;br&gt;</summary>
 					<description>When set to `true`, some performance-critical calculations will be performed in parallel, which can give a significant performance boost. Don't disable unless you have problems with launching or using TombEngine.</description>
 				</field>
 				<field>
 					<name>fastReload</name>
-					<summary>(bool) Can the game utilize the fast reload feature? &lt;br&gt;</summary>
+					<summary>Can the game utilize the fast reload feature? &lt;br&gt;</summary>
 					<description>When set to `true`, the game will attempt to perform fast savegame reloading if current level is the same as the level loaded from the savegame. It will not work if the level timestamp or checksum has changed (i.e. level was updated). If set to `false`, this functionality is turned off.</description>
 				</field>
 			</members>
@@ -10281,13 +10248,11 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			<members>
 				<field>
 					<name>ambientOcclusion</name>
-					<summary>(bool) Enable ambient occlusion.</summary>
-					<description>If disabled, ambient occlusion setting will be forced to off, and corresponding menu entry in the Display Settings dialog will be grayed out.</description>
+					<summary>Enable ambient occlusion.</summary>
 				</field>
 				<field>
 					<name>skinning</name>
-					<summary>(bool) Enable skinning.</summary>
-					<description>If enabled, skinning will be used for animated objects with skinned mesh. Disable to force classic TR workflow.</description>
+					<summary>Enable skinning.</summary>
 				</field>
 			</members>
 		</class>
@@ -10299,13 +10264,11 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			<members>
 				<field>
 					<name>gravity</name>
-					<summary>(float) Global world gravity.</summary>
-					<description>Specifies global gravity. Mostly affects Lara and several other objects.</description>
+					<summary>Global world gravity.</summary>
 				</field>
 				<field>
 					<name>swimVelocity</name>
-					<summary>(float) Swim velocity.</summary>
-					<description>Specifies swim velocity for Lara. Affects both surface and underwater.</description>
+					<summary>Swim velocity.</summary>
 				</field>
 			</members>
 		</class>
@@ -10317,23 +10280,19 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			<members>
 				<field>
 					<name>statusBars</name>
-					<summary>(bool) Toggle in-game status bars visibility.</summary>
-					<description>If disabled, all status bars (health, air, stamina) will be hidden.</description>
+					<summary>Toggle in-game status bars visibility.</summary>
 				</field>
 				<field>
 					<name>loadingBar</name>
-					<summary>(bool) Toggle loading bar visibility.</summary>
-					<description>If disabled, loading bar will be invisible in game.</description>
+					<summary>Toggle loading bar visibility.</summary>
 				</field>
 				<field>
 					<name>speedometer</name>
-					<summary>(bool) Toggle speedometer visibility.</summary>
-					<description>If disabled, speedometer will be invisible in game.</description>
+					<summary>Toggle speedometer visibility.</summary>
 				</field>
 				<field>
 					<name>pickupNotifier</name>
-					<summary>(bool) Toggle pickup notifier visibility.</summary>
-					<description>If disabled, pickup notifier will be invisible in game.</description>
+					<summary>Toggle pickup notifier visibility.</summary>
 				</field>
 			</members>
 		</class>
@@ -10345,18 +10304,15 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			<members>
 				<field>
 					<name>binocularLightColor</name>
-					<summary>(Color) Determines highlight color in binocular mode.</summary>
-					<description>Color of highlight, when player presses action. Zero color means there will be no highlight.</description>
+					<summary>Determines highlight color in binocular mode.</summary>
 				</field>
 				<field>
 					<name>lasersightLightColor</name>
-					<summary>(Color) Determines highlight color in lasersight mode.</summary>
-					<description>Lasersight highlight color. Zero color means there will be no highlight.</description>
+					<summary>Determines highlight color in lasersight mode.</summary>
 				</field>
 				<field>
 					<name>objectCollision</name>
-					<summary>(bool) Specify whether camera can collide with objects.</summary>
-					<description>When enabled, camera will collide with moveables and statics. Disable for TR4-like camera behaviour.</description>
+					<summary>Specify whether camera can collide with objects.</summary>
 				</field>
 			</members>
 		</class>
@@ -10372,57 +10328,55 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 				</field>
 				<field>
 					<name>searchDepth</name>
-					<summary>(int) Pathfinding graph search depth.</summary>
-					<description>Specifies how deep the AI will search the pathfinding graph when calculating a path to the target.</description>
+					<summary>Pathfinding graph search depth.</summary>
 				</field>
 				<field>
 					<name>escapeDistance</name>
-					<summary>(int) Escape distance.</summary>
+					<summary>Escape distance.</summary>
 					<description>value specifies the distance the enemy will try to reach when escaping.</description>
 				</field>
 				<field>
 					<name>stalkDistance</name>
-					<summary>(int) Stalk distance.</summary>
-					<description>previously escaped.</description>
+					<summary>Stalk distance.</summary>
 				</field>
 				<field>
 					<name>predictionFactor</name>
-					<summary>(float) Path prediction scale factor.</summary>
+					<summary>Path prediction scale factor.</summary>
 					<description>current velocity. A higher value makes enemies intercept the target earlier, while a lower value reduces anticipation. If set to 0, prediction will be disabled.</description>
 				</field>
 				<field>
 					<name>collisionPenaltyThreshold</name>
-					<summary>(float) Collision penalty threshold.</summary>
+					<summary>Collision penalty threshold.</summary>
 					<description>collisions with illegal geometry and will be forced to ignore its current path to the target and recalculate it. If set to 0, collision penalties will be disabled.</description>
 				</field>
 				<field>
 					<name>collisionPenaltyCooldown</name>
-					<summary>(float) Collision penalty cooldown.</summary>
+					<summary>Collision penalty cooldown.</summary>
 					<description>in seconds during which the enemy will ignore the path to the target which previously caused a penalty.</description>
 				</field>
 				<field>
 					<name>moveableAvoidance</name>
-					<summary>(bool) Moveable avoidance.</summary>
+					<summary>Moveable avoidance.</summary>
 					<description>moveable if it's in the way. Applies only to moveables not placed near room geometry.</description>
 				</field>
 				<field>
 					<name>staticMeshAvoidance</name>
-					<summary>(bool) Static mesh avoidance.</summary>
+					<summary>Static mesh avoidance.</summary>
 					<description>static mesh if it's in the way. Applies only to static meshes not placed near room geometry.</description>
 				</field>
 				<field>
 					<name>verticalGeometryAvoidance</name>
-					<summary>(bool) Vertical geometry avoidance for swimming and flying enemies.</summary>
+					<summary>Vertical geometry avoidance for swimming and flying enemies.</summary>
 					<description>by moving upwards.</description>
 				</field>
 				<field>
 					<name>waterSurfaceAvoidance</name>
-					<summary>(bool) Water surface avoidance for swimming and flying enemies.</summary>
+					<summary>Water surface avoidance for swimming and flying enemies.</summary>
 					<description>the player or other enemies from above. For swimming enemies, adds extra measures to avoid glitching out of the water.</description>
 				</field>
 				<field>
 					<name>verticalMovementSmoothing</name>
-					<summary>(bool) Vertical movement smoothing for swimming and flying enemies.</summary>
+					<summary>Vertical movement smoothing for swimming and flying enemies.</summary>
 					<description>sudden unnatural jerks or changes in direction.</description>
 				</field>
 			</members>
@@ -10435,25 +10389,24 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			<members>
 				<field>
 					<name>enableInventory</name>
-					<summary>(bool) Enable or disable original linear inventory functionality. Can be used to completely disable inventory handling</summary>
+					<summary>Enable or disable original linear inventory functionality. Can be used to completely disable inventory handling</summary>
 					<description>or to replace it with custom module, such as ring inventory.</description>
 				</field>
 				<field>
 					<name>killPoisonedEnemies</name>
-					<summary>(bool) Kill enemies which were poisoned by a crossbow poisoned ammo or by any other means. If disabled, enemy hit points will</summary>
+					<summary>Kill enemies which were poisoned by a crossbow poisoned ammo or by any other means. If disabled, enemy hit points will</summary>
 					<description>reach minimum but will never go to zero. This behaviour replicates original TR4 behaviour.</description>
 				</field>
 				<field>
 					<name>targetObjectOcclusion</name>
-					<summary>(bool) Enable target occlusion by moveables and static meshes.</summary>
-					<description>If enabled, player won't be able to target enemies through moveables and static meshes.</description>
+					<summary>Enable target occlusion by moveables and static meshes.</summary>
 				</field>
 			</members>
 		</class>
 		<class>
 			<name>Flow.Settings</name>
 			<type>tenclass</type>
-			<description>Global engine settings which don't fall into particular category or can't be assigned to a specific object. Can be accessed using @{Flow.SetSettings} and @{Flow.GetSettings} functions.</description>
+			<description>Global engine settings which don't fall into particular category or can't be assigned to a specific object. Flow.Settings is composed of several sub-tables, and each section of the Flow.Settings documentation corresponds to one of these sub-tables. These configuration groups are located in *settings.lua* script file. It is possible to change settings on a per-level basis via @{Flow.GetSettings} and @{Flow.SetSettings} functions, but keep in mind that _settings.lua is reread every time the level is reloaded_. Therefore, you need to implement custom settings management in your level script if you want to override global settings.</description>
 			<members>
 				<field>
 					<name>Animations</name>
@@ -10524,8 +10477,8 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 				<field>
 					<name>Weapons</name>
 					<type>{ [WeaponType]: WeaponSettings }</type>
-					<summary>This is a table of weapon settings, with several parameters available for every weapon. Access particular weapon's settings by using @{Objects.WeaponType} as an index for this table, e.g. `settings.Weapons[Flow.WeaponType.PISTOLS]`.</summary>
-					<description>This is a table of weapon settings, with several parameters available for every weapon. Access particular weapon's settings by using @{Objects.WeaponType} as an index for this table, e.g. `settings.Weapons[Flow.WeaponType.PISTOLS]`.</description>
+					<summary>This is a table of weapon settings, with several parameters available for every weapon. Access particular weapon's settings by using @{Objects.WeaponType} as an index for this table, e.g. `settings.Weapons[Flow.WeaponType.PISTOLS]`.  Default values for these settings are different for different weapons. Refer to *settings.lua* file to see them.</summary>
+					<description>This is a table of weapon settings, with several parameters available for every weapon. Access particular weapon's settings by using @{Objects.WeaponType} as an index for this table, e.g. `settings.Weapons[Flow.WeaponType.PISTOLS]`.  Default values for these settings are different for different weapons. Refer to *settings.lua* file to see them.</description>
 				</field>
 			</members>
 		</class>
