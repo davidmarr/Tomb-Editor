@@ -246,7 +246,7 @@ public sealed class ApiConverter
 
 		// Generate fields
 		foreach (var field in apiClass.Fields)
-			builder.AppendLine($"---@field {field.Name} {MapType(field.Type)} # {CleanDescription(field.Summary)}");
+			GenerateFieldAnnotation(builder, field);
 
 		// Generate the direct class name first
 		builder.AppendLine($"{className} = {{}}");
@@ -424,13 +424,48 @@ public sealed class ApiConverter
 		}
 		else
 		{
-			var methodName = method.Name.Replace($"{className}:", string.Empty);
+			char separator = method.Name.StartsWith($"{className}.") ? '.' : ':';
+			var methodName = method.Name.Replace($"{className}{separator}", string.Empty);
 
 			if (useModulePrefix)
-				builder.AppendLine($"function {moduleName}.{className}:{methodName}({paramNames}) end");
+				builder.AppendLine($"function {moduleName}.{className}{separator}{methodName}({paramNames}) end");
 			else
-				builder.AppendLine($"function {className}:{methodName}({paramNames}) end");
+				builder.AppendLine($"function {className}{separator}{methodName}({paramNames}) end");
 		}
+	}
+
+	/// <summary>
+	/// Generates a field annotation for Lua Language Server, handling optional fields and default values.
+	/// </summary>
+	/// <param name="builder">The string builder to append to.</param>
+	/// <param name="field">The field to generate annotation for.</param>
+	private void GenerateFieldAnnotation(StringBuilder builder, ApiField field)
+	{
+		var fieldType = MapType(field.Type);
+		var description = CleanDescription(field.Summary);
+
+		if (field.Optional)
+		{
+			if (!fieldType.EndsWith("?"))
+				fieldType += "?";
+
+			if (!string.IsNullOrWhiteSpace(field.DefaultValue))
+			{
+				if (!string.IsNullOrWhiteSpace(description))
+					description += $" (default: `{field.DefaultValue}`)";
+				else
+					description = $"Default: `{field.DefaultValue}`";
+			}
+			else
+			{
+				if (!string.IsNullOrWhiteSpace(description))
+					description += " (optional)";
+				else
+					description = "Optional field";
+			}
+		}
+
+		builder.AppendLine($"---@field {field.Name} {fieldType} # {description}");
 	}
 
 	/// <summary>
