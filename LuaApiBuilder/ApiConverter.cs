@@ -1,3 +1,4 @@
+using LuaApiBuilder.Interfaces;
 using LuaApiBuilder.Objects;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -446,26 +447,7 @@ public sealed class ApiConverter
 		var rawDescription = string.IsNullOrWhiteSpace(field.Summary) ? field.Description : field.Summary;
 		var description = CleanDescription(rawDescription);
 
-		if (field.Optional)
-		{
-			if (!fieldType.EndsWith("?"))
-				fieldType += "?";
-
-			if (!string.IsNullOrWhiteSpace(field.DefaultValue))
-			{
-				if (!string.IsNullOrWhiteSpace(description))
-					description += $" (default: `{field.DefaultValue}`)";
-				else
-					description = $"Default: `{field.DefaultValue}`";
-			}
-			else
-			{
-				if (!string.IsNullOrWhiteSpace(description))
-					description += " (optional)";
-				else
-					description = "Optional field";
-			}
-		}
+		ApplyOptionalFormatting(field, ref fieldType, ref description, "Optional field");
 
 		builder.AppendLine($"---@field {field.Name} {fieldType} # {description}");
 	}
@@ -481,32 +463,40 @@ public sealed class ApiConverter
 		var description = CleanDescription(param.Description);
 		var paramName = EscapeLuaReservedKeyword(param.Name);
 
-		// Handle optional parameters
-		if (param.Optional)
-		{
-			// Make the type optional by appending '?'
-			if (!paramType.EndsWith("?"))
-				paramType += "?";
-
-			// Add default value information to description if available
-			if (!string.IsNullOrWhiteSpace(param.DefaultValue))
-			{
-				if (!string.IsNullOrWhiteSpace(description))
-					description += $" (default: `{param.DefaultValue}`)";
-				else
-					description = $"Default: `{param.DefaultValue}`";
-			}
-			else
-			{
-				// If no default value is specified but parameter is optional, indicate it's optional
-				if (!string.IsNullOrWhiteSpace(description))
-					description += " (optional)";
-				else
-					description = "Optional parameter";
-			}
-		}
+		ApplyOptionalFormatting(param, ref paramType, ref description, "Optional parameter");
 
 		builder.AppendLine($"---@param {paramName} {paramType} # {description}");
+	}
+
+	/// <summary>
+	/// Applies optional/default-value formatting to a type string and description, shared by field and parameter annotations.
+	/// </summary>
+	/// <param name="obj">The optional object supplying <see cref="IOptionalObject.Optional"/> and <see cref="IOptionalObject.DefaultValue"/>.</param>
+	/// <param name="type">The mapped type string; will have '?' appended when optional.</param>
+	/// <param name="description">The cleaned description; will have default or optional information appended.</param>
+	/// <param name="fallbackLabel">Label to use when the object is optional but has no description (e.g. "Optional field" or "Optional parameter").</param>
+	private static void ApplyOptionalFormatting(IOptionalObject obj, ref string type, ref string description, string fallbackLabel)
+	{
+		if (!obj.Optional)
+			return;
+
+		if (!type.EndsWith("?"))
+			type += "?";
+
+		if (!string.IsNullOrWhiteSpace(obj.DefaultValue))
+		{
+			if (!string.IsNullOrWhiteSpace(description))
+				description += $" (default: `{obj.DefaultValue}`)";
+			else
+				description = $"Default: `{obj.DefaultValue}`";
+		}
+		else
+		{
+			if (!string.IsNullOrWhiteSpace(description))
+				description += " (optional)";
+			else
+				description = fallbackLabel;
+		}
 	}
 
 	/// <summary>
