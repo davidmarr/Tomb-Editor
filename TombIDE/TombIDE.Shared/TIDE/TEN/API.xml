@@ -9999,12 +9999,12 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 				<field>
 					<name>overhangClimb</name>
 					<type>bool</type>
-					<description>Overhang climbing.</description>
+					<description>Enables overhang climbing feature. Currently does not work. Overhang climbing.</description>
 				</field>
 				<field>
 					<name>slideExtended</name>
 					<type>bool</type>
-					<description>Extended slide mechanics.</description>
+					<description>If enabled, player will be able to change slide direction with controls. Currently does not work. Extended slide mechanics.</description>
 				</field>
 				<field>
 					<name>sprintJump</name>
@@ -10326,7 +10326,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<name>titleMenuPosition</name>
 					<type>Vec2</type>
 					<summary>Title menu position.</summary>
-					<description>while vertical coordinate represents a first menu entry's vertical position.</description>
+					<description>Title level menu position. Horizontal coordinate represents an alignment baseline, while vertical coordinate represents a first menu entry's vertical position.</description>
 					<optional>true</optional>
 					<defaultValue>TEN.Vec2(50, 66)</defaultValue>
 				</field>
@@ -10340,8 +10340,11 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 				</field>
 				<field>
 					<name>titleMenuAlignment</name>
+					<type>Strings.DisplayStringOption</type>
 					<summary>Title menu alignment.</summary>
-					<description>Can be set to @{Strings.DisplayStringOption.CENTER} or @{Strings.DisplayStringOption.RIGHT}. If set to `nil`, or set to any other value, menu will be aligned to the left side of the screen.</description>
+					<description>Specifies menu alignment. Can be set to @{Strings.DisplayStringOption.CENTER} or @{Strings.DisplayStringOption.RIGHT}. If set to `nil`, or set to any other value, menu will be aligned to the left side of the screen.</description>
+					<optional>true</optional>
+					<defaultValue>Strings.DisplayStringOption.CENTER</defaultValue>
 				</field>
 			</members>
 		</class>
@@ -10353,13 +10356,17 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			<members>
 				<field>
 					<name>errorMode</name>
+					<type>Flow.ErrorMode</type>
 					<summary>How should the application respond to script errors?</summary>
+					<description>Error mode to use.</description>
+					<optional>true</optional>
+					<defaultValue>Flow.ErrorMode.WARN</defaultValue>
 				</field>
 				<field>
 					<name>multithreaded</name>
 					<type>bool</type>
 					<summary>Use multithreading in certain calculations. &lt;br&gt;</summary>
-					<description>When set to `true`, some performance-critical calculations will be performed in parallel, which can give a significant performance boost. Don't disable unless you have problems with launching or using TombEngine.</description>
+					<description>Determines whether to use multithreading or not. When set to `true`, some performance-critical calculations will be performed in parallel, which can give a significant performance boost. Don't disable unless you have problems with launching or using TombEngine.</description>
 					<optional>true</optional>
 					<defaultValue>true</defaultValue>
 				</field>
@@ -10367,7 +10374,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<name>fastReload</name>
 					<type>bool</type>
 					<summary>Can the game utilize the fast reload feature? &lt;br&gt;</summary>
-					<description>When set to `true`, the game will attempt to perform fast savegame reloading if current level is the same as the level loaded from the savegame. It will not work if the level timestamp or checksum has changed (i.e. level was updated). If set to `false`, this functionality is turned off.</description>
+					<description>Toggles fast reload on or off. When set to `true`, the game will attempt to perform fast savegame reloading if current level is the same as the level loaded from the savegame. It will not work if the level timestamp or checksum has changed (i.e. level was updated). If set to `false`, this functionality is turned off.</description>
 					<optional>true</optional>
 					<defaultValue>true</defaultValue>
 				</field>
@@ -10501,7 +10508,11 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 			<members>
 				<field>
 					<name>mode</name>
+					<type>Flow.PathfindingMode</type>
 					<summary>Pathfinding mode.</summary>
+					<description>The algorithm used for pathfinding. For more information, refer to @{Flow.PathfindingMode}.</description>
+					<optional>true</optional>
+					<defaultValue>Flow.PathfindingMode.ASTAR</defaultValue>
 				</field>
 				<field>
 					<name>searchDepth</name>
@@ -10515,7 +10526,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<name>escapeDistance</name>
 					<type>int</type>
 					<summary>Escape distance.</summary>
-					<description>value specifies the distance the enemy will try to reach when escaping.</description>
+					<description>If enemy is being attacked, it attempts to escape as far as possible from the attacker. This value specifies the distance the enemy will try to reach when escaping.</description>
 					<optional>true</optional>
 					<defaultValue>5</defaultValue>
 				</field>
@@ -10531,7 +10542,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<name>predictionFactor</name>
 					<type>float</type>
 					<summary>Path prediction scale factor.</summary>
-					<description>current velocity. A higher value makes enemies intercept the target earlier, while a lower value reduces anticipation. If set to 0, prediction will be disabled.</description>
+					<description>Determines how far ahead enemy predicts the target's position based on its current velocity. A higher value makes enemies intercept the target earlier, while a lower value reduces anticipation. If set to 0, prediction will be disabled.</description>
 					<optional>true</optional>
 					<defaultValue>15.0</defaultValue>
 				</field>
@@ -10539,7 +10550,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<name>collisionPenaltyThreshold</name>
 					<type>float</type>
 					<summary>Collision penalty threshold.</summary>
-					<description>collisions with illegal geometry and will be forced to ignore its current path to the target and recalculate it. If set to 0, collision penalties will be disabled.</description>
+					<description>Specifies the timeout in seconds after which the enemy will be punished for collisions with illegal geometry and will be forced to ignore its current path to the target and recalculate it. If set to 0, collision penalties will be disabled.</description>
 					<optional>true</optional>
 					<defaultValue>1.0</defaultValue>
 				</field>
@@ -10547,7 +10558,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<name>collisionPenaltyCooldown</name>
 					<type>float</type>
 					<summary>Collision penalty cooldown.</summary>
-					<description>in seconds during which the enemy will ignore the path to the target which previously caused a penalty.</description>
+					<description>If a collision penalty was applied to an enemy, this value specifies the timeout in seconds during which the enemy will ignore the path to the target which previously caused a penalty.</description>
 					<optional>true</optional>
 					<defaultValue>6.0</defaultValue>
 				</field>
@@ -10555,7 +10566,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<name>moveableAvoidance</name>
 					<type>bool</type>
 					<summary>Moveable avoidance.</summary>
-					<description>moveable if it's in the way. Applies only to moveables not placed near room geometry. Experimental feature, use with caution.</description>
+					<description>Avoid collisions with moveables where possible. Enemy will attempt to turn away from the moveable if it's in the way. Applies only to moveables not placed near room geometry. Experimental feature, use with caution.</description>
 					<optional>true</optional>
 					<defaultValue>false</defaultValue>
 				</field>
@@ -10563,7 +10574,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<name>staticMeshAvoidance</name>
 					<type>bool</type>
 					<summary>Static mesh avoidance.</summary>
-					<description>static mesh if it's in the way. Applies only to static meshes not placed near room geometry. Experimental feature, use with caution.</description>
+					<description>Avoid collisions with static meshes where possible. Enemy will attempt to turn away from the static mesh if it's in the way. Applies only to static meshes not placed near room geometry. Experimental feature, use with caution.</description>
 					<optional>true</optional>
 					<defaultValue>false</defaultValue>
 				</field>
@@ -10571,7 +10582,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<name>verticalGeometryAvoidance</name>
 					<type>bool</type>
 					<summary>Vertical geometry avoidance for swimming and flying enemies.</summary>
-					<description>by moving upwards.</description>
+					<description>Avoid swimming or flying forward into illegal room geometry that can be avoided by moving upwards.</description>
 					<optional>true</optional>
 					<defaultValue>true</defaultValue>
 				</field>
@@ -10579,7 +10590,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<name>waterSurfaceAvoidance</name>
 					<type>bool</type>
 					<summary>Water surface avoidance for swimming and flying enemies.</summary>
-					<description>the player or other enemies from above. For swimming enemies, adds extra measures to avoid glitching out of the water.</description>
+					<description>For flying enemies, prevents diving into the water and dying while attacking the player or other enemies from above. For swimming enemies, adds extra measures to avoid glitching out of the water.</description>
 					<optional>true</optional>
 					<defaultValue>true</defaultValue>
 				</field>
@@ -10587,7 +10598,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<name>verticalMovementSmoothing</name>
 					<type>bool</type>
 					<summary>Vertical movement smoothing for swimming and flying enemies.</summary>
-					<description>sudden unnatural jerks or changes in direction.</description>
+					<description>Smooths out vertical movement for swimming and flying enemies to prevent sudden unnatural jerks or changes in direction.</description>
 					<optional>true</optional>
 					<defaultValue>true</defaultValue>
 				</field>
@@ -10603,7 +10614,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<name>enableInventory</name>
 					<type>bool</type>
 					<summary>Enable or disable original linear inventory functionality. Can be used to completely disable inventory handling</summary>
-					<description>or to replace it with custom module, such as ring inventory.</description>
+					<description>If false, inventory will not open. or to replace it with custom module, such as ring inventory.</description>
 					<optional>true</optional>
 					<defaultValue>true</defaultValue>
 				</field>
@@ -10611,7 +10622,7 @@ No word wrapping will occur if this parameter is default or omitted.</descriptio
 					<name>killPoisonedEnemies</name>
 					<type>bool</type>
 					<summary>Kill enemies which were poisoned by a crossbow poisoned ammo or by any other means. If disabled, enemy hit points will</summary>
-					<description>reach minimum but will never go to zero. This behaviour replicates original TR4 behaviour.</description>
+					<description>If false, enemies won't be killed by poison. reach minimum but will never go to zero. This behaviour replicates original TR4 behaviour.</description>
 					<optional>true</optional>
 					<defaultValue>true</defaultValue>
 				</field>
