@@ -442,7 +442,9 @@ public sealed class ApiConverter
 	private void GenerateFieldAnnotation(StringBuilder builder, ApiField field)
 	{
 		var fieldType = MapType(field.Type);
-		var description = CleanDescription(field.Summary);
+
+		var rawDescription = string.IsNullOrWhiteSpace(field.Summary) ? field.Description : field.Summary;
+		var description = CleanDescription(rawDescription);
 
 		if (field.Optional)
 		{
