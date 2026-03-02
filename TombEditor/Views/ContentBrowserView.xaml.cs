@@ -21,6 +21,22 @@ public partial class ContentBrowserView : UserControl
     }
 
     /// <summary>
+    /// Handles double-click on an asset to trigger the Add Item action.
+    /// </summary>
+    private void AssetListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left)
+            return;
+
+        // Only trigger if double-click is on an actual item (not empty space)
+        if (AssetListBox.SelectedItem is AssetItemViewModel &&
+            DataContext is ContentBrowserViewModel vm)
+        {
+            vm.AddItemCommand.Execute(null);
+        }
+    }
+
+    /// <summary>
     /// Records the mouse position when the left button is pressed for drag-drop detection.
     /// </summary>
     private void AssetListBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

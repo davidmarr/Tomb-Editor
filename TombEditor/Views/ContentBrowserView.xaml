@@ -304,41 +304,19 @@
 					Margin="4,2"
 					Fill="{DynamicResource Brush_Border_Low}" />
 
-				<!--  Filter (types + TrCatalog categories)  -->
+				<!--  Type filter  -->
 				<ComboBox
 					Grid.Column="2"
-					Width="140"
+					Width="120"
 					VerticalAlignment="Center"
 					FontSize="11"
-					ItemsSource="{Binding FilterOptions}"
-					SelectedItem="{Binding SelectedFilter}">
+					ItemsSource="{Binding Categories}"
+					SelectedItem="{Binding SelectedCategory}">
 					<ComboBox.ItemTemplate>
 						<DataTemplate>
-							<Grid>
-								<TextBlock x:Name="ItemLabel" Text="{Binding DisplayName}" />
-								<Separator x:Name="ItemSep" Visibility="Collapsed" Margin="-4,0" />
-							</Grid>
-							<DataTemplate.Triggers>
-								<DataTrigger Binding="{Binding IsSeparator}" Value="True">
-									<Setter TargetName="ItemLabel" Property="Visibility" Value="Collapsed" />
-									<Setter TargetName="ItemSep" Property="Visibility" Value="Visible" />
-								</DataTrigger>
-							</DataTemplate.Triggers>
+							<TextBlock Text="{Binding}" />
 						</DataTemplate>
 					</ComboBox.ItemTemplate>
-					<ComboBox.ItemContainerStyle>
-						<Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
-							<Style.Triggers>
-								<DataTrigger Binding="{Binding IsSeparator}" Value="True">
-									<Setter Property="IsEnabled" Value="False" />
-									<Setter Property="IsHitTestVisible" Value="False" />
-									<Setter Property="Focusable" Value="False" />
-									<Setter Property="MinHeight" Value="0" />
-									<Setter Property="Padding" Value="0" />
-								</DataTrigger>
-							</Style.Triggers>
-						</Style>
-					</ComboBox.ItemContainerStyle>
 				</ComboBox>
 			</Grid>
 		</Border>
@@ -353,6 +331,7 @@
 			ItemTemplate="{StaticResource AssetTileTemplate}"
 			ItemsSource="{Binding FilteredItems}"
 			KeyDown="AssetListBox_KeyDown"
+			MouseDoubleClick="AssetListBox_MouseDoubleClick"
 			PreviewMouseLeftButtonDown="AssetListBox_PreviewMouseLeftButtonDown"
 			PreviewMouseMove="AssetListBox_PreviewMouseMove"
 			ScrollViewer.HorizontalScrollBarVisibility="Disabled"

@@ -3,18 +3,19 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using TombLib.LevelData;
 using TombLib.Utils;
 using TombLib.Wad;
-using TombLib.Wad.Catalog;
 
 namespace TombEditor.ViewModels;
 
@@ -29,38 +30,7 @@ public enum AssetCategory
     ImportedGeometry
 }
 
-/// <summary>
-/// Represents a single option in the Content Browser filter combobox.
-/// Can be a type filter (All/Moveables/Statics/Imported Geometry),
-/// a TrCatalog category filter, or a visual separator.
-/// </summary>
-public class FilterOption
-{
-    public string DisplayName { get; }
-    public bool IsSeparator { get; }
-    public AssetCategory? TypeFilter { get; }
-    public string? CategoryFilter { get; }
 
-    private FilterOption(string displayName, bool isSeparator, AssetCategory? typeFilter, string? categoryFilter)
-    {
-        DisplayName = displayName;
-        IsSeparator = isSeparator;
-        TypeFilter = typeFilter;
-        CategoryFilter = categoryFilter;
-    }
-
-    public static FilterOption ForType(AssetCategory category) => new(
-        category == AssetCategory.All ? "All" :
-        category == AssetCategory.ImportedGeometry ? "Imported Geometry" :
-        category.ToString(),
-        false, category, null);
-
-    public static FilterOption ForCategory(string categoryName) => new(categoryName, false, null, categoryName);
-
-    public static FilterOption CreateSeparator() => new(string.Empty, true, null, null);
-
-    public override string ToString() => DisplayName;
-}
 
 /// <summary>
 /// ViewModel representing a single asset item in the Content Browser.
@@ -123,18 +93,6 @@ public partial class AssetItemViewModel : ObservableObject
         AssetCategory.ImportedGeometry => 2,
         _ => 3
     };
-
-    /// <summary>
-    /// TrCatalog-defined category for the object (e.g., "Enemies", "Vehicles", "Traps").
-    /// Defaults to the type name if no catalog category is defined.
-    /// </summary>
-    public string ObjectCategory { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Display name for grouping: returns ObjectCategory when grouping by category,
-    /// or CategoryName when grouping by type.
-    /// </summary>
-    public string GroupDisplayName => !string.IsNullOrEmpty(ObjectCategory) ? ObjectCategory : CategoryName;
 
     /// <summary>
     /// Whether a rendered 3D thumbnail is available.
@@ -231,7 +189,7 @@ public partial class AssetItemViewModel : ObservableObject
 
 /// <summary>
 /// Main ViewModel for the Content Browser tool window.
-/// Manages the collection of assets, search/filtering, and category grouping.
+/// Manages the collection of assets, search/filtering, and type-based sorting.
 /// </summary>
 public partial class ContentBrowserViewModel : ObservableObject
 {
@@ -241,7 +199,7 @@ public partial class ContentBrowserViewModel : ObservableObject
     public ObservableCollection<AssetItemViewModel> AllItems { get; } = new();
 
     /// <summary>
-    /// Filtered and grouped view of the items.
+    /// Filtered view of the items.
     /// </summary>
     public ICollectionView FilteredItems { get; }
 
@@ -253,11 +211,11 @@ public partial class ContentBrowserViewModel : ObservableObject
     private string _searchText = string.Empty;
 
     /// <summary>
-    /// Currently selected filter option (type or TrCatalog category).
+    /// Currently selected type filter.
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ItemCount))]
-    private FilterOption? _selectedFilter;
+    private AssetCategory _selectedCategory = AssetCategory.All;
 
     /// <summary>
     /// Currently selected asset item.
@@ -305,10 +263,15 @@ public partial class ContentBrowserViewModel : ObservableObject
     public int ItemCount => FilteredItems.Cast<object>().Count();
 
     /// <summary>
-    /// Available filter options (types + TrCatalog categories with separator).
-    /// Rebuilt on each RefreshAssets call.
+    /// Available type filter options.
     /// </summary>
-    public ObservableCollection<FilterOption> FilterOptions { get; } = new();
+    public IReadOnlyList<AssetCategory> Categories { get; } = new[]
+    {
+        AssetCategory.All,
+        AssetCategory.Moveables,
+        AssetCategory.Statics,
+        AssetCategory.ImportedGeometry
+    };
 
     public ContentBrowserViewModel()
     {
@@ -324,50 +287,8 @@ public partial class ContentBrowserViewModel : ObservableObject
         OnPropertyChanged(nameof(ItemCount));
     }
 
-    partial void OnSelectedFilterChanged(FilterOption? value)
+    partial void OnSelectedCategoryChanged(AssetCategory value)
     {
-        if (value?.IsSeparator == true)
-            return;
-
-        FilteredItems.Refresh();
-        OnPropertyChanged(nameof(ItemCount));
-    }
-
-    /// <summary>
-    /// Rebuilds the FilterOptions list based on distinct ObjectCategory values in AllItems.
-    /// Preserves the previous selection by display name.
-    /// </summary>
-    private void RebuildFilterOptions()
-    {
-        var previousName = SelectedFilter?.DisplayName;
-
-        FilterOptions.Clear();
-        FilterOptions.Add(FilterOption.ForType(AssetCategory.All));
-        FilterOptions.Add(FilterOption.ForType(AssetCategory.Moveables));
-        FilterOptions.Add(FilterOption.ForType(AssetCategory.Statics));
-        FilterOptions.Add(FilterOption.ForType(AssetCategory.ImportedGeometry));
-
-        // Collect distinct TrCatalog categories (exclude default type names)
-        var categories = AllItems
-            .Select(i => i.ObjectCategory)
-            .Where(c => !string.IsNullOrEmpty(c)
-                && c != "Moveables" && c != "Statics" && c != "Imported Geometry")
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        if (categories.Count > 0)
-        {
-            FilterOptions.Add(FilterOption.CreateSeparator());
-            foreach (var cat in categories)
-                FilterOptions.Add(FilterOption.ForCategory(cat));
-        }
-
-        // Restore previous selection or default to All
-        SelectedFilter = (previousName != null
-            ? FilterOptions.FirstOrDefault(f => f.DisplayName == previousName && !f.IsSeparator)
-            : null) ?? FilterOptions[0];
-
         FilteredItems.Refresh();
         OnPropertyChanged(nameof(ItemCount));
     }
@@ -422,49 +343,58 @@ public partial class ContentBrowserViewModel : ObservableObject
 
     /// <summary>
     /// Refreshes all assets from the current level settings.
+    /// Builds moveable and static item lists in parallel for maximum performance.
     /// </summary>
     public void RefreshAssets(LevelSettings settings)
     {
         var previousSelection = SelectedItem?.WadObject;
-        AllItems.Clear();
 
         var gameVersion = settings.GameVersion;
 
-        // Add moveables
+        // Fetch all objects upfront (these iterate wad files)
         var allMoveables = settings.WadGetAllMoveables();
-        foreach (var kvp in allMoveables)
-        {
-            var moveable = kvp.Value;
-            string name = moveable.ToString(gameVersion);
-
-            bool multiple;
-            var itemType = new ItemType(moveable.Id, settings);
-            var wad = settings.WadTryGetWad(itemType, out multiple);
-            string wadSource = wad != null ? Path.GetFileName(wad.Path) : "Unknown";
-
-            var item = new AssetItemViewModel(moveable, name, AssetCategory.Moveables, wadSource, multiple);
-            item.ObjectCategory = TrCatalog.GetMoveableCategory(gameVersion, moveable.Id.TypeId);
-            AllItems.Add(item);
-        }
-
-        // Add statics
         var allStatics = settings.WadGetAllStatics();
-        foreach (var kvp in allStatics)
+
+        // Build moveable and static items in parallel using thread-safe collections.
+        // Each item construction is independent — name resolution, wad source lookup,
+        // initials, and cache key are all pure/readonly operations.
+        var moveableItems = new ConcurrentBag<AssetItemViewModel>();
+        var staticItems = new ConcurrentBag<AssetItemViewModel>();
+
+        var moveableTask = Task.Run(() =>
         {
-            var staticMesh = kvp.Value;
-            string name = staticMesh.ToString(gameVersion);
+            Parallel.ForEach(allMoveables, kvp =>
+            {
+                var moveable = kvp.Value;
+                string name = moveable.ToString(gameVersion);
 
-            bool multiple;
-            var itemType = new ItemType(staticMesh.Id, settings);
-            var wad = settings.WadTryGetWad(itemType, out multiple);
-            string wadSource = wad != null ? Path.GetFileName(wad.Path) : "Unknown";
+                bool multiple;
+                var itemType = new ItemType(moveable.Id, settings);
+                var wad = settings.WadTryGetWad(itemType, out multiple);
+                string wadSource = wad != null ? Path.GetFileName(wad.Path) : "Unknown";
 
-            var item = new AssetItemViewModel(staticMesh, name, AssetCategory.Statics, wadSource, multiple);
-            item.ObjectCategory = TrCatalog.GetStaticCategory(gameVersion, staticMesh.Id.TypeId);
-            AllItems.Add(item);
-        }
+                moveableItems.Add(new AssetItemViewModel(moveable, name, AssetCategory.Moveables, wadSource, multiple));
+            });
+        });
 
-        // Add imported geometries
+        var staticTask = Task.Run(() =>
+        {
+            Parallel.ForEach(allStatics, kvp =>
+            {
+                var staticMesh = kvp.Value;
+                string name = staticMesh.ToString(gameVersion);
+
+                bool multiple;
+                var itemType = new ItemType(staticMesh.Id, settings);
+                var wad = settings.WadTryGetWad(itemType, out multiple);
+                string wadSource = wad != null ? Path.GetFileName(wad.Path) : "Unknown";
+
+                staticItems.Add(new AssetItemViewModel(staticMesh, name, AssetCategory.Statics, wadSource, multiple));
+            });
+        });
+
+        // Build imported geometry items (lightweight — no parallelization needed)
+        var geoItems = new List<AssetItemViewModel>();
         foreach (var geo in settings.ImportedGeometries)
         {
             if (geo.LoadException != null)
@@ -478,12 +408,23 @@ public partial class ContentBrowserViewModel : ObservableObject
                 ? Path.GetFileName(geo.Info.Path)
                 : "Inline";
 
-            var item = new AssetItemViewModel(geo, name, AssetCategory.ImportedGeometry, wadSource, false);
-            item.ObjectCategory = "Imported Geometry";
-            AllItems.Add(item);
+            geoItems.Add(new AssetItemViewModel(geo, name, AssetCategory.ImportedGeometry, wadSource, false));
         }
 
-        RebuildFilterOptions();
+        // Wait for parallel moveable and static building to complete
+        Task.WaitAll(moveableTask, staticTask);
+
+        // Batch-populate the ObservableCollection (must happen on UI thread)
+        AllItems.Clear();
+        foreach (var item in moveableItems)
+            AllItems.Add(item);
+        foreach (var item in staticItems)
+            AllItems.Add(item);
+        foreach (var item in geoItems)
+            AllItems.Add(item);
+
+        FilteredItems.Refresh();
+        OnPropertyChanged(nameof(ItemCount));
 
         // Try to restore previous selection
         if (previousSelection != null)
@@ -577,20 +518,9 @@ public partial class ContentBrowserViewModel : ObservableObject
         if (obj is not AssetItemViewModel item)
             return false;
 
-        // Unified filter (type or TrCatalog category)
-        if (SelectedFilter != null && !SelectedFilter.IsSeparator)
-        {
-            if (SelectedFilter.TypeFilter.HasValue && SelectedFilter.TypeFilter != AssetCategory.All)
-            {
-                if (item.Category != SelectedFilter.TypeFilter.Value)
-                    return false;
-            }
-            else if (SelectedFilter.CategoryFilter != null)
-            {
-                if (!string.Equals(item.ObjectCategory, SelectedFilter.CategoryFilter, StringComparison.OrdinalIgnoreCase))
-                    return false;
-            }
-        }
+        // Type filter
+        if (SelectedCategory != AssetCategory.All && item.Category != SelectedCategory)
+            return false;
 
         // Text search
         if (!string.IsNullOrWhiteSpace(SearchText))

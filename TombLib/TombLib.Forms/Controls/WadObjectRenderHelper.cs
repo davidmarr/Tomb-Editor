@@ -5,6 +5,7 @@ using System.Numerics;
 using TombLib.Graphics;
 using TombLib.LevelData;
 using TombLib.Wad;
+using TombLib.Wad.Catalog;
 
 namespace TombLib.Controls
 {
@@ -14,6 +15,24 @@ namespace TombLib.Controls
     /// </summary>
     public static class WadObjectRenderHelper
     {
+        /// <summary>
+        /// Applies Lara skin mesh substitution for moveables that need it.
+        /// If the object is a WadMoveable and has a skin defined in TrCatalog,
+        /// replaces dummy meshes with the skin's meshes.
+        /// Returns the original object unchanged for non-moveables or when no skin is found.
+        /// </summary>
+        public static IWadObject ApplyLaraSkin(IWadObject wadObject, LevelSettings settings)
+        {
+            if (wadObject is WadMoveable moveable)
+            {
+                var skinId = new WadMoveableId(TrCatalog.GetMoveableSkin(settings.GameVersion, moveable.Id.TypeId));
+                var skin = settings.WadTryGetMoveable(skinId);
+                if (skin != null && skin != moveable)
+                    return moveable.ReplaceDummyMeshes(skin);
+            }
+            return wadObject;
+        }
+
         /// <summary>
         /// Computes a bounding sphere for the given WAD object, suitable for camera framing.
         /// </summary>

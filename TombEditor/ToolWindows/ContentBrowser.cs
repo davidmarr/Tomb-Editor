@@ -1,5 +1,6 @@
 using DarkUI.Docking;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows.Forms;
@@ -21,8 +22,20 @@ namespace TombEditor.ToolWindows
         private readonly Editor _editor;
         private readonly ContentBrowserViewModel _viewModel;
         private OffscreenItemRenderer _renderer;
-        private bool _thumbnailRenderPending;
         private Timer _thumbnailTimer;
+
+        /// <summary>
+        /// Queue of items waiting for thumbnail rendering. Processed in small batches
+        /// across multiple timer ticks to keep the UI responsive.
+        /// </summary>
+        private List<AssetItemViewModel> _thumbnailQueue;
+        private int _thumbnailQueueIndex;
+
+        /// <summary>
+        /// Number of thumbnails to render per timer tick. Balances rendering speed
+        /// with UI responsiveness — each render involves a D3D11 GPU draw + readback.
+        /// </summary>
+        private const int ThumbnailBatchSize = 10;
 
         public ContentBrowser()
         {
@@ -45,8 +58,8 @@ namespace TombEditor.ToolWindows
             // Load saved tile width from configuration
             _viewModel.TileWidth = _editor.Configuration.ContentBrowser_TileWidth;
 
-            // Timer for batched/deferred thumbnail rendering
-            _thumbnailTimer = new Timer { Interval = 100 };
+            // Timer for batched/deferred thumbnail rendering (50ms between batches)
+            _thumbnailTimer = new Timer { Interval = 50 };
             _thumbnailTimer.Tick += ThumbnailTimer_Tick;
 
             // Enable drag-drop on this WinForms control
@@ -147,59 +160,74 @@ namespace TombEditor.ToolWindows
 
         /// <summary>
         /// Queues thumbnail rendering when assets change.
-        /// Uses a short timer to batch multiple rapid requests.
+        /// Builds the queue of items needing thumbnails and starts the batched timer.
         /// </summary>
         private void ViewModel_ThumbnailRenderRequested(object sender, EventArgs e)
         {
-            _thumbnailRenderPending = true;
-            _thumbnailTimer?.Stop();
-            _thumbnailTimer?.Start();
+            // Build/rebuild the queue from items that still need thumbnails
+            _thumbnailQueue = _viewModel.GetItemsNeedingThumbnails().ToList();
+            _thumbnailQueueIndex = 0;
+
+            if (_thumbnailQueue.Count > 0)
+            {
+                _thumbnailTimer?.Stop();
+                _thumbnailTimer?.Start();
+            }
         }
 
         /// <summary>
-        /// Processes queued thumbnail rendering on the UI thread.
-        /// Renders thumbnails in batches to avoid blocking the UI for too long.
+        /// Renders the next batch of thumbnails on each timer tick.
+        /// Keeps the UI responsive by only processing ThumbnailBatchSize items per tick.
         /// </summary>
         private void ThumbnailTimer_Tick(object sender, EventArgs e)
         {
-            _thumbnailTimer?.Stop();
-
-            if (!_thumbnailRenderPending)
+            if (_thumbnailQueue == null || _thumbnailQueueIndex >= _thumbnailQueue.Count)
+            {
+                // All items rendered — stop timer and clean up
+                _thumbnailTimer?.Stop();
+                _thumbnailQueue = null;
+                _thumbnailQueueIndex = 0;
+                _renderer?.GarbageCollect();
                 return;
+            }
 
-            _thumbnailRenderPending = false;
-            RenderThumbnails();
+            RenderThumbnailBatch();
         }
 
         /// <summary>
-        /// Renders 3D thumbnails for all items that don't have one yet.
-        /// Creates the OffscreenItemRenderer on first use.
+        /// Renders a small batch of thumbnails (up to ThumbnailBatchSize).
+        /// Called from the timer tick so D3D11 rendering stays on the UI thread.
         /// </summary>
-        private void RenderThumbnails()
+        private void RenderThumbnailBatch()
         {
             try
             {
                 // Lazily create the renderer (requires D3D11 device to be ready)
                 if (_renderer == null)
-                {
                     _renderer = new OffscreenItemRenderer();
-                }
 
                 // Sync background color from editor's color scheme
                 _renderer.ClearColor = _editor.Configuration.UI_ColorScheme.Color3DBackground;
 
-                var itemsToRender = _viewModel.GetItemsNeedingThumbnails().ToList();
-                if (itemsToRender.Count == 0)
-                    return;
-
                 // Determine thumbnail pixel size from current tile settings
                 int thumbPixelSize = Math.Max(64, (int)(_viewModel.ThumbSize * 2)); // render at 2x for quality
 
-                foreach (var item in itemsToRender)
+                int end = Math.Min(_thumbnailQueueIndex + ThumbnailBatchSize, _thumbnailQueue.Count);
+
+                for (int i = _thumbnailQueueIndex; i < end; i++)
                 {
+                    var item = _thumbnailQueue[i];
                     try
                     {
-                        var image = _renderer.RenderThumbnail(item.WadObject, thumbPixelSize);
+                        // Skip items that already got a thumbnail (e.g., from cache restore)
+                        if (item.Thumbnail != null)
+                            continue;
+
+                        // Apply Lara skin substitution for moveables (shared with ItemBrowser)
+                        IWadObject renderObject = WadObjectRenderHelper.ApplyLaraSkin(
+                            item.WadObject, _editor.Level.Settings);
+
+                        var image = _renderer.RenderThumbnail(renderObject, thumbPixelSize);
                         var bitmapSource = AssetItemViewModel.ImageCToBitmapSource(image);
                         _viewModel.SetThumbnail(item, bitmapSource);
                     }
@@ -209,12 +237,14 @@ namespace TombEditor.ToolWindows
                     }
                 }
 
-                // Clean up GPU resources after batch
-                _renderer.GarbageCollect();
+                _thumbnailQueueIndex = end;
             }
             catch
             {
-                // If renderer creation fails, disable thumbnail rendering
+                // If renderer creation fails, stop rendering
+                _thumbnailTimer?.Stop();
+                _thumbnailQueue = null;
+                _thumbnailQueueIndex = 0;
                 _renderer?.Dispose();
                 _renderer = null;
             }
@@ -232,6 +262,11 @@ namespace TombEditor.ToolWindows
                 if (obj is Editor.LoadedWadsChangedEvent ||
                     obj is Editor.LoadedImportedGeometriesChangedEvent)
                 {
+                    // Stop any in-progress rendering
+                    _thumbnailTimer?.Stop();
+                    _thumbnailQueue = null;
+                    _thumbnailQueueIndex = 0;
+
                     _viewModel.InvalidateThumbnailCache();
                     _renderer?.Dispose();
                     _renderer = null;

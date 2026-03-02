@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using TombLib.Controls;
 using TombLib.LevelData;
 using TombLib.Rendering;
 using TombLib.Wad;
@@ -159,18 +160,10 @@ namespace TombEditor.ToolWindows
 
         private void FindLaraSkin()
         {
-            if (comboItems.Items.Count == 0 || comboItems.SelectedIndex < 0 || !(comboItems.SelectedItem is WadMoveable))
+            if (comboItems.Items.Count == 0 || comboItems.SelectedIndex < 0 || !(comboItems.SelectedItem is WadMoveable item))
                 return;
 
-            var item = comboItems.SelectedItem as WadMoveable;
-            var skinId = new WadMoveableId(TrCatalog.GetMoveableSkin(_editor.Level.Settings.GameVersion, item.Id.TypeId));
-            var skin = _editor.Level.Settings.WadTryGetMoveable(skinId);
-
-            if (skin != null && skin != item)
-                panelItem.CurrentObject = item.ReplaceDummyMeshes(skin);
-            else
-                panelItem.CurrentObject = item;
-
+            panelItem.CurrentObject = WadObjectRenderHelper.ApplyLaraSkin(item, _editor.Level.Settings);
             panelItem.ResetCamera();
         }
 
