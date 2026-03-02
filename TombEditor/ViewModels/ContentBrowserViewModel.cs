@@ -747,8 +747,7 @@ public partial class ContentBrowserViewModel : ObservableObject
             if (SearchText.Length >= 3)
             {
                 int endIndex;
-                int distance = Levenshtein.DistanceSubstring(
-                    item.Name.ToLower(), SearchText.ToLower(), out endIndex);
+                int distance = Levenshtein.DistanceSubstring(item.Name.ToLowerInvariant(), SearchText.ToLowerInvariant(), out endIndex);
                 if (distance < 2)
                     return true;
             }
