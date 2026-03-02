@@ -150,6 +150,9 @@ namespace TombEditor.ToolWindows
                 // Restore previous chosen item if it was different
                 // (FindItem uses the current ChosenItem to search)
             }
+
+            // Scroll to make the item visible in the list
+            contentBrowserView.ScrollToItem(item);
         }
 
         /// <summary>
@@ -401,6 +404,10 @@ namespace TombEditor.ToolWindows
                     itemTypes.Add(new ItemType(staticMesh.Id, _editor?.Level?.Settings));
             }
             _editor.ChosenItems = itemTypes;
+
+            // Scroll to make the first selected item visible
+            if (items.Count > 0)
+                contentBrowserView.ScrollToItem(items[0]);
         }
 
         /// <summary>
@@ -442,6 +449,7 @@ namespace TombEditor.ToolWindows
                 .FirstOrDefault(i => ReferenceEquals(i.WadObject, wadObject));
             _viewModel.SelectedItem = item;
             contentBrowserView.SetSelectionSilently(item);
+            contentBrowserView.ScrollToItem(item);
 
             _viewModel.SelectedItemChanged += ViewModel_SelectedItemChanged;
             _viewModel.SelectedItemsChanged += ViewModel_SelectedItemsChanged;

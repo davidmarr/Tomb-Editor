@@ -356,7 +356,9 @@
 			ItemsSource="{Binding FilteredItems}"
 			KeyDown="AssetListBox_KeyDown"
 			MouseDoubleClick="AssetListBox_MouseDoubleClick"
+			MouseLeave="AssetListBox_MouseLeave"
 			PreviewMouseLeftButtonDown="AssetListBox_PreviewMouseLeftButtonDown"
+			PreviewMouseLeftButtonUp="AssetListBox_PreviewMouseLeftButtonUp"
 			PreviewMouseMove="AssetListBox_PreviewMouseMove"
 			PreviewMouseWheel="AssetListBox_PreviewMouseWheel"
 			ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -371,6 +373,19 @@
 				</ItemsPanelTemplate>
 			</ListBox.ItemsPanel>
 		</ListBox>
+
+		<!--  Rubber-band selection rectangle overlay (drawn on top, non-interactive)  -->
+		<Canvas
+			x:Name="RubberBandCanvas"
+			Grid.Row="1"
+			IsHitTestVisible="False">
+			<Border
+				x:Name="SelectionRect"
+				Background="#20007ACC"
+				BorderBrush="#FF007ACC"
+				BorderThickness="1"
+				Visibility="Collapsed" />
+		</Canvas>
 
 		<!--  Status bar: Tile slider + Wad source + Item count  -->
 		<Border

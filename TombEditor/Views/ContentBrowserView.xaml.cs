@@ -18,6 +18,18 @@ public partial class ContentBrowserView : UserControl
     private UIElement _animatedElement;
     private bool _suppressSelectionChanged;
 
+    // Rubber-band selection state
+    private bool _isRubberBanding;
+    private Point _rubberBandOrigin;
+    // Cached item bounds (built once at drag-start, avoids per-frame TransformToVisual)
+    private List<(AssetItemViewModel Item, Rect Bounds)> _rubberBandItemBounds;
+    // Tracks which items are currently inside the rubber-band rect (enables incremental diff)
+    private readonly HashSet<AssetItemViewModel> _rubberBandSelected = new HashSet<AssetItemViewModel>();
+
+    // Click-on-selected guard: prevents deselecting multi-selection on a plain click
+    private bool _clickedOnSelected;
+    private AssetItemViewModel _clickedItem;
+
     public ContentBrowserView()
     {
         InitializeComponent();
@@ -54,10 +66,15 @@ public partial class ContentBrowserView : UserControl
     /// <summary>
     /// Handles double-click on an asset to trigger the Add Item action.
     /// Plays a subtle zoom+fade animation on the tile to confirm the action.
+    /// Skipped when Ctrl is held (multiselection mode).
     /// </summary>
     private void AssetListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton != MouseButton.Left)
+            return;
+
+        // Don't trigger placement when Ctrl is held (user is building a multi-selection)
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
             return;
 
         // Only trigger if double-click is on an actual item (not empty space)
@@ -147,12 +164,20 @@ public partial class ContentBrowserView : UserControl
     /// <summary>
     /// Records the mouse position when the left button is pressed for drag-drop detection.
     /// When Alt is held, performs a "Locate Item" operation without changing selection.
+    /// When clicking on an already-selected item with multiple items selected and no modifiers,
+    /// suppresses deselection of the other items.
+    /// When clicking on empty space, initiates rubber-band selection.
     /// </summary>
     private void AssetListBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         // Don't start drag when clicking on the scrollbar
         if (IsOverScrollbar(e))
             return;
+
+        _clickedOnSelected = false;
+        _clickedItem = null;
+        _isRubberBanding = false;
+        SelectionRect.Visibility = Visibility.Collapsed;
 
         // Alt+click: locate item without selecting it
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
@@ -171,6 +196,79 @@ public partial class ContentBrowserView : UserControl
 
         _dragStartPoint = e.GetPosition(null);
         _isDragging = false;
+
+        var hitContainer = FindAncestor<ListBoxItem>(e.OriginalSource as DependencyObject);
+
+        if (hitContainer?.DataContext is AssetItemViewModel hitItem &&
+            AssetListBox.SelectedItems.Contains(hitItem) &&
+            AssetListBox.SelectedItems.Count > 1 &&
+            !Keyboard.Modifiers.HasFlag(ModifierKeys.Control) &&
+            !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+        {
+            // Prevent the ListBox from deselecting the multi-selection on mouse-down.
+            // If the user just clicks (no drag), we deselect in PreviewMouseLeftButtonUp.
+            _clickedOnSelected = true;
+            _clickedItem = hitItem;
+            e.Handled = true;
+        }
+        else if (hitContainer == null &&
+                 !Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
+        {
+            // Click on empty space → start rubber-band selection.
+            // Cache all item bounds now (one TransformToVisual call per item, not per frame).
+            _rubberBandOrigin = e.GetPosition(RubberBandCanvas);
+            _rubberBandSelected.Clear();
+            _rubberBandItemBounds = new List<(AssetItemViewModel, Rect)>();
+            foreach (var assetItem in AssetListBox.Items.Cast<AssetItemViewModel>())
+            {
+                var c = AssetListBox.ItemContainerGenerator.ContainerFromItem(assetItem) as ListBoxItem;
+                if (c == null) continue;
+                var origin = c.TransformToVisual(RubberBandCanvas).Transform(new Point(0, 0));
+                _rubberBandItemBounds.Add((assetItem, new Rect(origin, new Size(c.ActualWidth, c.ActualHeight))));
+            }
+            _isRubberBanding = true;
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>
+    /// Finalizes the rubber-band selection when the left mouse button is released.
+    /// </summary>
+    private void AssetListBox_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_isRubberBanding)
+        {
+            // Selection was already updated live in PreviewMouseMove; just clean up.
+            _isRubberBanding = false;
+            SelectionRect.Visibility = Visibility.Collapsed;
+            _rubberBandItemBounds = null;
+            _rubberBandSelected.Clear();
+            e.Handled = true;
+            return;
+        }
+
+        // Multi-selection click guard: user clicked on a selected item without dragging.
+        // Now deselect the others and keep only the clicked item.
+        if (_clickedOnSelected && _clickedItem != null)
+        {
+            _clickedOnSelected = false;
+            AssetListBox.SelectedItem = _clickedItem;
+            _clickedItem = null;
+        }
+    }
+
+    /// <summary>
+    /// Cancels rubber-band selection when the mouse leaves the ListBox.
+    /// </summary>
+    private void AssetListBox_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (_isRubberBanding)
+        {
+            _isRubberBanding = false;
+            SelectionRect.Visibility = Visibility.Collapsed;
+            _rubberBandItemBounds = null;
+            _rubberBandSelected.Clear();
+        }
     }
 
     /// <summary>
@@ -184,6 +282,58 @@ public partial class ContentBrowserView : UserControl
         if (e.LeftButton != MouseButtonState.Pressed)
         {
             _isDragging = false;
+            return;
+        }
+
+        // Update rubber-band rect and do an incremental selection diff against pre-cached bounds.
+        if (_isRubberBanding)
+        {
+            Point cur = e.GetPosition(RubberBandCanvas);
+            double x = Math.Min(cur.X, _rubberBandOrigin.X);
+            double y = Math.Min(cur.Y, _rubberBandOrigin.Y);
+            double w = Math.Abs(cur.X - _rubberBandOrigin.X);
+            double h = Math.Abs(cur.Y - _rubberBandOrigin.Y);
+
+            Canvas.SetLeft(SelectionRect, x);
+            Canvas.SetTop(SelectionRect, y);
+            SelectionRect.Width = Math.Max(w, 0);
+            SelectionRect.Height = Math.Max(h, 0);
+            SelectionRect.Visibility = Visibility.Visible;
+
+            if ((w > 1 || h > 1) && _rubberBandItemBounds != null)
+            {
+                var rubberRect = new Rect(x, y, w, h);
+                bool changed = false;
+
+                _suppressSelectionChanged = true;
+
+                // Add newly covered items
+                foreach (var (item, bounds) in _rubberBandItemBounds)
+                {
+                    bool intersects = rubberRect.IntersectsWith(bounds);
+                    bool wasSelected = _rubberBandSelected.Contains(item);
+
+                    if (intersects && !wasSelected)
+                    {
+                        _rubberBandSelected.Add(item);
+                        AssetListBox.SelectedItems.Add(item);
+                        changed = true;
+                    }
+                    else if (!intersects && wasSelected)
+                    {
+                        _rubberBandSelected.Remove(item);
+                        AssetListBox.SelectedItems.Remove(item);
+                        changed = true;
+                    }
+                }
+
+                _suppressSelectionChanged = false;
+
+                if (changed && DataContext is ContentBrowserViewModel vm2)
+                    vm2.UpdateSelectedItems(_rubberBandSelected.ToList());
+            }
+
+            e.Handled = true;
             return;
         }
 
@@ -369,5 +519,19 @@ public partial class ContentBrowserView : UserControl
         if (item != null)
             AssetListBox.SelectedItem = item;
         _suppressSelectionChanged = false;
+    }
+
+    /// <summary>
+    /// Scrolls the ListBox to ensure the specified item is visible.
+    /// </summary>
+    public void ScrollToItem(AssetItemViewModel item)
+    {
+        if (item == null)
+            return;
+
+        // ScrollIntoView doesn't work reliably with WrapPanel,
+        // so use BringIntoView on the container directly.
+        var container = AssetListBox.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
+        container?.BringIntoView();
     }
 }

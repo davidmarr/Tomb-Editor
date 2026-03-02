@@ -202,7 +202,8 @@ namespace TombEditor.Controls.Panel3D
                 }
                 else if (objArray != null && objArray.Length > 0)
                 {
-                    // Place all selected items simultaneously
+                    // Build a list of instances for all dragged wad objects
+                    var instances = new List<PositionBasedObjectInstance>();
                     foreach (var wadObj in objArray)
                     {
                         PositionBasedObjectInstance instance = null;
@@ -215,8 +216,13 @@ namespace TombEditor.Controls.Panel3D
                             instance = ItemInstance.FromItemType(new ItemType(staticMesh.Id, _editor?.Level?.Settings));
 
                         if (instance != null)
-                            EditorActions.PlaceObject(_editor.SelectedRoom, newSectorPicking.Pos, instance);
+                            instances.Add(instance);
                     }
+
+                    if (instances.Count == 1)
+                        EditorActions.PlaceObject(_editor.SelectedRoom, newSectorPicking.Pos, instances[0]);
+                    else if (instances.Count > 1)
+                        EditorActions.PlaceObject(_editor.SelectedRoom, newSectorPicking.Pos, new ObjectGroup(instances));
                 }
                 else if (filesToProcess != -1)
                 {

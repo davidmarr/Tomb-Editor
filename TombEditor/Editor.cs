@@ -152,30 +152,25 @@ namespace TombEditor
             }
         }
 
-        public class ChosenItemChangedEvent : IEditorPropertyChangedEvent
-        {
-            public ItemType? Previous { get; internal set; }
-            public ItemType? Current { get; internal set; }
-        }
-        private ItemType? _chosenItem;
-        public ItemType? ChosenItem
-        {
-            get { return _chosenItem; }
-            set
-            {
-                if (value == _chosenItem)
-                    return;
-                var previous = _chosenItem;
-                _chosenItem = value;
-                RaiseEvent(new ChosenItemChangedEvent { Previous = previous, Current = value });
-            }
-        }
-
         public class ChosenItemsChangedEvent : IEditorPropertyChangedEvent
         {
             public IReadOnlyList<ItemType> Previous { get; internal set; }
             public IReadOnlyList<ItemType> Current { get; internal set; }
         }
+
+        // ChosenItemChangedEvent mirrors SelectedRoomChangedEvent:
+        // raised when _chosenItems[0] changes (or selection becomes empty/non-empty).
+        public class ChosenItemChangedEvent : ChosenItemsChangedEvent
+        {
+            public new ItemType? Previous => base.Previous?.Count > 0 ? base.Previous[0] : null;
+            public new ItemType? Current  => base.Current?.Count  > 0 ? base.Current[0]  : null;
+            internal ChosenItemChangedEvent(IReadOnlyList<ItemType> previous, IReadOnlyList<ItemType> current)
+            {
+                base.Previous = previous;
+                base.Current  = current;
+            }
+        }
+
         private ItemType[] _chosenItems = Array.Empty<ItemType>();
         public IReadOnlyList<ItemType> ChosenItems
         {
@@ -187,7 +182,27 @@ namespace TombEditor
                     return;
                 var previous = _chosenItems;
                 _chosenItems = arr;
-                RaiseEvent(new ChosenItemsChangedEvent { Previous = previous, Current = arr });
+                // When [0] changes (or emptiness toggles), also raise ChosenItemChangedEvent
+                // so all existing listeners on ChosenItemChangedEvent keep working.
+                bool firstChanged = (previous.Length == 0) != (arr.Length == 0) ||
+                                    (previous.Length > 0 && arr.Length > 0 && previous[0] != arr[0]);
+                if (firstChanged)
+                    RaiseEvent(new ChosenItemChangedEvent(previous, arr));
+                else
+                    RaiseEvent(new ChosenItemsChangedEvent { Previous = previous, Current = arr });
+            }
+        }
+
+        // ChosenItem mirrors SelectedRoom: single-item view of ChosenItems.
+        public ItemType? ChosenItem
+        {
+            get { return _chosenItems.Length > 0 ? _chosenItems[0] : null; }
+            set
+            {
+                if (value.HasValue)
+                    ChosenItems = new[] { value.Value };
+                else
+                    ChosenItems = Array.Empty<ItemType>();
             }
         }
 
