@@ -700,7 +700,7 @@ public partial class ContentBrowserViewModel : ObservableObject
     private void LocateItem()
     {
         if (SelectedItem != null)
-            LocateItemRequested?.Invoke(this, EventArgs.Empty);
+            LocateItemRequested?.Invoke(this, SelectedItem);
     }
 
     [RelayCommand]
