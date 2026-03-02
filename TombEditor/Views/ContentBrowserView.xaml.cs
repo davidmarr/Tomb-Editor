@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using TombEditor.ViewModels;
 
 namespace TombEditor.Views;
@@ -14,6 +15,7 @@ public partial class ContentBrowserView : UserControl
 {
     private Point _dragStartPoint;
     private bool _isDragging;
+    private UIElement _animatedElement;
 
     public ContentBrowserView()
     {
@@ -22,6 +24,7 @@ public partial class ContentBrowserView : UserControl
 
     /// <summary>
     /// Handles double-click on an asset to trigger the Add Item action.
+    /// Plays a subtle zoom+fade animation on the tile to confirm the action.
     /// </summary>
     private void AssetListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
@@ -32,8 +35,84 @@ public partial class ContentBrowserView : UserControl
         if (AssetListBox.SelectedItem is AssetItemViewModel &&
             DataContext is ContentBrowserViewModel vm)
         {
+            // Find the tile visual under the cursor and animate it
+            if (e.OriginalSource is DependencyObject source)
+            {
+                var container = FindAncestor<ListBoxItem>(source);
+                if (container != null)
+                    PlayAddItemAnimation(container);
+            }
+
             vm.AddItemCommand.Execute(null);
         }
+    }
+
+    /// <summary>
+    /// Plays a brief scale-up + fade-out animation on the given element
+    /// to provide visual feedback that an item is being placed.
+    /// The element stays grayed out until <see cref="RestoreLastAnimation"/> is called.
+    /// </summary>
+    private void PlayAddItemAnimation(UIElement element)
+    {
+        // Restore any previous animation before starting a new one
+        RestoreLastAnimation();
+
+        _animatedElement = element;
+
+        var duration = new Duration(TimeSpan.FromSeconds(0.25));
+
+        // Ensure a render transform exists
+        if (element.RenderTransform is not ScaleTransform)
+        {
+            element.RenderTransform = new ScaleTransform(1, 1);
+            element.RenderTransformOrigin = new Point(0.5, 0.5);
+        }
+
+        var scaleX = new DoubleAnimation(1.0, 1.08, duration) { EasingFunction = new QuadraticEase() };
+        var scaleY = new DoubleAnimation(1.0, 1.08, duration) { EasingFunction = new QuadraticEase() };
+        var fade = new DoubleAnimation(1.0, 0.4, duration) { EasingFunction = new QuadraticEase() };
+
+        element.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleX);
+        element.RenderTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleY);
+        element.BeginAnimation(UIElement.OpacityProperty, fade);
+    }
+
+    /// <summary>
+    /// Restores the last animated tile to its normal appearance by clearing
+    /// all running/held animations and resetting opacity and transform.
+    /// Called when EditorActionPlace finishes or is canceled.
+    /// </summary>
+    public void RestoreLastAnimation()
+    {
+        if (_animatedElement == null)
+            return;
+
+        // Remove held animations so local values take effect again
+        _animatedElement.BeginAnimation(UIElement.OpacityProperty, null);
+
+        if (_animatedElement.RenderTransform is ScaleTransform)
+        {
+            _animatedElement.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            _animatedElement.RenderTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        }
+
+        _animatedElement.Opacity = 1.0;
+        _animatedElement.RenderTransform = new ScaleTransform(1, 1);
+        _animatedElement = null;
+    }
+
+    /// <summary>
+    /// Walks the visual tree upward to find an ancestor of the given type.
+    /// </summary>
+    private static T? FindAncestor<T>(DependencyObject? obj) where T : DependencyObject
+    {
+        while (obj != null)
+        {
+            if (obj is T target)
+                return target;
+            obj = VisualTreeHelper.GetParent(obj);
+        }
+        return null;
     }
 
     /// <summary>
@@ -190,6 +269,25 @@ public partial class ContentBrowserView : UserControl
         double availableWidth = AssetListBox.ActualWidth - 20; // account for scrollbar
         int columns = Math.Max(1, (int)(availableWidth / tileWidth));
         return columns;
+    }
+
+    /// <summary>
+    /// When Ctrl or Alt is held, intercepts mouse wheel to zoom (change tile size)
+    /// instead of scrolling.
+    /// </summary>
+    private void AssetListBox_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) ||
+            Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
+        {
+            if (DataContext is ContentBrowserViewModel vm)
+            {
+                double step = 8;
+                double newWidth = vm.TileWidth + (e.Delta > 0 ? step : -step);
+                vm.TileWidth = Math.Clamp(newWidth, vm.MinTileWidth, vm.MaxTileWidth);
+            }
+            e.Handled = true;
+        }
     }
 
     /// <summary>

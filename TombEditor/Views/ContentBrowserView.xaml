@@ -334,6 +334,7 @@
 			MouseDoubleClick="AssetListBox_MouseDoubleClick"
 			PreviewMouseLeftButtonDown="AssetListBox_PreviewMouseLeftButtonDown"
 			PreviewMouseMove="AssetListBox_PreviewMouseMove"
+			PreviewMouseWheel="AssetListBox_PreviewMouseWheel"
 			ScrollViewer.HorizontalScrollBarVisibility="Disabled"
 			SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
 			SelectionMode="Single"

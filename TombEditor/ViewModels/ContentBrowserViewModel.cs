@@ -172,17 +172,23 @@ public partial class AssetItemViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(name))
             return "?";
 
-        // Take the first 2 characters of the name, capitalized
         var cleaned = name.Trim();
-        if (cleaned.Length <= 2)
-            return cleaned.ToUpperInvariant();
 
-        // If the name contains spaces or underscores, use first letters of first two words
-        var parts = cleaned.Split(new[] { ' ', '_', '-' }, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length >= 2)
-            return (parts[0][0].ToString() + parts[1][0]).ToUpperInvariant();
+        // Skip leading "(number) " prefix, e.g. "(100) WOLF" -> "WOLF"
+        if (cleaned.Length > 0 && cleaned[0] == '(')
+        {
+            int closeIdx = cleaned.IndexOf(')');
+            if (closeIdx > 0 && closeIdx + 1 < cleaned.Length)
+            {
+                cleaned = cleaned.Substring(closeIdx + 1).TrimStart();
+            }
+        }
 
-        return cleaned[..2].ToUpperInvariant();
+        if (string.IsNullOrEmpty(cleaned))
+            return "?";
+
+        // Use the first letter of the cleaned name
+        return cleaned[0].ToString().ToUpperInvariant();
     }
 }
 

@@ -123,7 +123,8 @@ namespace TombEditor.ToolWindows
         }
 
         /// <summary>
-        /// Handles add item requests from the WPF context menu.
+        /// Handles add item requests from the WPF view (double-click / context menu).
+        /// Reuses the existing "AddItem" command for moveables/statics.
         /// </summary>
         private void ViewModel_AddItemRequested(object sender, EventArgs e)
         {
@@ -134,17 +135,15 @@ namespace TombEditor.ToolWindows
             {
                 _editor.Action = new EditorActionPlace(false, (l, r) => new ImportedGeometryInstance());
             }
-            else if (_editor.ChosenItem.HasValue)
+            else
             {
-                var currentItem = _editor.ChosenItem.Value;
-                if (!currentItem.IsStatic && _editor.SelectedRoom != null &&
-                    _editor.SelectedRoom.Alternated && _editor.SelectedRoom.AlternateRoom == null)
-                {
-                    _editor.SendMessage("You can't add moveables to a flipped room.", PopupType.Info);
-                    return;
-                }
-                _editor.Action = new EditorActionPlace(false, (r, l) => ItemInstance.FromItemType(currentItem));
+                CommandHandler.GetCommand("AddItem").Execute?.Invoke(
+                    new CommandArgs { Editor = _editor, Window = FindForm() });
             }
+
+            // If the action was not set (e.g. validation failed), restore the tile animation immediately
+            if (_editor.Action is not EditorActionPlace)
+                contentBrowserView.RestoreLastAnimation();
         }
 
         /// <summary>
@@ -299,6 +298,13 @@ namespace TombEditor.ToolWindows
             {
                 if (configChanged.UpdateKeyboardShortcuts)
                     CommandHandler.AssignCommandsToControls(_editor, this, toolTip, true);
+            }
+
+            // Restore tile animation when the place action ends (object placed or action canceled)
+            if (obj is Editor.ActionChangedEvent actionEvent)
+            {
+                if (actionEvent.Previous is EditorActionPlace && actionEvent.Current is not EditorActionPlace)
+                    contentBrowserView.RestoreLastAnimation();
             }
 
             // Activate default control
