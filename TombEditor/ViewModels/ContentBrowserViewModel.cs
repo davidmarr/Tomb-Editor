@@ -19,7 +19,7 @@ using TombLib.Wad.Catalog;
 namespace TombEditor.ViewModels;
 
 /// <summary>
-/// Categories for grouping assets in the Content Browser.
+/// Categories for filtering assets in the Content Browser.
 /// </summary>
 public enum AssetCategory
 {
@@ -27,6 +27,39 @@ public enum AssetCategory
     Moveables,
     Statics,
     ImportedGeometry
+}
+
+/// <summary>
+/// Represents a single option in the Content Browser filter combobox.
+/// Can be a type filter (All/Moveables/Statics/Imported Geometry),
+/// a TrCatalog category filter, or a visual separator.
+/// </summary>
+public class FilterOption
+{
+    public string DisplayName { get; }
+    public bool IsSeparator { get; }
+    public AssetCategory? TypeFilter { get; }
+    public string? CategoryFilter { get; }
+
+    private FilterOption(string displayName, bool isSeparator, AssetCategory? typeFilter, string? categoryFilter)
+    {
+        DisplayName = displayName;
+        IsSeparator = isSeparator;
+        TypeFilter = typeFilter;
+        CategoryFilter = categoryFilter;
+    }
+
+    public static FilterOption ForType(AssetCategory category) => new(
+        category == AssetCategory.All ? "All" :
+        category == AssetCategory.ImportedGeometry ? "Imported Geometry" :
+        category.ToString(),
+        false, category, null);
+
+    public static FilterOption ForCategory(string categoryName) => new(categoryName, false, null, categoryName);
+
+    public static FilterOption CreateSeparator() => new(string.Empty, true, null, null);
+
+    public override string ToString() => DisplayName;
 }
 
 /// <summary>
@@ -81,7 +114,7 @@ public partial class AssetItemViewModel : ObservableObject
     public string Initials { get; }
 
     /// <summary>
-    /// Sort order for category grouping (Moveables=0, Statics=1, ImportedGeometry=2).
+    /// Sort order for type grouping (Moveables=0, Statics=1, ImportedGeometry=2).
     /// </summary>
     public int CategoryOrder => Category switch
     {
@@ -90,6 +123,18 @@ public partial class AssetItemViewModel : ObservableObject
         AssetCategory.ImportedGeometry => 2,
         _ => 3
     };
+
+    /// <summary>
+    /// TrCatalog-defined category for the object (e.g., "Enemies", "Vehicles", "Traps").
+    /// Defaults to the type name if no catalog category is defined.
+    /// </summary>
+    public string ObjectCategory { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Display name for grouping: returns ObjectCategory when grouping by category,
+    /// or CategoryName when grouping by type.
+    /// </summary>
+    public string GroupDisplayName => !string.IsNullOrEmpty(ObjectCategory) ? ObjectCategory : CategoryName;
 
     /// <summary>
     /// Whether a rendered 3D thumbnail is available.
@@ -208,11 +253,11 @@ public partial class ContentBrowserViewModel : ObservableObject
     private string _searchText = string.Empty;
 
     /// <summary>
-    /// Currently selected category filter.
+    /// Currently selected filter option (type or TrCatalog category).
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ItemCount))]
-    private AssetCategory _selectedCategory = AssetCategory.All;
+    private FilterOption? _selectedFilter;
 
     /// <summary>
     /// Currently selected asset item.
@@ -235,9 +280,9 @@ public partial class ContentBrowserViewModel : ObservableObject
     private double _tileWidth = 88;
 
     /// <summary>
-    /// Computed tile height based on tile width.
+    /// Computed tile height based on tile width. Near-square with a small allowance for the label.
     /// </summary>
-    public double TileHeight => TileWidth * 1.15;
+    public double TileHeight => TileWidth + 4;
 
     /// <summary>
     /// Computed thumbnail square size based on tile width.
@@ -260,15 +305,10 @@ public partial class ContentBrowserViewModel : ObservableObject
     public int ItemCount => FilteredItems.Cast<object>().Count();
 
     /// <summary>
-    /// Available category filter options.
+    /// Available filter options (types + TrCatalog categories with separator).
+    /// Rebuilt on each RefreshAssets call.
     /// </summary>
-    public IReadOnlyList<AssetCategory> Categories { get; } = new[]
-    {
-        AssetCategory.All,
-        AssetCategory.Moveables,
-        AssetCategory.Statics,
-        AssetCategory.ImportedGeometry
-    };
+    public ObservableCollection<FilterOption> FilterOptions { get; } = new();
 
     public ContentBrowserViewModel()
     {
@@ -276,7 +316,6 @@ public partial class ContentBrowserViewModel : ObservableObject
         FilteredItems.Filter = FilterPredicate;
         FilteredItems.SortDescriptions.Add(new SortDescription(nameof(AssetItemViewModel.CategoryOrder), ListSortDirection.Ascending));
         FilteredItems.SortDescriptions.Add(new SortDescription(nameof(AssetItemViewModel.Name), ListSortDirection.Ascending));
-        FilteredItems.GroupDescriptions.Add(new PropertyGroupDescription(nameof(AssetItemViewModel.CategoryName)));
     }
 
     partial void OnSearchTextChanged(string value)
@@ -285,8 +324,50 @@ public partial class ContentBrowserViewModel : ObservableObject
         OnPropertyChanged(nameof(ItemCount));
     }
 
-    partial void OnSelectedCategoryChanged(AssetCategory value)
+    partial void OnSelectedFilterChanged(FilterOption? value)
     {
+        if (value?.IsSeparator == true)
+            return;
+
+        FilteredItems.Refresh();
+        OnPropertyChanged(nameof(ItemCount));
+    }
+
+    /// <summary>
+    /// Rebuilds the FilterOptions list based on distinct ObjectCategory values in AllItems.
+    /// Preserves the previous selection by display name.
+    /// </summary>
+    private void RebuildFilterOptions()
+    {
+        var previousName = SelectedFilter?.DisplayName;
+
+        FilterOptions.Clear();
+        FilterOptions.Add(FilterOption.ForType(AssetCategory.All));
+        FilterOptions.Add(FilterOption.ForType(AssetCategory.Moveables));
+        FilterOptions.Add(FilterOption.ForType(AssetCategory.Statics));
+        FilterOptions.Add(FilterOption.ForType(AssetCategory.ImportedGeometry));
+
+        // Collect distinct TrCatalog categories (exclude default type names)
+        var categories = AllItems
+            .Select(i => i.ObjectCategory)
+            .Where(c => !string.IsNullOrEmpty(c)
+                && c != "Moveables" && c != "Statics" && c != "Imported Geometry")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (categories.Count > 0)
+        {
+            FilterOptions.Add(FilterOption.CreateSeparator());
+            foreach (var cat in categories)
+                FilterOptions.Add(FilterOption.ForCategory(cat));
+        }
+
+        // Restore previous selection or default to All
+        SelectedFilter = (previousName != null
+            ? FilterOptions.FirstOrDefault(f => f.DisplayName == previousName && !f.IsSeparator)
+            : null) ?? FilterOptions[0];
+
         FilteredItems.Refresh();
         OnPropertyChanged(nameof(ItemCount));
     }
@@ -325,6 +406,16 @@ public partial class ContentBrowserViewModel : ObservableObject
     public event EventHandler? ThumbnailRenderRequested;
 
     /// <summary>
+    /// Event raised when the user requests to locate the selected item in the level.
+    /// </summary>
+    public event EventHandler? LocateItemRequested;
+
+    /// <summary>
+    /// Event raised when the user requests to add/place the selected item.
+    /// </summary>
+    public event EventHandler? AddItemRequested;
+
+    /// <summary>
     /// In-memory thumbnail cache keyed by CacheKey.
     /// </summary>
     private readonly Dictionary<string, BitmapSource> _thumbnailCache = new();
@@ -351,7 +442,9 @@ public partial class ContentBrowserViewModel : ObservableObject
             var wad = settings.WadTryGetWad(itemType, out multiple);
             string wadSource = wad != null ? Path.GetFileName(wad.Path) : "Unknown";
 
-            AllItems.Add(new AssetItemViewModel(moveable, name, AssetCategory.Moveables, wadSource, multiple));
+            var item = new AssetItemViewModel(moveable, name, AssetCategory.Moveables, wadSource, multiple);
+            item.ObjectCategory = TrCatalog.GetMoveableCategory(gameVersion, moveable.Id.TypeId);
+            AllItems.Add(item);
         }
 
         // Add statics
@@ -366,7 +459,9 @@ public partial class ContentBrowserViewModel : ObservableObject
             var wad = settings.WadTryGetWad(itemType, out multiple);
             string wadSource = wad != null ? Path.GetFileName(wad.Path) : "Unknown";
 
-            AllItems.Add(new AssetItemViewModel(staticMesh, name, AssetCategory.Statics, wadSource, multiple));
+            var item = new AssetItemViewModel(staticMesh, name, AssetCategory.Statics, wadSource, multiple);
+            item.ObjectCategory = TrCatalog.GetStaticCategory(gameVersion, staticMesh.Id.TypeId);
+            AllItems.Add(item);
         }
 
         // Add imported geometries
@@ -383,11 +478,12 @@ public partial class ContentBrowserViewModel : ObservableObject
                 ? Path.GetFileName(geo.Info.Path)
                 : "Inline";
 
-            AllItems.Add(new AssetItemViewModel(geo, name, AssetCategory.ImportedGeometry, wadSource, false));
+            var item = new AssetItemViewModel(geo, name, AssetCategory.ImportedGeometry, wadSource, false);
+            item.ObjectCategory = "Imported Geometry";
+            AllItems.Add(item);
         }
 
-        FilteredItems.Refresh();
-        OnPropertyChanged(nameof(ItemCount));
+        RebuildFilterOptions();
 
         // Try to restore previous selection
         if (previousSelection != null)
@@ -462,20 +558,60 @@ public partial class ContentBrowserViewModel : ObservableObject
         SearchText = string.Empty;
     }
 
+    [RelayCommand]
+    private void LocateItem()
+    {
+        if (SelectedItem != null)
+            LocateItemRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void AddItem()
+    {
+        if (SelectedItem != null)
+            AddItemRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     private bool FilterPredicate(object obj)
     {
         if (obj is not AssetItemViewModel item)
             return false;
 
-        // Category filter
-        if (SelectedCategory != AssetCategory.All && item.Category != SelectedCategory)
-            return false;
+        // Unified filter (type or TrCatalog category)
+        if (SelectedFilter != null && !SelectedFilter.IsSeparator)
+        {
+            if (SelectedFilter.TypeFilter.HasValue && SelectedFilter.TypeFilter != AssetCategory.All)
+            {
+                if (item.Category != SelectedFilter.TypeFilter.Value)
+                    return false;
+            }
+            else if (SelectedFilter.CategoryFilter != null)
+            {
+                if (!string.Equals(item.ObjectCategory, SelectedFilter.CategoryFilter, StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+        }
 
         // Text search
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
-            return item.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase)
-                || item.WadSource.Contains(SearchText, StringComparison.OrdinalIgnoreCase);
+            // Exact substring match
+            if (item.Name.IndexOf(SearchText, StringComparison.OrdinalIgnoreCase) != -1)
+                return true;
+            if (item.WadSource.IndexOf(SearchText, StringComparison.OrdinalIgnoreCase) != -1)
+                return true;
+
+            // Fuzzy match using Levenshtein distance (for queries with 3+ chars)
+            if (SearchText.Length >= 3)
+            {
+                int endIndex;
+                int distance = Levenshtein.DistanceSubstring(
+                    item.Name.ToLower(), SearchText.ToLower(), out endIndex);
+                if (distance < 2)
+                    return true;
+            }
+
+            return false;
         }
 
         return true;

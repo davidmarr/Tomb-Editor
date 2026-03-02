@@ -45,6 +45,10 @@ namespace TombEditor
         public bool RenderingItem_ShowMultipleWadsPrompt { get; set; } = true;
         public bool RenderingItem_Animate { get; set; } = false;
 
+        // Content Browser options
+
+        public double ContentBrowser_TileWidth { get; set; } = 88;
+
         // Main 3D window options
 
         public int Rendering3D_DrawRoomsMaxDepth { get; set; } = 6;

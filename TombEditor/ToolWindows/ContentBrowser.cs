@@ -1,8 +1,10 @@
 using DarkUI.Docking;
 using System;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows.Forms;
 using TombLib.Controls;
+using TombLib.Forms;
 using TombLib.LevelData;
 using TombLib.Wad;
 using TombEditor.ViewModels;
@@ -36,6 +38,12 @@ namespace TombEditor.ToolWindows
             _viewModel.SelectedItemChanged += ViewModel_SelectedItemChanged;
             _viewModel.DragDropRequested += ViewModel_DragDropRequested;
             _viewModel.ThumbnailRenderRequested += ViewModel_ThumbnailRenderRequested;
+            _viewModel.LocateItemRequested += ViewModel_LocateItemRequested;
+            _viewModel.AddItemRequested += ViewModel_AddItemRequested;
+            _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+
+            // Load saved tile width from configuration
+            _viewModel.TileWidth = _editor.Configuration.ContentBrowser_TileWidth;
 
             // Timer for batched/deferred thumbnail rendering
             _thumbnailTimer = new Timer { Interval = 100 };
@@ -56,6 +64,9 @@ namespace TombEditor.ToolWindows
                 _viewModel.SelectedItemChanged -= ViewModel_SelectedItemChanged;
                 _viewModel.DragDropRequested -= ViewModel_DragDropRequested;
                 _viewModel.ThumbnailRenderRequested -= ViewModel_ThumbnailRenderRequested;
+                _viewModel.LocateItemRequested -= ViewModel_LocateItemRequested;
+                _viewModel.AddItemRequested -= ViewModel_AddItemRequested;
+                _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
 
                 _thumbnailTimer?.Stop();
                 _thumbnailTimer?.Dispose();
@@ -82,6 +93,56 @@ namespace TombEditor.ToolWindows
             // WinForms DoDragDrop — Panel3D picks this up via:
             //   e.Data.GetData(e.Data.GetFormats()[0]) as IWadObject
             DoDragDrop(item.WadObject, DragDropEffects.Copy);
+        }
+
+        /// <summary>
+        /// Handles locate item requests from the WPF context menu.
+        /// </summary>
+        private void ViewModel_LocateItemRequested(object sender, EventArgs e)
+        {
+            var selected = _viewModel.SelectedItem;
+            if (selected == null) return;
+
+            if (selected.WadObject is ImportedGeometry geo)
+                EditorActions.FindImportedGeometry(geo);
+            else
+                EditorActions.FindItem();
+        }
+
+        /// <summary>
+        /// Handles add item requests from the WPF context menu.
+        /// </summary>
+        private void ViewModel_AddItemRequested(object sender, EventArgs e)
+        {
+            var selected = _viewModel.SelectedItem;
+            if (selected == null) return;
+
+            if (selected.WadObject is ImportedGeometry)
+            {
+                _editor.Action = new EditorActionPlace(false, (l, r) => new ImportedGeometryInstance());
+            }
+            else if (_editor.ChosenItem.HasValue)
+            {
+                var currentItem = _editor.ChosenItem.Value;
+                if (!currentItem.IsStatic && _editor.SelectedRoom != null &&
+                    _editor.SelectedRoom.Alternated && _editor.SelectedRoom.AlternateRoom == null)
+                {
+                    _editor.SendMessage("You can't add moveables to a flipped room.", PopupType.Info);
+                    return;
+                }
+                _editor.Action = new EditorActionPlace(false, (r, l) => ItemInstance.FromItemType(currentItem));
+            }
+        }
+
+        /// <summary>
+        /// Saves tile width to configuration when it changes.
+        /// </summary>
+        private void ViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ContentBrowserViewModel.TileWidth))
+            {
+                _editor.Configuration.ContentBrowser_TileWidth = _viewModel.TileWidth;
+            }
         }
 
         /// <summary>
@@ -123,6 +184,9 @@ namespace TombEditor.ToolWindows
                 {
                     _renderer = new OffscreenItemRenderer();
                 }
+
+                // Sync background color from editor's color scheme
+                _renderer.ClearColor = _editor.Configuration.UI_ColorScheme.Color3DBackground;
 
                 var itemsToRender = _viewModel.GetItemsNeedingThumbnails().ToList();
                 if (itemsToRender.Count == 0)

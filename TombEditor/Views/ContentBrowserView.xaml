@@ -28,13 +28,66 @@
 			</Style.Triggers>
 		</Style>
 
-		<!--  Category label style  -->
-		<Style x:Key="CategoryHeaderStyle" TargetType="TextBlock">
-			<Setter Property="Foreground" Value="{DynamicResource Brush_Text}" />
-			<Setter Property="FontSize" Value="11" />
-			<Setter Property="FontWeight" Value="SemiBold" />
-			<Setter Property="Margin" Value="4,6,4,2" />
-			<Setter Property="Opacity" Value="0.85" />
+		<!--  Slider styles matching DarkUI.WPF  -->
+		<Style x:Key="SliderRepeatButtonStyle" TargetType="RepeatButton">
+			<Setter Property="OverridesDefaultStyle" Value="True" />
+			<Setter Property="IsTabStop" Value="False" />
+			<Setter Property="Focusable" Value="False" />
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="RepeatButton">
+						<Border Background="Transparent" />
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<Style x:Key="SliderThumbStyle" TargetType="Thumb">
+			<Setter Property="OverridesDefaultStyle" Value="True" />
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Thumb">
+						<Border
+							Width="10"
+							Height="16"
+							Background="{DynamicResource Brush_Background_High}"
+							BorderBrush="{DynamicResource Brush_Border}"
+							BorderThickness="1"
+							CornerRadius="2" />
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<Style x:Key="DarkSliderStyle" TargetType="Slider">
+			<Setter Property="OverridesDefaultStyle" Value="True" />
+			<Setter Property="SnapsToDevicePixels" Value="True" />
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Slider">
+						<Grid VerticalAlignment="Center">
+							<Border
+								Height="4"
+								Margin="5,0"
+								Background="{DynamicResource Brush_Background_Low}"
+								BorderBrush="{DynamicResource Brush_Border}"
+								BorderThickness="1"
+								CornerRadius="2" />
+							<Track x:Name="PART_Track">
+								<Track.DecreaseRepeatButton>
+									<RepeatButton Command="Slider.DecreaseLarge" Style="{StaticResource SliderRepeatButtonStyle}" />
+								</Track.DecreaseRepeatButton>
+								<Track.Thumb>
+									<Thumb Style="{StaticResource SliderThumbStyle}" />
+								</Track.Thumb>
+								<Track.IncreaseRepeatButton>
+									<RepeatButton Command="Slider.IncreaseLarge" Style="{StaticResource SliderRepeatButtonStyle}" />
+								</Track.IncreaseRepeatButton>
+							</Track>
+						</Grid>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
 		</Style>
 
 		<!--  Asset tile item template  -->
@@ -142,13 +195,15 @@
 			</Border>
 
 			<DataTemplate.Triggers>
+				<!--  Hover effect (non-selected items only, because selection trigger below takes priority)  -->
+				<Trigger SourceName="TileBorder" Property="IsMouseOver" Value="True">
+					<Setter TargetName="TileBorder" Property="Background" Value="{DynamicResource Brush_Background_Alternative}" />
+				</Trigger>
+				<!--  Selection always wins (declared last = highest priority)  -->
 				<DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
 					<Setter TargetName="TileBorder" Property="Background" Value="{DynamicResource Brush_Selection}" />
 					<Setter TargetName="TileBorder" Property="BorderBrush" Value="{DynamicResource Brush_Highlight}" />
 				</DataTrigger>
-				<Trigger SourceName="TileBorder" Property="IsMouseOver" Value="True">
-					<Setter TargetName="TileBorder" Property="Background" Value="{DynamicResource Brush_Background_Alternative}" />
-				</Trigger>
 			</DataTemplate.Triggers>
 		</DataTemplate>
 
@@ -215,15 +270,20 @@
 						</TextBlock.Style>
 					</TextBlock>
 					<Button
-						Width="16"
-						Height="16"
-						Margin="0,0,2,0"
+						Width="14"
+						Height="14"
+						Margin="0,0,4,0"
 						HorizontalAlignment="Right"
 						VerticalAlignment="Center"
 						Command="{Binding ClearSearchCommand}"
 						Content="✕"
-						FontSize="8"
-						Padding="0">
+						FontSize="7"
+						Padding="0"
+						BorderThickness="0"
+						Background="Transparent"
+						Foreground="{DynamicResource Brush_Text}"
+						Opacity="0.6"
+						Cursor="Hand">
 						<Button.Style>
 							<Style BasedOn="{StaticResource {x:Type Button}}" TargetType="Button">
 								<Setter Property="Visibility" Value="Visible" />
@@ -244,19 +304,41 @@
 					Margin="4,2"
 					Fill="{DynamicResource Brush_Border_Low}" />
 
-				<!--  Category filter  -->
+				<!--  Filter (types + TrCatalog categories)  -->
 				<ComboBox
 					Grid.Column="2"
-					Width="120"
+					Width="140"
 					VerticalAlignment="Center"
 					FontSize="11"
-					ItemsSource="{Binding Categories}"
-					SelectedItem="{Binding SelectedCategory}">
+					ItemsSource="{Binding FilterOptions}"
+					SelectedItem="{Binding SelectedFilter}">
 					<ComboBox.ItemTemplate>
 						<DataTemplate>
-							<TextBlock Text="{Binding}" />
+							<Grid>
+								<TextBlock x:Name="ItemLabel" Text="{Binding DisplayName}" />
+								<Separator x:Name="ItemSep" Visibility="Collapsed" Margin="-4,0" />
+							</Grid>
+							<DataTemplate.Triggers>
+								<DataTrigger Binding="{Binding IsSeparator}" Value="True">
+									<Setter TargetName="ItemLabel" Property="Visibility" Value="Collapsed" />
+									<Setter TargetName="ItemSep" Property="Visibility" Value="Visible" />
+								</DataTrigger>
+							</DataTemplate.Triggers>
 						</DataTemplate>
 					</ComboBox.ItemTemplate>
+					<ComboBox.ItemContainerStyle>
+						<Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+							<Style.Triggers>
+								<DataTrigger Binding="{Binding IsSeparator}" Value="True">
+									<Setter Property="IsEnabled" Value="False" />
+									<Setter Property="IsHitTestVisible" Value="False" />
+									<Setter Property="Focusable" Value="False" />
+									<Setter Property="MinHeight" Value="0" />
+									<Setter Property="Padding" Value="0" />
+								</DataTrigger>
+							</Style.Triggers>
+						</Style>
+					</ComboBox.ItemContainerStyle>
 				</ComboBox>
 			</Grid>
 		</Border>
@@ -276,33 +358,18 @@
 			ScrollViewer.HorizontalScrollBarVisibility="Disabled"
 			SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
 			SelectionMode="Single"
-			VirtualizingPanel.IsVirtualizing="True"
-			VirtualizingPanel.VirtualizationMode="Recycling">
+			VirtualizingPanel.IsVirtualizing="False">
 
-			<ListBox.GroupStyle>
-				<GroupStyle>
-					<GroupStyle.HeaderTemplate>
-						<DataTemplate>
-							<Border
-								Margin="0,2,0,0"
-								Padding="4,4,4,2"
-								BorderBrush="{DynamicResource Brush_Border_Low}"
-								BorderThickness="0,0,0,1">
-								<TextBlock Style="{StaticResource CategoryHeaderStyle}" Text="{Binding Name}" />
-							</Border>
-						</DataTemplate>
-					</GroupStyle.HeaderTemplate>
-					<GroupStyle.Panel>
-						<ItemsPanelTemplate>
-							<WrapPanel Orientation="Horizontal" />
-						</ItemsPanelTemplate>
-					</GroupStyle.Panel>
-				</GroupStyle>
-			</ListBox.GroupStyle>
+			<ListBox.ContextMenu>
+				<ContextMenu>
+					<MenuItem Header="Locate Item" Command="{Binding LocateItemCommand}" />
+					<MenuItem Header="Add Item" Command="{Binding AddItemCommand}" />
+				</ContextMenu>
+			</ListBox.ContextMenu>
 
 			<ListBox.ItemsPanel>
 				<ItemsPanelTemplate>
-					<VirtualizingStackPanel Orientation="Vertical" />
+					<WrapPanel Orientation="Horizontal" />
 				</ItemsPanelTemplate>
 			</ListBox.ItemsPanel>
 		</ListBox>
@@ -340,6 +407,7 @@
 						Maximum="{Binding MaxTileWidth}"
 						Minimum="{Binding MinTileWidth}"
 						TickFrequency="4"
+						Style="{StaticResource DarkSliderStyle}"
 						Value="{Binding TileWidth}" />
 				</StackPanel>
 
