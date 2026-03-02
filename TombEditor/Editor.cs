@@ -171,6 +171,26 @@ namespace TombEditor
             }
         }
 
+        public class ChosenItemsChangedEvent : IEditorPropertyChangedEvent
+        {
+            public IReadOnlyList<ItemType> Previous { get; internal set; }
+            public IReadOnlyList<ItemType> Current { get; internal set; }
+        }
+        private ItemType[] _chosenItems = Array.Empty<ItemType>();
+        public IReadOnlyList<ItemType> ChosenItems
+        {
+            get { return _chosenItems; }
+            set
+            {
+                var arr = value?.ToArray() ?? Array.Empty<ItemType>();
+                if (_chosenItems.SequenceEqual(arr))
+                    return;
+                var previous = _chosenItems;
+                _chosenItems = arr;
+                RaiseEvent(new ChosenItemsChangedEvent { Previous = previous, Current = arr });
+            }
+        }
+
         public class ChosenImportedGeometryChangedEvent : IEditorPropertyChangedEvent
         {
             public ImportedGeometry Previous { get; internal set; }

@@ -49,6 +49,7 @@ namespace TombEditor.ToolWindows
 
             // Subscribe to ViewModel events
             _viewModel.SelectedItemChanged += ViewModel_SelectedItemChanged;
+            _viewModel.SelectedItemsChanged += ViewModel_SelectedItemsChanged;
             _viewModel.DragDropRequested += ViewModel_DragDropRequested;
             _viewModel.ThumbnailRenderRequested += ViewModel_ThumbnailRenderRequested;
             _viewModel.LocateItemRequested += ViewModel_LocateItemRequested;
@@ -75,6 +76,7 @@ namespace TombEditor.ToolWindows
             {
                 _editor.EditorEventRaised -= EditorEventRaised;
                 _viewModel.SelectedItemChanged -= ViewModel_SelectedItemChanged;
+                _viewModel.SelectedItemsChanged -= ViewModel_SelectedItemsChanged;
                 _viewModel.DragDropRequested -= ViewModel_DragDropRequested;
                 _viewModel.ThumbnailRenderRequested -= ViewModel_ThumbnailRenderRequested;
                 _viewModel.LocateItemRequested -= ViewModel_LocateItemRequested;
@@ -97,29 +99,57 @@ namespace TombEditor.ToolWindows
         /// Handles drag-drop requests from the WPF view.
         /// Uses WinForms Control.DoDragDrop which is compatible with
         /// Panel3D's OnDragDrop handler (expects IWadObject via GetFormats()[0]).
+        /// For multiple items, wraps them in an IWadObject[] array.
         /// </summary>
-        private void ViewModel_DragDropRequested(object sender, AssetItemViewModel item)
+        private void ViewModel_DragDropRequested(object sender, IReadOnlyList<AssetItemViewModel> items)
         {
-            if (item?.WadObject == null)
+            if (items == null || items.Count == 0)
                 return;
 
-            // WinForms DoDragDrop — Panel3D picks this up via:
-            //   e.Data.GetData(e.Data.GetFormats()[0]) as IWadObject
-            DoDragDrop(item.WadObject, DragDropEffects.Copy);
+            if (items.Count == 1)
+            {
+                // Single item: pass IWadObject directly for backward compatibility
+                if (items[0].WadObject != null)
+                    DoDragDrop(items[0].WadObject, DragDropEffects.Copy);
+            }
+            else
+            {
+                // Multiple items: pass as IWadObject array
+                var wadObjects = items
+                    .Where(i => i.WadObject != null)
+                    .Select(i => i.WadObject)
+                    .ToArray();
+
+                if (wadObjects.Length > 0)
+                    DoDragDrop(wadObjects, DragDropEffects.Copy);
+            }
         }
 
         /// <summary>
-        /// Handles locate item requests from the WPF context menu.
+        /// Handles locate item requests from Alt+click in the WPF view.
         /// </summary>
-        private void ViewModel_LocateItemRequested(object sender, EventArgs e)
+        private void ViewModel_LocateItemRequested(object sender, AssetItemViewModel item)
         {
-            var selected = _viewModel.SelectedItem;
-            if (selected == null) return;
+            if (item == null) return;
 
-            if (selected.WadObject is ImportedGeometry geo)
+            if (item.WadObject is ImportedGeometry geo)
                 EditorActions.FindImportedGeometry(geo);
-            else
+            else if (item.WadObject is WadMoveable || item.WadObject is WadStatic)
+            {
+                // Temporarily set ChosenItem to the alt-clicked item for FindItem to use
+                ItemType? previousChosen = _editor.ChosenItem;
+                IWadObject wadObj = item.WadObject;
+
+                if (wadObj is WadMoveable moveable)
+                    _editor.ChosenItem = new ItemType(moveable.Id, _editor?.Level?.Settings);
+                else if (wadObj is WadStatic staticMesh)
+                    _editor.ChosenItem = new ItemType(staticMesh.Id, _editor?.Level?.Settings);
+
                 EditorActions.FindItem();
+
+                // Restore previous chosen item if it was different
+                // (FindItem uses the current ChosenItem to search)
+            }
         }
 
         /// <summary>
@@ -358,6 +388,22 @@ namespace TombEditor.ToolWindows
         }
 
         /// <summary>
+        /// Updates the Editor's ChosenItems when multi-selection changes.
+        /// </summary>
+        private void ViewModel_SelectedItemsChanged(object sender, IReadOnlyList<AssetItemViewModel> items)
+        {
+            var itemTypes = new List<ItemType>();
+            foreach (var vm in items)
+            {
+                if (vm.WadObject is WadMoveable moveable)
+                    itemTypes.Add(new ItemType(moveable.Id, _editor?.Level?.Settings));
+                else if (vm.WadObject is WadStatic staticMesh)
+                    itemTypes.Add(new ItemType(staticMesh.Id, _editor?.Level?.Settings));
+            }
+            _editor.ChosenItems = itemTypes;
+        }
+
+        /// <summary>
         /// Syncs the Content Browser selection when an item is chosen from
         /// another tool window (e.g., ItemBrowser).
         /// </summary>
@@ -390,11 +436,15 @@ namespace TombEditor.ToolWindows
         {
             // Temporarily detach event to avoid feedback loop
             _viewModel.SelectedItemChanged -= ViewModel_SelectedItemChanged;
+            _viewModel.SelectedItemsChanged -= ViewModel_SelectedItemsChanged;
 
-            _viewModel.SelectedItem = _viewModel.AllItems
+            var item = _viewModel.AllItems
                 .FirstOrDefault(i => ReferenceEquals(i.WadObject, wadObject));
+            _viewModel.SelectedItem = item;
+            contentBrowserView.SetSelectionSilently(item);
 
             _viewModel.SelectedItemChanged += ViewModel_SelectedItemChanged;
+            _viewModel.SelectedItemsChanged += ViewModel_SelectedItemsChanged;
         }
     }
 }

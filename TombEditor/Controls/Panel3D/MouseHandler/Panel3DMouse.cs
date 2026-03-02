@@ -179,7 +179,11 @@ namespace TombEditor.Controls.Panel3D
                 if (newSectorPicking.Room != _editor.SelectedRoom)
                     _editor.SelectedRoom = newSectorPicking.Room;
 
+                // Check for single IWadObject
                 var obj = e.Data.GetData(e.Data.GetFormats()[0]) as IWadObject;
+
+                // Check for multiple IWadObject[] (multi-selection drag from Content Browser)
+                var objArray = e.Data.GetData(e.Data.GetFormats()[0]) as IWadObject[];
 
                 if (obj != null)
                 {
@@ -195,6 +199,24 @@ namespace TombEditor.Controls.Panel3D
                     // Put item from object browser
                     if (instance != null)
                         EditorActions.PlaceObject(_editor.SelectedRoom, newSectorPicking.Pos, instance);
+                }
+                else if (objArray != null && objArray.Length > 0)
+                {
+                    // Place all selected items simultaneously
+                    foreach (var wadObj in objArray)
+                    {
+                        PositionBasedObjectInstance instance = null;
+
+                        if (wadObj is ImportedGeometry importedGeo)
+                            instance = new ImportedGeometryInstance { Model = importedGeo };
+                        else if (wadObj is WadMoveable moveable)
+                            instance = ItemInstance.FromItemType(new ItemType(moveable.Id, _editor?.Level?.Settings));
+                        else if (wadObj is WadStatic staticMesh)
+                            instance = ItemInstance.FromItemType(new ItemType(staticMesh.Id, _editor?.Level?.Settings));
+
+                        if (instance != null)
+                            EditorActions.PlaceObject(_editor.SelectedRoom, newSectorPicking.Pos, instance);
+                    }
                 }
                 else if (filesToProcess != -1)
                 {
@@ -221,6 +243,8 @@ namespace TombEditor.Controls.Panel3D
         private void OnMouseDragEntered(DragEventArgs e)
         {
             if (e.Data.GetData(e.Data.GetFormats()[0]) as IWadObject != null)
+                e.Effect = DragDropEffects.Copy;
+            else if (e.Data.GetData(e.Data.GetFormats()[0]) as IWadObject[] != null)
                 e.Effect = DragDropEffects.Copy;
             else if (e.Data.GetDataPresent(typeof(DarkFloatingToolboxContainer)))
                 e.Effect = DragDropEffects.Move;

@@ -415,9 +415,15 @@ public partial class ContentBrowserViewModel : ObservableObject
     public event EventHandler<AssetItemViewModel?>? SelectedItemChanged;
 
     /// <summary>
-    /// Event raised when a drag-drop operation is requested.
+    /// Event raised when the selected items change (multi-selection).
     /// </summary>
-    public event EventHandler<AssetItemViewModel>? DragDropRequested;
+    public event EventHandler<IReadOnlyList<AssetItemViewModel>>? SelectedItemsChanged;
+
+    /// <summary>
+    /// Event raised when a drag-drop operation is requested.
+    /// Carries all currently selected items.
+    /// </summary>
+    public event EventHandler<IReadOnlyList<AssetItemViewModel>>? DragDropRequested;
 
     /// <summary>
     /// Event raised when thumbnails need to be rendered.
@@ -426,14 +432,34 @@ public partial class ContentBrowserViewModel : ObservableObject
     public event EventHandler? ThumbnailRenderRequested;
 
     /// <summary>
-    /// Event raised when the user requests to locate the selected item in the level.
+    /// Event raised when the user requests to locate a specific item in the level (Alt+click).
     /// </summary>
-    public event EventHandler? LocateItemRequested;
+    public event EventHandler<AssetItemViewModel>? LocateItemRequested;
 
     /// <summary>
     /// Event raised when the user requests to add/place the selected item.
     /// </summary>
     public event EventHandler? AddItemRequested;
+
+    /// <summary>
+    /// Current list of all selected items (for multi-selection).
+    /// </summary>
+    public IReadOnlyList<AssetItemViewModel> SelectedItems { get; private set; } = Array.Empty<AssetItemViewModel>();
+
+    /// <summary>
+    /// Updates the selected items from the view's ListBox selection.
+    /// </summary>
+    public void UpdateSelectedItems(IReadOnlyList<AssetItemViewModel> items)
+    {
+        SelectedItems = items;
+
+        // Update SelectedItem to the first selected item (or null)
+        var first = items.Count > 0 ? items[0] : null;
+        if (first != SelectedItem)
+            SelectedItem = first;
+
+        SelectedItemsChanged?.Invoke(this, items);
+    }
 
     /// <summary>
     /// In-memory thumbnail cache keyed by CacheKey.
@@ -648,11 +674,20 @@ public partial class ContentBrowserViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Requests a drag-drop operation for the given item.
+    /// Requests a drag-drop operation for a list of selected items.
     /// </summary>
-    public void RequestDragDrop(AssetItemViewModel item)
+    public void RequestDragDrop(IReadOnlyList<AssetItemViewModel> items)
     {
-        DragDropRequested?.Invoke(this, item);
+        if (items.Count > 0)
+            DragDropRequested?.Invoke(this, items);
+    }
+
+    /// <summary>
+    /// Requests locating a specific item in the level (Alt+click).
+    /// </summary>
+    public void RequestLocateItem(AssetItemViewModel item)
+    {
+        LocateItemRequested?.Invoke(this, item);
     }
 
     [RelayCommand]

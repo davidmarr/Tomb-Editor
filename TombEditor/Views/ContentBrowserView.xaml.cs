@@ -16,10 +16,39 @@ public partial class ContentBrowserView : UserControl
     private Point _dragStartPoint;
     private bool _isDragging;
     private UIElement _animatedElement;
+    private bool _suppressSelectionChanged;
 
     public ContentBrowserView()
     {
         InitializeComponent();
+    }
+
+    /// <summary>
+    /// Clears the search text when the X icon is clicked.
+    /// </summary>
+    private void ClearSearchButton_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is ContentBrowserViewModel vm)
+            vm.ClearSearchCommand.Execute(null);
+    }
+
+    /// <summary>
+    /// Handles selection changes in the ListBox.
+    /// Updates the ViewModel's SelectedItems collection for multi-selection support.
+    /// </summary>
+    private void AssetListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressSelectionChanged)
+            return;
+
+        if (DataContext is ContentBrowserViewModel vm)
+        {
+            var selectedItems = AssetListBox.SelectedItems
+                .Cast<AssetItemViewModel>()
+                .ToList();
+
+            vm.UpdateSelectedItems(selectedItems);
+        }
     }
 
     /// <summary>
@@ -117,12 +146,28 @@ public partial class ContentBrowserView : UserControl
 
     /// <summary>
     /// Records the mouse position when the left button is pressed for drag-drop detection.
+    /// When Alt is held, performs a "Locate Item" operation without changing selection.
     /// </summary>
     private void AssetListBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         // Don't start drag when clicking on the scrollbar
         if (IsOverScrollbar(e))
             return;
+
+        // Alt+click: locate item without selecting it
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
+        {
+            if (DataContext is ContentBrowserViewModel vm && e.OriginalSource is DependencyObject source)
+            {
+                var container = FindAncestor<ListBoxItem>(source);
+                if (container?.DataContext is AssetItemViewModel item)
+                {
+                    vm.RequestLocateItem(item);
+                    e.Handled = true;
+                    return;
+                }
+            }
+        }
 
         _dragStartPoint = e.GetPosition(null);
         _isDragging = false;
@@ -158,15 +203,19 @@ public partial class ContentBrowserView : UserControl
             return;
 
         // Find the asset item under the cursor
-        if (AssetListBox.SelectedItem is AssetItemViewModel selectedItem &&
+        if (AssetListBox.SelectedItems.Count > 0 &&
             DataContext is ContentBrowserViewModel vm)
         {
             _isDragging = true;
 
+            var selectedItems = AssetListBox.SelectedItems
+                .Cast<AssetItemViewModel>()
+                .ToList();
+
             // Delegate drag-drop to WinForms host via ViewModel event.
             // The host calls WinForms Control.DoDragDrop which is compatible
             // with Panel3D's OnDragDrop handler.
-            vm.RequestDragDrop(selectedItem);
+            vm.RequestDragDrop(selectedItems);
 
             _isDragging = false;
         }
@@ -307,5 +356,18 @@ public partial class ContentBrowserView : UserControl
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Programmatically sets the ListBox selection to a single item,
+    /// suppressing the SelectionChanged event to avoid feedback loops.
+    /// </summary>
+    public void SetSelectionSilently(AssetItemViewModel item)
+    {
+        _suppressSelectionChanged = true;
+        AssetListBox.SelectedItems.Clear();
+        if (item != null)
+            AssetListBox.SelectedItem = item;
+        _suppressSelectionChanged = false;
     }
 }
