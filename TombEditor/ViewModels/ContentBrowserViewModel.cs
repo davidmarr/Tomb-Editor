@@ -3,6 +3,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -29,8 +30,6 @@ public enum AssetCategory
     Statics,
     ImportedGeometry
 }
-
-
 
 /// <summary>
 /// ViewModel representing a single asset item in the Content Browser.
@@ -277,8 +276,19 @@ public partial class ContentBrowserViewModel : ObservableObject
     {
         FilteredItems = CollectionViewSource.GetDefaultView(AllItems);
         FilteredItems.Filter = FilterPredicate;
-        FilteredItems.SortDescriptions.Add(new SortDescription(nameof(AssetItemViewModel.CategoryOrder), ListSortDirection.Ascending));
-        FilteredItems.SortDescriptions.Add(new SortDescription(nameof(AssetItemViewModel.Name), ListSortDirection.Ascending));
+
+        // Use a custom comparer for natural (numeric-aware) sorting of asset names.
+        // SortDescriptions uses lexicographic order which sorts (1), (10), (100), (2)...
+        if (FilteredItems is ListCollectionView lcv)
+        {
+            lcv.CustomSort = new AssetItemComparer();
+        }
+        else
+        {
+            // Fallback for non-list views (shouldn't happen with ObservableCollection)
+            FilteredItems.SortDescriptions.Add(new SortDescription(nameof(AssetItemViewModel.CategoryOrder), ListSortDirection.Ascending));
+            FilteredItems.SortDescriptions.Add(new SortDescription(nameof(AssetItemViewModel.Name), ListSortDirection.Ascending));
+        }
     }
 
     partial void OnSearchTextChanged(string value)
@@ -545,5 +555,24 @@ public partial class ContentBrowserViewModel : ObservableObject
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Comparer for sorting asset items by type (CategoryOrder) then by name using
+    /// natural numeric ordering so that e.g. (2) sorts before (10).
+    /// </summary>
+    private sealed class AssetItemComparer : IComparer
+    {
+        public int Compare(object? x, object? y)
+        {
+            if (x is not AssetItemViewModel a || y is not AssetItemViewModel b)
+                return 0;
+
+            int catCmp = a.CategoryOrder.CompareTo(b.CategoryOrder);
+            if (catCmp != 0)
+                return catCmp;
+
+            return NaturalComparer.Do(a.Name, b.Name);
+        }
     }
 }
