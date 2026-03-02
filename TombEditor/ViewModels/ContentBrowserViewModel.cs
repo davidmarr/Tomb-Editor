@@ -17,6 +17,7 @@ using System.Windows.Media.Imaging;
 using TombLib.LevelData;
 using TombLib.Utils;
 using TombLib.Wad;
+using TombLib.Wad.Catalog;
 
 namespace TombEditor.ViewModels;
 
@@ -29,6 +30,60 @@ public enum AssetCategory
     Moveables,
     Statics,
     ImportedGeometry
+}
+
+/// <summary>
+/// Represents a single entry in the filter combobox.
+/// Can be a type filter (All/Moveables/Statics/ImportedGeometry),
+/// a category filter (from TrCatalog), or a visual splitter.
+/// </summary>
+public class FilterOption
+{
+    /// <summary>
+    /// Display name shown in the combobox.
+    /// </summary>
+    public string DisplayName { get; }
+
+    /// <summary>
+    /// True if this is a type-based filter (All, Moveables, Statics, ImportedGeometry).
+    /// </summary>
+    public bool IsTypeFilter { get; }
+
+    /// <summary>
+    /// True if this is a non-selectable visual separator.
+    /// </summary>
+    public bool IsSplitter { get; }
+
+    /// <summary>
+    /// The type filter value, only meaningful when IsTypeFilter is true.
+    /// </summary>
+    public AssetCategory TypeFilter { get; }
+
+    /// <summary>
+    /// The category name for category-based filtering.
+    /// Only meaningful when IsTypeFilter is false and IsSplitter is false.
+    /// </summary>
+    public string CategoryFilter { get; }
+
+    private FilterOption(string displayName, bool isTypeFilter, bool isSplitter, AssetCategory typeFilter, string categoryFilter)
+    {
+        DisplayName = displayName;
+        IsTypeFilter = isTypeFilter;
+        IsSplitter = isSplitter;
+        TypeFilter = typeFilter;
+        CategoryFilter = categoryFilter;
+    }
+
+    public static FilterOption CreateTypeFilter(AssetCategory category, string displayName)
+        => new FilterOption(displayName, true, false, category, string.Empty);
+
+    public static FilterOption CreateSplitter()
+        => new FilterOption(string.Empty, false, true, AssetCategory.All, string.Empty);
+
+    public static FilterOption CreateCategoryFilter(string categoryName)
+        => new FilterOption(categoryName, false, false, AssetCategory.All, categoryName);
+
+    public override string ToString() => DisplayName;
 }
 
 /// <summary>
@@ -71,6 +126,20 @@ public partial class AssetItemViewModel : ObservableObject
     /// Whether this asset exists in multiple WAD files.
     /// </summary>
     public bool IsInMultipleWads { get; }
+
+    /// <summary>
+    /// The catalog category string from TrCatalog (e.g. "Enemies", "Player", "Landscape").
+    /// Empty string if no category is defined. May contain multiple categories for
+    /// special cases like "Shatterable".
+    /// </summary>
+    public string CatalogCategory { get; }
+
+    /// <summary>
+    /// All effective categories for this item, including the primary CatalogCategory
+    /// and any additional synthetic categories (e.g. "Shatterable").
+    /// </summary>
+    public List<string> EffectiveCategories { get; } = new();
+
 
     /// <summary>
     /// Color brush for the placeholder thumbnail, based on category.
@@ -121,13 +190,14 @@ public partial class AssetItemViewModel : ObservableObject
         ImportedGeometryBrush.Freeze();
     }
 
-    public AssetItemViewModel(IWadObject wadObject, string name, AssetCategory category, string wadSource, bool isInMultipleWads)
+    public AssetItemViewModel(IWadObject wadObject, string name, AssetCategory category, string wadSource, bool isInMultipleWads, string catalogCategory = "")
     {
         WadObject = wadObject;
         Name = name;
         Category = category;
         WadSource = wadSource;
         IsInMultipleWads = isInMultipleWads;
+        CatalogCategory = catalogCategory;
 
         ThumbnailBrush = category switch
         {
@@ -216,11 +286,11 @@ public partial class ContentBrowserViewModel : ObservableObject
     private string _searchText = string.Empty;
 
     /// <summary>
-    /// Currently selected type filter.
+    /// Currently selected filter option (type or category).
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ItemCount))]
-    private AssetCategory _selectedCategory = AssetCategory.All;
+    private FilterOption? _selectedFilter;
 
     /// <summary>
     /// Currently selected asset item.
@@ -268,20 +338,26 @@ public partial class ContentBrowserViewModel : ObservableObject
     public int ItemCount => FilteredItems.Cast<object>().Count();
 
     /// <summary>
-    /// Available type filter options.
+    /// Available filter options (type filters + optional splitter + category filters).
     /// </summary>
-    public IReadOnlyList<AssetCategory> Categories { get; } = new[]
-    {
-        AssetCategory.All,
-        AssetCategory.Moveables,
-        AssetCategory.Statics,
-        AssetCategory.ImportedGeometry
-    };
+    public ObservableCollection<FilterOption> FilterOptions { get; } = new();
+
+    /// <summary>
+    /// The default "All" filter option.
+    /// </summary>
+    private static readonly FilterOption AllFilter = FilterOption.CreateTypeFilter(AssetCategory.All, "All");
 
     public ContentBrowserViewModel()
     {
         FilteredItems = CollectionViewSource.GetDefaultView(AllItems);
         FilteredItems.Filter = FilterPredicate;
+
+        // Initialize default type filters
+        FilterOptions.Add(AllFilter);
+        FilterOptions.Add(FilterOption.CreateTypeFilter(AssetCategory.Moveables, "Moveables"));
+        FilterOptions.Add(FilterOption.CreateTypeFilter(AssetCategory.Statics, "Statics"));
+        FilterOptions.Add(FilterOption.CreateTypeFilter(AssetCategory.ImportedGeometry, "Imported Geometry"));
+        SelectedFilter = AllFilter;
 
         // Use a custom comparer for natural (numeric-aware) sorting of asset names.
         // SortDescriptions uses lexicographic order which sorts (1), (10), (100), (2)...
@@ -303,8 +379,15 @@ public partial class ContentBrowserViewModel : ObservableObject
         OnPropertyChanged(nameof(ItemCount));
     }
 
-    partial void OnSelectedCategoryChanged(AssetCategory value)
+    partial void OnSelectedFilterChanged(FilterOption? value)
     {
+        // Prevent selecting splitter items
+        if (value != null && value.IsSplitter)
+        {
+            SelectedFilter = AllFilter;
+            return;
+        }
+
         FilteredItems.Refresh();
         OnPropertyChanged(nameof(ItemCount));
     }
@@ -360,12 +443,15 @@ public partial class ContentBrowserViewModel : ObservableObject
     /// <summary>
     /// Refreshes all assets from the current level settings.
     /// Builds moveable and static item lists in parallel for maximum performance.
+    /// Also scans for catalog categories and populates filter options.
     /// </summary>
     public void RefreshAssets(LevelSettings settings)
     {
         var previousSelection = SelectedItem?.WadObject;
+        var previousFilterName = SelectedFilter?.DisplayName;
 
         var gameVersion = settings.GameVersion;
+        bool isTombEngine = gameVersion == TRVersion.Game.TombEngine;
 
         // Fetch all objects upfront (these iterate wad files)
         var allMoveables = settings.WadGetAllMoveables();
@@ -389,7 +475,15 @@ public partial class ContentBrowserViewModel : ObservableObject
                 var wad = settings.WadTryGetWad(itemType, out multiple);
                 string wadSource = wad != null ? Path.GetFileName(wad.Path) : "Unknown";
 
-                moveableItems.Add(new AssetItemViewModel(moveable, name, AssetCategory.Moveables, wadSource, multiple));
+                string catalogCategory = TrCatalog.GetMoveableCategory(gameVersion, moveable.Id.TypeId);
+
+                var item = new AssetItemViewModel(moveable, name, AssetCategory.Moveables, wadSource, multiple, catalogCategory);
+
+                // Add the primary catalog category
+                if (!string.IsNullOrEmpty(catalogCategory))
+                    item.EffectiveCategories.Add(catalogCategory);
+
+                moveableItems.Add(item);
             });
         });
 
@@ -405,7 +499,31 @@ public partial class ContentBrowserViewModel : ObservableObject
                 var wad = settings.WadTryGetWad(itemType, out multiple);
                 string wadSource = wad != null ? Path.GetFileName(wad.Path) : "Unknown";
 
-                staticItems.Add(new AssetItemViewModel(staticMesh, name, AssetCategory.Statics, wadSource, multiple));
+                string catalogCategory = TrCatalog.GetStaticCategory(gameVersion, staticMesh.Id.TypeId);
+
+                var item = new AssetItemViewModel(staticMesh, name, AssetCategory.Statics, wadSource, multiple, catalogCategory);
+
+                // Add the primary catalog category
+                if (!string.IsNullOrEmpty(catalogCategory))
+                    item.EffectiveCategories.Add(catalogCategory);
+
+                // Determine if this static is shatterable.
+                // WadStatic.Shatter flag takes priority for TombEngine,
+                // otherwise fall back to TrCatalog.IsStaticShatterable.
+                bool isShatterable = TrCatalog.IsStaticShatterable(gameVersion, staticMesh.Id.TypeId);
+
+                if (isTombEngine && staticMesh.Shatter)
+                    isShatterable = true;
+
+                if (isShatterable && !item.EffectiveCategories.Contains("Shatterable"))
+                    item.EffectiveCategories.Add("Shatterable");
+
+                // Also tolerate catalog category string "Shatterable" even if no shatterable flag
+                if (string.Equals(catalogCategory, "Shatterable", StringComparison.OrdinalIgnoreCase)
+                    && !item.EffectiveCategories.Contains("Shatterable"))
+                    item.EffectiveCategories.Add("Shatterable");
+
+                staticItems.Add(item);
             });
         });
 
@@ -438,6 +556,34 @@ public partial class ContentBrowserViewModel : ObservableObject
             AllItems.Add(item);
         foreach (var item in geoItems)
             AllItems.Add(item);
+
+        // Build category list from all moveable and static items
+        var allCategories = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in AllItems)
+        {
+            foreach (var cat in item.EffectiveCategories)
+            {
+                if (!string.IsNullOrEmpty(cat))
+                    allCategories.Add(cat);
+            }
+        }
+
+        // Rebuild filter options
+        FilterOptions.Clear();
+        FilterOptions.Add(AllFilter);
+        FilterOptions.Add(FilterOption.CreateTypeFilter(AssetCategory.Moveables, "Moveables"));
+        FilterOptions.Add(FilterOption.CreateTypeFilter(AssetCategory.Statics, "Statics"));
+        FilterOptions.Add(FilterOption.CreateTypeFilter(AssetCategory.ImportedGeometry, "Imported Geometry"));
+
+        if (allCategories.Count > 0)
+        {
+            FilterOptions.Add(FilterOption.CreateSplitter());
+            foreach (var cat in allCategories)
+                FilterOptions.Add(FilterOption.CreateCategoryFilter(cat));
+        }
+
+        // Restore previous filter selection or default to All
+        SelectedFilter = FilterOptions.FirstOrDefault(f => f.DisplayName == previousFilterName && !f.IsSplitter) ?? AllFilter;
 
         FilteredItems.Refresh();
         OnPropertyChanged(nameof(ItemCount));
@@ -534,9 +680,24 @@ public partial class ContentBrowserViewModel : ObservableObject
         if (obj is not AssetItemViewModel item)
             return false;
 
-        // Type filter
-        if (SelectedCategory != AssetCategory.All && item.Category != SelectedCategory)
-            return false;
+        var filter = SelectedFilter;
+
+        // Apply type or category filter
+        if (filter != null && !filter.IsSplitter)
+        {
+            if (filter.IsTypeFilter)
+            {
+                // Type filter: filter by asset type (All shows everything)
+                if (filter.TypeFilter != AssetCategory.All && item.Category != filter.TypeFilter)
+                    return false;
+            }
+            else
+            {
+                // Category filter: show all items matching this category regardless of type
+                if (!item.EffectiveCategories.Contains(filter.CategoryFilter, StringComparer.OrdinalIgnoreCase))
+                    return false;
+            }
+        }
 
         // Text search
         if (!string.IsNullOrWhiteSpace(SearchText))

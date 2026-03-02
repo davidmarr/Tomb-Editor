@@ -307,16 +307,50 @@
 				<!--  Type filter  -->
 				<ComboBox
 					Grid.Column="2"
-					Width="120"
+					Width="140"
 					VerticalAlignment="Center"
 					FontSize="11"
-					ItemsSource="{Binding Categories}"
-					SelectedItem="{Binding SelectedCategory}">
+					ItemsSource="{Binding FilterOptions}"
+					SelectedItem="{Binding SelectedFilter}">
 					<ComboBox.ItemTemplate>
 						<DataTemplate>
-							<TextBlock Text="{Binding}" />
+							<Grid HorizontalAlignment="Stretch">
+								<!--  Splitter: horizontal line for non-selectable separator  -->
+								<Separator
+									Margin="0"
+									Background="{DynamicResource Brush_Border_Low}"
+									Visibility="{Binding IsSplitter, Converter={StaticResource BoolToVisConverter}}" />
+								<!--  Normal filter label  -->
+								<TextBlock Text="{Binding DisplayName}">
+									<TextBlock.Style>
+										<Style TargetType="TextBlock">
+											<Setter Property="Visibility" Value="Visible" />
+											<Style.Triggers>
+												<DataTrigger Binding="{Binding IsSplitter}" Value="True">
+													<Setter Property="Visibility" Value="Collapsed" />
+												</DataTrigger>
+											</Style.Triggers>
+										</Style>
+									</TextBlock.Style>
+								</TextBlock>
+							</Grid>
 						</DataTemplate>
 					</ComboBox.ItemTemplate>
+					<ComboBox.ItemContainerStyle>
+						<Style BasedOn="{StaticResource {x:Type ComboBoxItem}}" TargetType="ComboBoxItem">
+							<Style.Triggers>
+								<DataTrigger Binding="{Binding IsSplitter}" Value="True">
+									<Setter Property="IsEnabled" Value="False" />
+									<Setter Property="IsHitTestVisible" Value="False" />
+									<Setter Property="Focusable" Value="False" />
+									<Setter Property="Height" Value="7" />
+									<Setter Property="Padding" Value="0" />
+									<Setter Property="Margin" Value="0" />
+									<Setter Property="HorizontalContentAlignment" Value="Stretch" />
+								</DataTrigger>
+							</Style.Triggers>
+						</Style>
+					</ComboBox.ItemContainerStyle>
 				</ComboBox>
 			</Grid>
 		</Border>

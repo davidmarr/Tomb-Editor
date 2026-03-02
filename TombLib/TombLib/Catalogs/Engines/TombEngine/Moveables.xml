@@ -1,16 +1,16 @@
 <moveables>
-    <moveable id="0" name="LARA" use_body_from="12" />
-    <moveable id="1" name="LARA_EXTRA_ANIMS" use_body_from="12" hidden="true" />
-    <moveable id="2" name="PISTOLS_ANIM" use_body_from="12" hidden="true" />
-    <moveable id="3" name="UZI_ANIM" use_body_from="12" hidden="true" />
-    <moveable id="4" name="SHOTGUN_ANIM" use_body_from="12" hidden="true" />
-    <moveable id="5" name="REVOLVER_ANIM" use_body_from="12" hidden="true" />
-    <moveable id="6" name="CROSSBOW_ANIM" use_body_from="12" hidden="true" />
-    <moveable id="7" name="HK_ANIM" use_body_from="12" hidden="true" />
-    <moveable id="8" name="GRENADE_ANIM" use_body_from="12" hidden="true" />
-    <moveable id="9" name="ROCKET_ANIM" use_body_from="12" hidden="true" />
-    <moveable id="10" name="HARPOON_ANIM" use_body_from="12" hidden="true" />
-    <moveable id="11" name="FLARE_ANIM" use_body_from="12" hidden="true" />
+    <moveable id="0" name="LARA" category="Player" use_body_from="12" />
+    <moveable id="1" name="LARA_EXTRA_ANIMS" category="Player Animations" use_body_from="12" hidden="true" />
+    <moveable id="2" name="PISTOLS_ANIM" category="Player Animations" use_body_from="12" hidden="true" />
+    <moveable id="3" name="UZI_ANIM" category="Player Animations" use_body_from="12" hidden="true" />
+    <moveable id="4" name="SHOTGUN_ANIM" category="Player Animations" use_body_from="12" hidden="true" />
+    <moveable id="5" name="REVOLVER_ANIM" category="Player Animations" use_body_from="12" hidden="true" />
+    <moveable id="6" name="CROSSBOW_ANIM" category="Player Animations" use_body_from="12" hidden="true" />
+    <moveable id="7" name="HK_ANIM" category="Player Animations" use_body_from="12" hidden="true" />
+    <moveable id="8" name="GRENADE_ANIM" category="Player Animations" use_body_from="12" hidden="true" />
+    <moveable id="9" name="ROCKET_ANIM" category="Player Animations" use_body_from="12" hidden="true" />
+    <moveable id="10" name="HARPOON_ANIM" category="Player Animations" use_body_from="12" hidden="true" />
+    <moveable id="11" name="FLARE_ANIM"  category="Player Animations" use_body_from="12" hidden="true" />
     <moveable id="12" name="LARA_SKIN" hidden="true" />
     <moveable id="13" name="LARA_SKIN_JOINTS" hidden="true" />
     <moveable id="14" name="LARA_SCREAM" use_body_from="12" hidden="true" />
@@ -40,13 +40,13 @@
     <moveable id="38" name="HAIR_SECONDARY" hidden="true" />
     <moveable id="49" name="SNOWMOBILE_TRACKS" hidden="true" />
     <moveable id="50" name="SNOWMOBILE_LARA_ANIMS" use_body_from="12" hidden="true" />
-    <moveable id="51" name="SNOWMOBILE" />
+    <moveable id="51" name="SNOWMOBILE" category="Vehicles" />
     <moveable id="52" name="QUAD_LARA_ANIMS" use_body_from="12" hidden="true" />
-    <moveable id="53" name="QUAD" />
+    <moveable id="53" name="QUAD" category="Vehicles" />
     <moveable id="54" name="SPEEDBOAT_LARA_ANIMS" use_body_from="12" hidden="true" />
-    <moveable id="55" name="SPEEDBOAT" />
+    <moveable id="55" name="SPEEDBOAT" category="Vehicles" />
     <moveable id="56" name="KAYAK_LARA_ANIMS" use_body_from="12" hidden="true" />
-    <moveable id="57" name="KAYAK" />
+    <moveable id="57" name="KAYAK" category="Vehicles" />
     <moveable id="58" name="UPV_LARA_ANIMS" use_body_from="12" hidden="true" />
     <moveable id="59" name="UPV" />
     <moveable id="60" name="MINECART_LARA_ANIMS" use_body_from="12" hidden="true" />
@@ -61,16 +61,16 @@
     <moveable id="69" name="BIGGUN" />
     <moveable id="90" name="VEHICLE_SMASHABLE_FLOOR" />
     <moveable id="91" name="VEHICLE_SMASHABLE_WALL" />
-    <moveable id="100" name="WOLF" />
-    <moveable id="101" name="BEAR" />
-    <moveable id="102" name="APE" />
-    <moveable id="103" name="SMALL_SPIDER" />
-    <moveable id="104" name="BIG_SPIDER" />
-    <moveable id="105" name="CROW" />
-    <moveable id="106" name="TIGER" />
-    <moveable id="107" name="EAGLE" />
-    <moveable id="108" name="RAPTOR" />
-    <moveable id="109" name="TYRANNOSAUR" />
+    <moveable id="100" name="WOLF" category="Enemies" />
+    <moveable id="101" name="BEAR" category="Enemies" />
+    <moveable id="102" name="APE" category="Enemies" />
+    <moveable id="103" name="SMALL_SPIDER" category="Enemies" />
+    <moveable id="104" name="BIG_SPIDER" category="Enemies" />
+    <moveable id="105" name="CROW" category="Enemies" />
+    <moveable id="106" name="TIGER" category="Enemies" />
+    <moveable id="107" name="EAGLE" category="Enemies" />
+    <moveable id="108" name="RAPTOR" category="Enemies" />
+    <moveable id="109" name="TYRANNOSAUR" category="Enemies" />
     <moveable id="110" name="COBRA" />
     <moveable id="111" name="MONKEY" />
     <moveable id="112" name="WHALE" />
@@ -125,8 +125,8 @@
     <moveable id="171" name="TRIBESMAN_WITH_DARTS" />
     <moveable id="172" name="MP_WITH_STICK" />
     <moveable id="173" name="MP_WITH_GUN" />
-    <moveable id="174" name="BADDY1" />
-    <moveable id="175" name="BADDY2" />
+    <moveable id="174" name="BADDY1" category="Enemies" />
+    <moveable id="175" name="BADDY2" category="Enemies" />
     <moveable id="176" name="SAS_CAIRO" />
     <moveable id="177" name="SAS_DYING" />
     <moveable id="178" name="SAS_CAPTAIN" />
@@ -183,8 +183,8 @@
     <moveable id="252" name="PUNA_BOSS" />
     <moveable id="253" name="SOPHIA_LEIGH_BOSS" />
     <moveable id="254" name="LASER_BOLT" />
-    <moveable id="255" name="SKELETON" />
-    <moveable id="256" name="MUMMY" />
+    <moveable id="255" name="SKELETON" category="Enemies" />
+    <moveable id="256" name="MUMMY" category="Enemies" />
     <moveable id="257" name="ENEMY_JEEP" />
     <moveable id="258" name="HORSE" />
     <moveable id="259" name="HORSEMAN" />
@@ -248,12 +248,12 @@
     <moveable id="338" name="SPIKY_FLOOR" />
     <moveable id="339" name="SPIKY_WALL" />
     <moveable id="340" name="SPIKY_CEILING" />
-    <moveable id="341" name="TEETH_SPIKES" freeRot="true" />
-    <moveable id="342" name="JOBY_SPIKES" />
-    <moveable id="343" name="SENTRY_GUN" />
-    <moveable id="344" name="MAPPER" />
-    <moveable id="345" name="MOVING_BLADE" />
-    <moveable id="346" name="ELEMENT_PUZZLE" />
+    <moveable id="341" name="TEETH_SPIKES" category="Traps" freeRot="true" />
+    <moveable id="342" name="JOBY_SPIKES" category="Traps" />
+    <moveable id="343" name="SENTRY_GUN" category="Traps" />
+    <moveable id="344" name="MAPPER" category="Traps" />
+    <moveable id="345" name="MOVING_BLADE" category="Traps" />
+    <moveable id="346" name="ELEMENT_PUZZLE" category="Traps" />
     <moveable id="347" name="LIGHTING_CONDUCTOR" />
     <moveable id="348" name="HAMMER" />
     <moveable id="349" name="OBELISK" />
@@ -266,9 +266,9 @@
     <moveable id="356" name="SCALES" />
     <moveable id="357" name="ROME_HAMMER" />
     <moveable id="358" name="FLAME" />
-    <moveable id="359" name="FLAME_EMITTER" freeRot="true" />
-    <moveable id="360" name="FLAME_EMITTER2" />
-    <moveable id="361" name="FLAME_EMITTER3" />
+    <moveable id="359" name="FLAME_EMITTER" category="Nullmeshes" freeRot="true" />
+    <moveable id="360" name="FLAME_EMITTER2" category="Nullmeshes" />
+    <moveable id="361" name="FLAME_EMITTER3" category="Nullmeshes" />
     <moveable id="362" name="BURNING_ROOTS" />
     <moveable id="363" name="ROPE" />
     <moveable id="364" name="FIREROPE" />
@@ -282,9 +282,9 @@
     <moveable id="372" name="FALLING_BLOCK" />
     <moveable id="373" name="FALLING_BLOCK2" />
     <moveable id="374" name="CRUMBLING_FLOOR" />
-    <moveable id="375" name="TRAPDOOR1" />
-    <moveable id="376" name="TRAPDOOR2" />
-    <moveable id="377" name="TRAPDOOR3" />
+    <moveable id="375" name="TRAPDOOR1" category="Doors" />
+    <moveable id="376" name="TRAPDOOR2" category="Doors" />
+    <moveable id="377" name="TRAPDOOR3" category="Doors" />
     <moveable id="378" name="FLOOR_TRAPDOOR1" />
     <moveable id="379" name="FLOOR_TRAPDOOR2" />
     <moveable id="380" name="CEILING_TRAPDOOR1" />
@@ -300,16 +300,16 @@
     <moveable id="390" name="RAISING_BLOCK2" />
     <moveable id="391" name="RAISING_BLOCK3" />
     <moveable id="392" name="RAISING_BLOCK4" />
-    <moveable id="393" name="PUSHABLE_OBJECT1" />
-    <moveable id="394" name="PUSHABLE_OBJECT2" />
-    <moveable id="395" name="PUSHABLE_OBJECT3" />
-    <moveable id="396" name="PUSHABLE_OBJECT4" />
-    <moveable id="397" name="PUSHABLE_OBJECT5" />
-    <moveable id="398" name="PUSHABLE_OBJECT6" />
-    <moveable id="399" name="PUSHABLE_OBJECT7" />
-    <moveable id="400" name="PUSHABLE_OBJECT8" />
-    <moveable id="401" name="PUSHABLE_OBJECT9" />
-    <moveable id="402" name="PUSHABLE_OBJECT10" />
+    <moveable id="393" name="PUSHABLE_OBJECT1" category="Pushables" />
+    <moveable id="394" name="PUSHABLE_OBJECT2" category="Pushables" />
+    <moveable id="395" name="PUSHABLE_OBJECT3" category="Pushables" />
+    <moveable id="396" name="PUSHABLE_OBJECT4" category="Pushables" />
+    <moveable id="397" name="PUSHABLE_OBJECT5" category="Pushables" />
+    <moveable id="398" name="PUSHABLE_OBJECT6" category="Pushables" />
+    <moveable id="399" name="PUSHABLE_OBJECT7" category="Pushables" />
+    <moveable id="400" name="PUSHABLE_OBJECT8" category="Pushables" />
+    <moveable id="401" name="PUSHABLE_OBJECT9" category="Pushables" />
+    <moveable id="402" name="PUSHABLE_OBJECT10" category="Pushables" />
     <moveable id="403" name="WRECKING_BALL" />
     <moveable id="404" name="ZIPLINE_HANDLE" />
     <moveable id="405" name="TORPEDO" />
@@ -686,14 +686,14 @@
     <moveable id="902" name="STEEL_DOOR" />
     <moveable id="903" name="GOD_HEAD" />
 	<moveable id="904" name="BREAKABLE_WALL" />
-    <moveable id="950" name="PISTOLS_ITEM" />
-    <moveable id="951" name="PISTOLS_AMMO_ITEM" />
-    <moveable id="952" name="UZI_ITEM" />
-    <moveable id="953" name="UZI_AMMO_ITEM" />
-    <moveable id="954" name="SHOTGUN_ITEM" />
-    <moveable id="955" name="SHOTGUN_AMMO1_ITEM" />
-    <moveable id="956" name="SHOTGUN_AMMO2_ITEM" />
-    <moveable id="957" name="REVOLVER_ITEM" />
+    <moveable id="950" name="PISTOLS_ITEM" category="Pickups" />
+    <moveable id="951" name="PISTOLS_AMMO_ITEM" category="Pickups" />
+    <moveable id="952" name="UZI_ITEM" category="Pickups" />
+    <moveable id="953" name="UZI_AMMO_ITEM" category="Pickups" />
+    <moveable id="954" name="SHOTGUN_ITEM" category="Pickups" />
+    <moveable id="955" name="SHOTGUN_AMMO1_ITEM" category="Pickups" />
+    <moveable id="956" name="SHOTGUN_AMMO2_ITEM" category="Pickups" />
+    <moveable id="957" name="REVOLVER_ITEM" category="Pickups" />
     <moveable id="958" name="REVOLVER_AMMO_ITEM" />
     <moveable id="959" name="CROSSBOW_ITEM" />
     <moveable id="960" name="CROSSBOW_AMMO1_ITEM" />
