@@ -56,7 +56,7 @@ public partial class ContentBrowserView : UserControl
         if (DataContext is ContentBrowserViewModel vm)
         {
             var selectedItems = AssetListBox.SelectedItems
-                .Cast<AssetItemViewModel>()
+                .OfType<AssetItemViewModel>()
                 .ToList();
 
             vm.UpdateSelectedItems(selectedItems);
@@ -381,12 +381,15 @@ public partial class ContentBrowserView : UserControl
         if (AssetListBox.Items.Count == 0)
             return;
 
-        var items = AssetListBox.Items.Cast<object>().ToList();
-        int currentIndex = AssetListBox.SelectedItem != null
-            ? items.IndexOf(AssetListBox.SelectedItem)
+        var items = AssetListBox.Items.OfType<AssetItemViewModel>().ToList();
+        if (items.Count == 0)
+            return;
+
+        int currentIndex = AssetListBox.SelectedItem is AssetItemViewModel sel
+            ? items.IndexOf(sel)
             : -1;
 
-        int newIndex = currentIndex;
+        int newIndex;
 
         switch (e.Key)
         {

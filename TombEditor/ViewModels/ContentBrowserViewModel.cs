@@ -335,7 +335,7 @@ public partial class ContentBrowserViewModel : ObservableObject
     /// <summary>
     /// Number of items currently visible after filtering.
     /// </summary>
-    public int ItemCount => FilteredItems.Cast<object>().Count();
+    public int ItemCount => AllItems.Count(item => FilterPredicate(item));
 
     /// <summary>
     /// Available filter options (type filters + optional splitter + category filters).
