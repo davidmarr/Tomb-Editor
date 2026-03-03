@@ -4626,7 +4626,7 @@ allocated even after timeout is reached, and can be shown again without re-initi
 					<type>bool</type>
 					<optional>true</optional>
 					<defaultValue>true</defaultValue>
-					<description>(optional) If `true`, an error message will be printed if the parameters are invalid.</description>
+					<description>(optional) If `true`, an error message will be printed in console if the parameters are invalid.</description>
 				</parameter>
 			</parameters>
 			<returns>
