@@ -362,7 +362,7 @@ namespace TombEditor.ToolWindows
             if (settings == null)
                 return;
 
-            _viewModel.RefreshAssets(settings);
+            _viewModel.RefreshAssets(settings, _editor.Configuration.RenderingItem_HideInternalObjects);
         }
 
         /// <summary>
