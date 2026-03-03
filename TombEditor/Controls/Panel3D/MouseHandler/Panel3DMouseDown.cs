@@ -7,6 +7,8 @@ using TombLib.Rendering;
 using TombLib;
 using TombLib.LevelData.SectorEnums;
 using TombLib.LevelData.SectorEnums.Extensions;
+using TombEditor.Controls.ObjectBrush;
+using TombLib.Utils;
 
 namespace TombEditor.Controls.Panel3D
 {
@@ -55,7 +57,8 @@ namespace TombEditor.Controls.Panel3D
                 VectorInt2 pos = newSectorPicking.Pos;
 
                 // Handle face selection
-                if ((_editor.Tool.Tool == EditorToolType.Selection || _editor.Tool.Tool == EditorToolType.Group || _editor.Tool.Tool >= EditorToolType.Drag) &&
+                if ((_editor.Tool.Tool == EditorToolType.Selection || _editor.Tool.Tool == EditorToolType.Group ||
+                    (_editor.Tool.Tool >= EditorToolType.Drag && _editor.Tool.Tool != EditorToolType.ObjectBrush && _editor.Tool.Tool != EditorToolType.ObjectEraser)) &&
                     (ModifierKeys == Keys.None || ModifierKeys == Keys.Control))
                 {
                     if (!_editor.SelectedSectors.Valid || !_editor.SelectedSectors.Area.Contains(pos))
@@ -151,6 +154,22 @@ namespace TombEditor.Controls.Panel3D
 
                     case EditorMode.Lighting:
                     case EditorMode.FaceEdit:
+                        // Handle object brush/eraser tools
+                        if (_editor.Tool.Tool == EditorToolType.ObjectBrush || _editor.Tool.Tool == EditorToolType.ObjectEraser)
+                        {
+                            if (_editor.Mode == EditorMode.FaceEdit && newSectorPicking.BelongsToFloor)
+                            {
+                                _objectBrushEngaged = true;
+                                _brushStrokeUndoList.Clear();
+
+                                var result = ObjectBrushActions.BeginBrushStroke(_editor, _editor.SelectedRoom, pos);
+                                _lastBrushWorldPosition = result.WorldPosition;
+                                _brushStrokeUndoList.AddRange(result.UndoInstances);
+                                Invalidate();
+                            }
+                            break;
+                        }
+
                         // Disable texturing in lighting mode, if option is set
                         if (_editor.Mode == EditorMode.Lighting &&
                             !_editor.Configuration.Rendering3D_AllowTexturingInLightingMode)

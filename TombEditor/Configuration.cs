@@ -209,6 +209,19 @@ namespace TombEditor
         public EditorTool UI_LastGeometryTool { get; set; } = new EditorTool();
         public EditorTool UI_LastTexturingTool { get; set; } = new EditorTool() { Tool = EditorToolType.Brush };
 
+        // Object brush/eraser options
+
+        public float ObjectBrush_Radius { get; set; } = 512.0f; // In world units
+        public float ObjectBrush_Density { get; set; } = 1.0f; // Objects per sector^2
+        public ObjectBrushShape ObjectBrush_Shape { get; set; } = ObjectBrushShape.Circle;
+        public bool ObjectBrush_PlaceInAdjacentRooms { get; set; } = false;
+        public bool ObjectBrush_RandomizeRotation { get; set; } = true;
+        public bool ObjectBrush_RandomizeScale { get; set; } = false;
+        public float ObjectBrush_ScaleMin { get; set; } = 0.8f;
+        public float ObjectBrush_ScaleMax { get; set; } = 1.2f;
+        public bool ObjectBrush_FitToGround { get; set; } = true;
+        public Point Rendering3D_ObjectBrushToolboxPosition { get; set; } = new Point(15, 500);
+
         // Geometry IO Window
 
         public string GeometryIO_LastUsedGeometryImportPresetName { get; set; }

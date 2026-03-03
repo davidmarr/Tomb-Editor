@@ -7,6 +7,10 @@ cbuffer WorldData
 	bool ShowExtraBlendingModes;
 	bool ShowLightingWhiteTextureOnly;
 	int LightMode;
+	int BrushShape; // 0=none, 1=circle, 2=square
+	float _brushPad;
+	float4 BrushCenter; // xyz = world center, w = radius
+	float4 BrushColor;
 };
 
 struct PixelInputType
@@ -18,6 +22,7 @@ struct PixelInputType
 	int BlendMode : BLENDMODE;
     float2 EditorUv : EDITORUV;
 	int EditorSectorTexture : EDITORSECTORTEXTURE;
+	float3 WorldPosition : WORLDPOSITION;
 };
 
 Texture2DArray RoomTexture : register(t0);
@@ -162,6 +167,24 @@ float4 main(PixelInputType input) : SV_TARGET
 	
 	// Use overlay's alpha as global alpha for any mode (needed for hidden rooms), as we've run out of flag space.
 	result *= input.Overlay.w;
+
+	// Draw brush outline projected onto room geometry
+	if (BrushShape > 0)
+	{
+		float2 delta = input.WorldPosition.xz - BrushCenter.xz;
+		float dist;
+		if (BrushShape == 1) // Circle
+			dist = length(delta);
+		else // Square
+			dist = max(abs(delta.x), abs(delta.y));
+
+		float edge = abs(dist - BrushCenter.w);
+		float lineWidth = (RoomGridLineWidth * 2048) / input.Position.w;
+		float edgeNorm = edge / max(fwidth(dist), 0.001f);
+		float alpha = BrushColor.w * saturate(1.0f - edgeNorm / max(lineWidth * 2.0f, 0.001f));
+		result.xyz = lerp(result.xyz, BrushColor.xyz, alpha);
+		result.w = max(result.w, alpha);
+	}
 
     if ((result.x + result.y + result.z + result.w) < 0.02f)
         discard;

@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
+using TombEditor.Controls.ObjectBrush;
 using TombLib.Forms;
 using TombLib.GeometryIO;
 using TombLib.Graphics;
@@ -46,6 +47,12 @@ namespace TombEditor.Controls.Panel3D
             _gizmoEnabled = false;
             _dragObjectMoved = false;
             _dragObjectPicked = false;
+
+            // Push batch undo for the entire brush stroke
+            if (_objectBrushEngaged)
+                ObjectBrushActions.EndBrushStroke(_editor, _brushStrokeUndoList);
+            _objectBrushEngaged = false;
+            _lastBrushWorldPosition = null;
 
             if (_gizmo.MouseUp())
                 Invalidate();

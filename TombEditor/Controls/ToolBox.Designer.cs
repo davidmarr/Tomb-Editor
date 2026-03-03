@@ -51,6 +51,9 @@
             this.toolSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.toolPortalDigger = new System.Windows.Forms.ToolStripButton();
             this.toolUVFixer = new System.Windows.Forms.ToolStripButton();
+            this.toolSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolObjectBrush = new System.Windows.Forms.ToolStripButton();
+            this.toolObjectEraser = new System.Windows.Forms.ToolStripButton();
             this.toolStrip.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -84,7 +87,10 @@
             this.toolInvisibility,
             this.toolSeparator2,
             this.toolPortalDigger,
-            this.toolUVFixer});
+            this.toolUVFixer,
+            this.toolSeparator3,
+            this.toolObjectBrush,
+            this.toolObjectEraser});
             this.toolStrip.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.VerticalStackWithOverflow;
             this.toolStrip.Location = new System.Drawing.Point(0, 0);
             this.toolStrip.Name = "toolStrip";
@@ -371,6 +377,40 @@
             this.toolUVFixer.ToolTipText = "Fix texture coordinates";
             this.toolUVFixer.Click += new System.EventHandler(this.toolUVFixer_Click);
             // 
+            // toolSeparator3
+            // 
+            this.toolSeparator3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(63)))), ((int)(((byte)(65)))));
+            this.toolSeparator3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.toolSeparator3.Margin = new System.Windows.Forms.Padding(0, 0, 2, 0);
+            this.toolSeparator3.Name = "toolSeparator3";
+            this.toolSeparator3.Size = new System.Drawing.Size(23, 6);
+            // 
+            // toolObjectBrush
+            // 
+            this.toolObjectBrush.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(63)))), ((int)(((byte)(65)))));
+            this.toolObjectBrush.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolObjectBrush.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.toolObjectBrush.Image = global::TombEditor.Properties.Resources.toolbox_Paint_16;
+            this.toolObjectBrush.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolObjectBrush.Margin = new System.Windows.Forms.Padding(1);
+            this.toolObjectBrush.Name = "toolObjectBrush";
+            this.toolObjectBrush.Size = new System.Drawing.Size(23, 20);
+            this.toolObjectBrush.ToolTipText = "Object Brush";
+            this.toolObjectBrush.Click += new System.EventHandler(this.toolObjectBrush_Click);
+            // 
+            // toolObjectEraser
+            // 
+            this.toolObjectEraser.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(63)))), ((int)(((byte)(65)))));
+            this.toolObjectEraser.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolObjectEraser.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.toolObjectEraser.Image = global::TombEditor.Properties.Resources.toolbox_Eraser_16;
+            this.toolObjectEraser.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolObjectEraser.Margin = new System.Windows.Forms.Padding(1);
+            this.toolObjectEraser.Name = "toolObjectEraser";
+            this.toolObjectEraser.Size = new System.Drawing.Size(23, 20);
+            this.toolObjectEraser.ToolTipText = "Object Eraser";
+            this.toolObjectEraser.Click += new System.EventHandler(this.toolObjectEraser_Click);
+            // 
             // ToolBox
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -411,5 +451,8 @@
         private System.Windows.Forms.ToolStripButton toolUVFixer;
         private System.Windows.Forms.ToolStripButton toolGridPaint;
         private System.Windows.Forms.ToolStripButton toolPortalDigger;
+        private System.Windows.Forms.ToolStripSeparator toolSeparator3;
+        private System.Windows.Forms.ToolStripButton toolObjectBrush;
+        private System.Windows.Forms.ToolStripButton toolObjectEraser;
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
 using TombLib;
@@ -10,6 +9,8 @@ using TombLib.LevelData.SectorEnums;
 using TombLib.LevelData.SectorEnums.Extensions;
 using TombLib.LevelData.SectorStructs;
 using TombLib.Rendering;
+using TombEditor.Controls.ObjectBrush;
+using TombLib.Utils;
 
 namespace TombEditor.Controls.Panel3D
 {
@@ -191,6 +192,31 @@ namespace TombEditor.Controls.Panel3D
             }
             else
             {
+                // Handle object brush/eraser continuous painting
+                if (_objectBrushEngaged &&
+                    (_editor.Tool.Tool == EditorToolType.ObjectBrush || _editor.Tool.Tool == EditorToolType.ObjectEraser))
+                {
+                    var brushPicking = DoPicking(GetRay(location.X, location.Y)) as PickingResultSector;
+                    if (brushPicking != null && brushPicking.BelongsToFloor)
+                    {
+                        var result = ObjectBrushActions.ContinueBrushStroke(
+                            _editor,
+                            brushPicking.Room,
+                            _editor.SelectedRoom,
+                            brushPicking.Pos,
+                            _lastBrushWorldPosition,
+                            _brushPaintQuantizationDistance);
+
+                        if (result.HasValue)
+                        {
+                            _brushStrokeUndoList.AddRange(result.Value.UndoInstances);
+                            _lastBrushWorldPosition = result.Value.WorldPosition;
+                            Invalidate();
+                        }
+                    }
+                    return true;
+                }
+
                 var newSectorPicking = DoPicking(GetRay(location.X, location.Y)) as PickingResultSector;
 
                 if (newSectorPicking != null)
@@ -343,6 +369,22 @@ namespace TombEditor.Controls.Panel3D
 
         private bool OnMouseMovedNone(Point location)
         {
+            // Update object brush cursor for radius visualization
+            if (_editor.Tool.Tool == EditorToolType.ObjectBrush || _editor.Tool.Tool == EditorToolType.ObjectEraser)
+            {
+                var brushPicking = DoPicking(GetRay(location.X, location.Y)) as PickingResultSector;
+                if (brushPicking != null && brushPicking.BelongsToFloor)
+                {
+                    var room = brushPicking.Room == _editor.SelectedRoom ? _editor.SelectedRoom : brushPicking.Room;
+                    ObjectBrushActions.UpdateBrushCursor(_editor, room, brushPicking.Pos);
+                    return true;
+                }
+                else
+                {
+                    _editor.UpdateObjectBrushCursor(null, null);
+                }
+            }
+
             if (_editor.Tool.Tool != EditorToolType.GridPaint)
                 return false;
 

@@ -71,6 +71,8 @@ namespace TombEditor.Controls
                 toolPyramid.Checked = currentTool.Tool == EditorToolType.Pyramid;
                 toolTerrain.Checked = currentTool.Tool == EditorToolType.Terrain;
                 toolPortalDigger.Checked = currentTool.Tool == EditorToolType.PortalDigger;
+                toolObjectBrush.Checked = currentTool.Tool == EditorToolType.ObjectBrush;
+                toolObjectEraser.Checked = currentTool.Tool == EditorToolType.ObjectEraser;
 
                 toolUVFixer.Checked = currentTool.TextureUVFixer;
 
@@ -119,6 +121,11 @@ namespace TombEditor.Controls
                 toolPyramid.Visible = geometryMode;
                 toolTerrain.Visible = geometryMode;
                 toolPortalDigger.Visible = geometryMode;
+
+                bool faceEditMode = mode == EditorMode.FaceEdit;
+                toolSeparator3.Visible = faceEditMode;
+                toolObjectBrush.Visible = faceEditMode;
+                toolObjectEraser.Visible = faceEditMode;
 
                 toolStrip.AutoSize = true;
                 AutoSize = true;
@@ -251,6 +258,16 @@ namespace TombEditor.Controls
                 _contextMenuTimer.Start();
             else
                 ContextMenuTimer_Tick(sender, e);
+        }
+
+        private void toolObjectBrush_Click(object sender, EventArgs e)
+        {
+            SwitchTool(EditorToolType.ObjectBrush);
+        }
+
+        private void toolObjectEraser_Click(object sender, EventArgs e)
+        {
+            SwitchTool(EditorToolType.ObjectEraser);
         }
     }
 }

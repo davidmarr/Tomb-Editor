@@ -121,6 +121,12 @@ namespace TombEditor.Controls.Panel3D
         private bool _dragObjectMoved = false;
         private HighlightedObjects _highlightedObjects = HighlightedObjects.Create(null);
 
+        // Object brush state
+        private bool _objectBrushEngaged = false;
+        private Vector3? _lastBrushWorldPosition;
+        private readonly List<UndoRedoInstance> _brushStrokeUndoList = new List<UndoRedoInstance>();
+        private const float _brushPaintQuantizationDistance = 128.0f; // World units between paint steps
+
         // Legacy rendering state
         private WadRenderer _wadRenderer;
         private RasterizerState _rasterizerStateDepthBias;

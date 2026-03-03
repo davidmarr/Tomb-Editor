@@ -26,6 +26,13 @@ namespace TombLib.Rendering.DirectX11
             public int ShowLightingWhiteTextureOnly;
             [FieldOffset(84)]
             public int LightMode;
+            [FieldOffset(88)]
+            public int BrushShape; // 0=none, 1=circle, 2=square
+            // 4 bytes implicit padding at offset 92 (float4 needs 16-byte alignment)
+            [FieldOffset(96)]
+            public Vector4 BrushCenter; // xyz = world center, w = radius
+            [FieldOffset(112)]
+            public Vector4 BrushColor;
         };
         public static readonly int Size = ((Marshal.SizeOf(typeof(ConstantBufferLayout)) + 15) / 16) * 16;
 
@@ -54,6 +61,9 @@ namespace TombLib.Rendering.DirectX11
             Buffer.ShowExtraBlendingModes = State.ShowExtraBlendingModes ? 1 : 0;
             Buffer.ShowLightingWhiteTextureOnly = State.ShowLightingWhiteTextureOnly ? 1 : 0;
             Buffer.LightMode = State.LightMode;
+            Buffer.BrushShape = State.BrushShape;
+            Buffer.BrushCenter = State.BrushCenter;
+            Buffer.BrushColor = State.BrushColor;
             Context.UpdateSubresource(ref Buffer, ConstantBuffer);
         }
     }
