@@ -192,6 +192,7 @@ namespace TombEditor.Controls.ObjectBrush
 			// 
 			// ObjectBrushToolbox
 			// 
+			AutoAnchor = true;
 			BackColor = System.Drawing.Color.FromArgb(60, 63, 65);
 			Controls.Add(nudScaleMin);
 			Controls.Add(chkRandomScale);
