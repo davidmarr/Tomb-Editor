@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
+using System.Linq;
 using TombLib.IO;
 using TombLib.LevelData.Compilers.Util;
 using TombLib.LevelData.SectorEnums;
@@ -11,6 +13,7 @@ public partial class LevelCompilerClassicTR
 {
     private const int _legacyRoomLimit = 255;
     private const int _noRoom = -1;
+    private const int _maxSamples = 1000;
 
     private void WriteLevelTrx()
     {
@@ -31,6 +34,7 @@ public partial class LevelCompilerClassicTR
         var injData = new TrxInjectionData();
         injData.SectorEdits.AddRange(GenerateTrxSectorEdits());
         injData.TexPages.AddRange(GenerateTrxTexPages());
+        injData.SFX.AddRange(GenerateTrxSFXData());
 
         using var writer = new BinaryWriterEx(new FileStream(_dest, FileMode.Append));
         TrxInjector.Serialize(injData, writer);
@@ -115,7 +119,7 @@ public partial class LevelCompilerClassicTR
     private TrxTriangulationEntry GetTriangulation(Room teRoom, ushort x, ushort z)
     {
         var teSector = teRoom.Sectors[x, z];
-        if (teSector.IsAnyWall)
+        if (teSector.IsFullWall)
         {
             return null;
         }
@@ -123,8 +127,8 @@ public partial class LevelCompilerClassicTR
         var pos = new VectorInt2(x, z);
         var floorPortalType = teRoom.GetFloorRoomConnectionInfo(pos, true).TraversableType;
         var ceilingPortalType = teRoom.GetCeilingRoomConnectionInfo(pos, true).TraversableType;
-        var floorShape = new RoomSectorShape(teSector, true, floorPortalType, false);
-        var ceilingShape = new RoomSectorShape(teSector, false, ceilingPortalType, false);
+        var floorShape = new RoomSectorShape(teSector, true, floorPortalType, teSector.IsAnyWall);
+        var ceilingShape = new RoomSectorShape(teSector, false, ceilingPortalType, teSector.IsAnyWall);
 
         if (!floorShape.IsSplit && !ceilingShape.IsSplit)
         {
@@ -181,7 +185,7 @@ public partial class LevelCompilerClassicTR
 
         if (depth == TrxTextureBitDepth.Bit8)
         {
-            data8 = PackTextureMap32To8Bit(_texture32Data, out palette);
+            data8 = PackTextureMap32To8Bit(_texture32Data, new List<Color> { Color.FromArgb(2, 0, 0) }, out palette);
         }
         else if (depth == TrxTextureBitDepth.Bit16)
         {
@@ -211,6 +215,7 @@ public partial class LevelCompilerClassicTR
         var pixels = new uint[size];
         var baseIndex = page * size;
 
+        const int scaleShift = 2; // Undo PackTextureMap32To8Bit component division
         for (var i = 0; i < size; i++)
         {
             var idx = data[baseIndex + i];
@@ -218,11 +223,10 @@ public partial class LevelCompilerClassicTR
                 continue;
 
             var c = palette[idx];
-            pixels[i] = (uint)(
-                (0xFF << 24) |
-                (c.Blue << 16) |
-                (c.Green << 8) |
-                c.Red);
+            pixels[i] = (0xFFu << 24) |
+                ((uint)c.Blue << (16 + scaleShift)) |
+                ((uint)c.Green << (8 + scaleShift)) |
+                ((uint)c.Red << scaleShift);
         }
 
         return pixels;
@@ -264,5 +268,28 @@ public partial class LevelCompilerClassicTR
         }
 
         return pixels;
+    }
+
+    private IEnumerable<TrxSFXData> GenerateTrxSFXData()
+    {
+        var samples = new Queue<Wad.WadSample>(_finalSamplesList);
+        var sampleCount = 0;
+        for (int i = 0; i < _finalSoundMap.Length; i++)
+        {
+            if (_finalSoundMap[i] == -1)
+                continue;
+
+            var soundInfo = _finalSoundInfosList[_finalSoundMap[i]];
+            var details = GetTR12SoundDetails(soundInfo);
+            var data = TrxSFXData.Create(i, details);
+            data.Samples.AddRange(
+                Enumerable.Range(0, soundInfo.Samples.Count)
+                .Select(_ => samples.Dequeue().Data));
+            sampleCount += data.Samples.Count;
+            yield return data;
+        }
+
+        if (sampleCount > _maxSamples)
+            _progressReporter.ReportWarn($"{sampleCount} samples included - limit is {_maxSamples}. This may lead to crashes.");
     }
 }
