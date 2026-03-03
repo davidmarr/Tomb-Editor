@@ -441,6 +441,11 @@ public partial class ContentBrowserViewModel : ObservableObject
     public event EventHandler? AddItemRequested;
 
     /// <summary>
+    /// Event raised when the user requests to add a new WAD file.
+    /// </summary>
+    public event EventHandler? AddWadRequested;
+
+    /// <summary>
     /// Current list of all selected items (for multi-selection).
     /// </summary>
     public IReadOnlyList<AssetItemViewModel> SelectedItems { get; private set; } = Array.Empty<AssetItemViewModel>();
@@ -468,6 +473,23 @@ public partial class ContentBrowserViewModel : ObservableObject
     // Stored for use in FilterPredicate (set during RefreshAssets)
     private TRVersion.Game _gameVersion;
     private bool _hideInternalObjects;
+    private bool _hasLoadedWads;
+
+    /// <summary>
+    /// Whether any WADs are loaded in the level.
+    /// </summary>
+    public bool HasLoadedWads
+    {
+        get => _hasLoadedWads;
+        private set
+        {
+            if (_hasLoadedWads != value)
+            {
+                _hasLoadedWads = value;
+                OnPropertyChanged(nameof(HasLoadedWads));
+            }
+        }
+    }
 
     /// <summary>
     /// Refreshes all assets from the current level settings.
@@ -588,6 +610,9 @@ public partial class ContentBrowserViewModel : ObservableObject
             AllItems.Add(item);
         foreach (var item in geoItems)
             AllItems.Add(item);
+
+        // Track whether any WADs are loaded
+        HasLoadedWads = AllItems.Count > 0;
 
         // Build category list from all moveable and static items
         var allCategories = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -714,6 +739,12 @@ public partial class ContentBrowserViewModel : ObservableObject
     {
         if (SelectedItem != null)
             AddItemRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand]
+    private void AddWad()
+    {
+        AddWadRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private bool FilterPredicate(object obj)

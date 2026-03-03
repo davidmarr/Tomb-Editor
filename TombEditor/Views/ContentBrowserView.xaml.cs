@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -537,4 +539,38 @@ public partial class ContentBrowserView : UserControl
         var container = AssetListBox.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
         container?.BringIntoView();
     }
+
+    /// <summary>
+    /// Handles click on the empty state message to load a new WAD file.
+    /// </summary>
+    private void EmptyState_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        
+        if (DataContext is ContentBrowserViewModel vm)
+        {
+            vm.AddWadCommand.Execute(null);
+        }
+    }
 }
+
+/// <summary>
+/// Converter that shows empty state message when no WADs are loaded.
+/// </summary>
+public class EmptyStateVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is bool hasLoadedWads)
+        {
+            return !hasLoadedWads ? Visibility.Visible : Visibility.Collapsed;
+        }
+        return Visibility.Collapsed;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+

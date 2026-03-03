@@ -54,6 +54,7 @@ namespace TombEditor.ToolWindows
             _viewModel.ThumbnailRenderRequested += ViewModel_ThumbnailRenderRequested;
             _viewModel.LocateItemRequested += ViewModel_LocateItemRequested;
             _viewModel.AddItemRequested += ViewModel_AddItemRequested;
+            _viewModel.AddWadRequested += ViewModel_AddWadRequested;
             _viewModel.PropertyChanged += ViewModel_PropertyChanged;
 
             // Load saved tile width from configuration
@@ -81,6 +82,7 @@ namespace TombEditor.ToolWindows
                 _viewModel.ThumbnailRenderRequested -= ViewModel_ThumbnailRenderRequested;
                 _viewModel.LocateItemRequested -= ViewModel_LocateItemRequested;
                 _viewModel.AddItemRequested -= ViewModel_AddItemRequested;
+                _viewModel.AddWadRequested -= ViewModel_AddWadRequested;
                 _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
 
                 _thumbnailTimer?.Stop();
@@ -168,6 +170,14 @@ namespace TombEditor.ToolWindows
             // If the action was not set (e.g. validation failed), restore the tile animation immediately.
             if (_editor.Action is not EditorActionPlace)
                 contentBrowserView.RestoreLastAnimation();
+        }
+
+        /// <summary>
+        /// Handles add WAD requests from the empty state message.
+        /// </summary>
+        private void ViewModel_AddWadRequested(object sender, EventArgs e)
+        {
+            EditorActions.AddWad(this, null);
         }
 
         /// <summary>
