@@ -1898,19 +1898,20 @@ namespace TombEditor.Controls.Panel3D
 
             // Determine brush overlay state
             int brushShape = 0;
-            var brushCenter = System.Numerics.Vector4.Zero;
-            var brushColor = System.Numerics.Vector4.One;
-            if ((_editor.Tool.Tool == EditorToolType.ObjectBrush || _editor.Tool.Tool == EditorToolType.ObjectEraser)
-                && _editor.ObjectBrushCursorPosition.HasValue && _editor.ObjectBrushCursorRoom != null)
+            var brushCenter = Vector4.Zero;
+            var brushColor = Vector4.One;
+            if ((_editor.Tool.Tool == EditorToolType.ObjectBrush || _editor.Tool.Tool == EditorToolType.ObjectEraser) && 
+                _editor.ObjectBrushCursorPosition.HasValue && _editor.ObjectBrushCursorRoom != null)
             {
                 var cursorPos = _editor.ObjectBrushCursorPosition.Value;
                 float radius = _editor.Configuration.ObjectBrush_Radius;
                 brushShape = _editor.Configuration.ObjectBrush_Shape == ObjectBrushShape.Circle ? 1 : 2;
-                brushCenter = new System.Numerics.Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, radius);
+                brushCenter = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, radius);
                 var triggerColor = _editor.Configuration.UI_ColorScheme.ColorTrigger;
+
                 brushColor = _editor.Tool.Tool == EditorToolType.ObjectEraser
-                    ? new System.Numerics.Vector4(triggerColor.X, triggerColor.Y, triggerColor.Z, 0.7f)
-                    : new System.Numerics.Vector4(triggerColor.X, triggerColor.Y, triggerColor.Z, 1.0f);
+                    ? new Vector4(triggerColor.X, triggerColor.Y, triggerColor.Z, 0.7f)
+                    : new Vector4(triggerColor.X, triggerColor.Y, triggerColor.Z, 1.0f);
             }
 
             _renderingStateBuffer.Set(new RenderingState

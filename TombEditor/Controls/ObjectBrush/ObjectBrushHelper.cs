@@ -2,28 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using TombEditor;
 using TombLib;
 using TombLib.LevelData;
-using TombLib.Wad;
 
 namespace TombEditor.Controls.ObjectBrush
 {
-    /// <summary>
-    /// Helper methods for the Object Brush and Object Eraser tools.
-    /// All spatial coordinates and radii are in room-local world units (1 sector = Level.SectorSizeUnit).
-    /// </summary>
     public static class ObjectBrushHelper
     {
         private static readonly Random _rng = new Random();
 
         #region Floor Height and Geometry Queries
 
-        /// <summary>
-        /// Gets the floor height at an arbitrary position within a room (room-local world units),
-        /// interpolating between sector corner heights.
-        /// Returns null if the position is outside room bounds or on a wall sector.
-        /// </summary>
         public static float? GetFloorHeightAtPoint(Room room, float localX, float localZ)
         {
             float sectorX = localX / Level.SectorSizeUnit;
@@ -52,10 +41,6 @@ namespace TombEditor.Controls.ObjectBrush
             return height;
         }
 
-        /// <summary>
-        /// Checks whether a sector position is valid for object placement: not a wall, not a border wall,
-        /// and within room geometry bounds.
-        /// </summary>
         public static bool IsValidFloorPosition(Room room, int sectorX, int sectorZ)
         {
             if (sectorX < 1 || sectorZ < 1 || sectorX >= room.NumXSectors - 1 || sectorZ >= room.NumZSectors - 1)
@@ -65,31 +50,26 @@ namespace TombEditor.Controls.ObjectBrush
             return sector != null && !sector.IsAnyWall;
         }
 
-        /// <summary>
-        /// Checks if a sector is within the constraint area (if provided).
-        /// </summary>
         public static bool IsWithinConstraint(int sectorX, int sectorZ, RectangleInt2? constraint)
         {
             if (!constraint.HasValue)
                 return true;
+
             var c = constraint.Value;
             return sectorX >= c.X0 && sectorX <= c.X1 && sectorZ >= c.Y0 && sectorZ <= c.Y1;
         }
 
-        /// <summary>
-        /// Probes through floor portals to find the actual room and local position at the bottom.
-        /// If the sector has a floor portal, follows it to the adjoining room below, converting coordinates.
-        /// Returns the resolved room and position in that room's local space.
-        /// </summary>
         public static (Room Room, float LocalX, float LocalZ) ResolveFloorRoom(Room room, float localX, float localZ)
         {
             int sectorX = (int)(localX / Level.SectorSizeUnit);
             int sectorZ = (int)(localZ / Level.SectorSizeUnit);
 
             var sector = room.GetSectorTry(new VectorInt2(sectorX, sectorZ));
+
             if (sector?.FloorPortal != null)
             {
                 var bottomRoom = sector.FloorPortal.AdjoiningRoom;
+
                 if (bottomRoom != null)
                 {
                     // Convert to bottom room's local coordinates
@@ -99,6 +79,7 @@ namespace TombEditor.Controls.ObjectBrush
                     // Validate the position in the bottom room
                     int bsx = (int)(bottomLocalX / Level.SectorSizeUnit);
                     int bsz = (int)(bottomLocalZ / Level.SectorSizeUnit);
+
                     if (IsValidFloorPosition(bottomRoom, bsx, bsz))
                         return (bottomRoom, bottomLocalX, bottomLocalZ);
                 }
@@ -111,23 +92,23 @@ namespace TombEditor.Controls.ObjectBrush
 
         #region Bounding Box and Placement Safety
 
-        /// <summary>
-        /// Gets the bounding box for an item type. Returns null if unknown.
-        /// </summary>
         public static BoundingBox? GetItemBoundingBox(Level level, ItemType itemType)
         {
             if (itemType.IsStatic)
             {
                 var wadStatic = level.Settings?.WadTryGetStatic(itemType.StaticId);
+
                 if (wadStatic?.Mesh?.BoundingBox.Size.Length() > 0.0f)
                     return wadStatic.CollisionBox;
             }
             else
             {
                 var wadMoveable = level.Settings?.WadTryGetMoveable(itemType.MoveableId);
+
                 if (wadMoveable?.Animations?.Count > 0 && wadMoveable.Animations[0].KeyFrames.Count > 0)
                     return wadMoveable.Animations[0].KeyFrames[0].BoundingBox;
             }
+
             return null;
         }
 
@@ -138,6 +119,7 @@ namespace TombEditor.Controls.ObjectBrush
         /// hangs in the air — it rests on the lowest floor point under any corner, with other corners
         /// potentially submerging into higher terrain.
         /// </summary>
+        /// 
         public static float? GetSafePlacementHeight(Room room, Vector3 localPos, float rotationYDeg, float scale, BoundingBox bbox)
         {
             var scaledMin = new Vector2(bbox.Minimum.X * scale, bbox.Minimum.Z * scale);
@@ -177,26 +159,22 @@ namespace TombEditor.Controls.ObjectBrush
 
         #endregion
 
-        #region Object Creation
-
-        /// <summary>
-        /// Creates a new object instance from the given ItemType.
-        /// </summary>
-        public static PositionBasedObjectInstance CreateObjectInstance(ItemType itemType)
-        {
-            if (itemType.IsStatic)
-                return new StaticInstance { WadObjectId = itemType.StaticId };
-            else
-                return new MoveableInstance { WadObjectId = itemType.MoveableId };
-        }
-
-        #endregion
-
         #region Brush Area Queries
 
-        /// <summary>
-        /// Checks if a point is within the brush area. All values in world units.
-        /// </summary>
+        public static List<Room> GetBrushRooms(Room currentRoom, bool includeAdjacent)
+        {
+            var rooms = new List<Room> { currentRoom };
+            if (includeAdjacent)
+            {
+                foreach (var portal in currentRoom.Portals)
+                {
+                    if (portal.AdjoiningRoom != null && !rooms.Contains(portal.AdjoiningRoom))
+                        rooms.Add(portal.AdjoiningRoom);
+                }
+            }
+            return rooms;
+        }
+
         public static bool IsInBrushArea(float x, float z, float centerX, float centerZ, float radius, ObjectBrushShape shape)
         {
             float dx = x - centerX;
@@ -208,54 +186,45 @@ namespace TombEditor.Controls.ObjectBrush
                 return Math.Abs(dx) <= radius && Math.Abs(dz) <= radius;
         }
 
-        /// <summary>
-        /// Counts existing objects of matching types within the brush area.
-        /// All coordinates in room-local world units.
-        /// </summary>
-        public static int CountMatchingObjectsInArea(Room room, float centerWorldX, float centerWorldZ,
-            float radius, ObjectBrushShape shape, IReadOnlyList<ItemType> chosenItems)
+        private static int CountMatchingObjectsInArea(List<Vector2> positions, float centerWorldX, float centerWorldZ, float radius, ObjectBrushShape shape)
         {
             int count = 0;
-            foreach (var obj in room.Objects)
+
+            foreach (var pos in positions)
             {
-                if (obj is ItemInstance item && chosenItems.Contains(item.ItemType))
-                {
-                    if (IsInBrushArea(obj.Position.X, obj.Position.Z, centerWorldX, centerWorldZ, radius, shape))
-                        count++;
-                }
+                if (IsInBrushArea(pos.X, pos.Y, centerWorldX, centerWorldZ, radius, shape))
+                    count++;
             }
+
             return count;
         }
 
-        /// <summary>
-        /// Calculates the expected number of objects in the brush area based on density.
-        /// Radius is in world units, density is in objects per sector².
-        /// </summary>
         public static int GetTargetObjectCount(float radius, float density, ObjectBrushShape shape)
         {
             float radiusSectors = radius / Level.SectorSizeUnit;
-            float area = shape == ObjectBrushShape.Circle
-                ? (float)(Math.PI * radiusSectors * radiusSectors)
-                : (2 * radiusSectors) * (2 * radiusSectors);
+            float area = shape == ObjectBrushShape.Circle ? (float)(Math.PI * radiusSectors * radiusSectors) : (2 * radiusSectors) * (2 * radiusSectors);
             return Math.Max(1, (int)Math.Round(area * density));
         }
 
         #endregion
 
-        #region Candidate Position Generation
+        #region Object Creation and Candidate Position Generation
 
-        /// <summary>
-        /// Generates candidate positions within the brush area using jittered grid sampling.
-        /// All values in room-local world units. Density is per sector².
-        /// </summary>
-        public static List<Vector2> GenerateCandidatePositions(float centerWorldX, float centerWorldZ,
-            float radius, float density, ObjectBrushShape shape)
+        public static PositionBasedObjectInstance CreateObjectInstance(ItemType itemType)
+        {
+            if (itemType.IsStatic)
+                return new StaticInstance { WadObjectId = itemType.StaticId };
+            else
+                return new MoveableInstance { WadObjectId = itemType.MoveableId };
+        }
+
+        public static List<Vector2> GenerateCandidatePositions(float centerWorldX, float centerWorldZ, float radius, float density, ObjectBrushShape shape)
         {
             var result = new List<Vector2>();
+
             if (density <= 0)
                 return result;
 
-            // Cell size: density is per sector², so cell side in sectors = 1/sqrt(density), convert to world
             float cellSizeWorld = Level.SectorSizeUnit / (float)Math.Sqrt(density);
 
             int gridMinX = (int)Math.Floor((centerWorldX - radius) / cellSizeWorld);
@@ -282,86 +251,94 @@ namespace TombEditor.Controls.ObjectBrush
 
         #region Distance and Overlap Checks
 
-        /// <summary>
-        /// Checks if a candidate position is too close to any already-placed matching object.
-        /// All values in room-local world units.
-        /// </summary>
-        public static bool IsTooCloseToExisting(Room room, float worldX, float worldZ,
-            float minDistWorld, IReadOnlyList<ItemType> chosenItems)
+        public static bool IsTooCloseToExisting(Room room, float worldX, float worldZ, float minDistWorld, IReadOnlyList<ItemType> chosenItems)
         {
             float minDistSq = minDistWorld * minDistWorld;
+
             foreach (var obj in room.Objects)
             {
                 if (obj is ItemInstance item && chosenItems.Contains(item.ItemType))
                 {
                     float dx = obj.Position.X - worldX;
                     float dz = obj.Position.Z - worldZ;
+
                     if (dx * dx + dz * dz < minDistSq)
                         return true;
                 }
             }
+
             return false;
         }
 
-        #endregion
-
-        #region Room Collection
-
-        /// <summary>
-        /// Collects rooms to consider for the brush operation (current + optionally adjacent through portals).
-        /// </summary>
-        public static List<Room> GetBrushRooms(Room currentRoom, bool includeAdjacent)
+        private static bool IsTooCloseInList(List<Vector2> positions, float x, float z, float minDistSq)
         {
-            var rooms = new List<Room> { currentRoom };
-            if (includeAdjacent)
+            foreach (var pos in positions)
             {
-                foreach (var portal in currentRoom.Portals)
-                {
-                    if (portal.AdjoiningRoom != null && !rooms.Contains(portal.AdjoiningRoom))
-                        rooms.Add(portal.AdjoiningRoom);
-                }
+                float dx = pos.X - x;
+                float dz = pos.Y - z;
+                if (dx * dx + dz * dz < minDistSq)
+                    return true;
             }
-            return rooms;
+
+            return false;
         }
 
         #endregion
 
         #region Main Brush Operations
 
-        /// <summary>
-        /// Main brush operation: places objects within the brush area, respecting density and geometry.
-        /// centerWorldX/Z are in room-local world units.
-        /// Optional sectorConstraint limits placement to the specified sector rectangle.
-        /// </summary>
-        public static List<PositionBasedObjectInstance> PlaceObjectsWithBrush(
-            Editor editor, Room room,
-            float centerWorldX, float centerWorldZ,
-            IReadOnlyList<ItemType> chosenItems,
-            RectangleInt2? sectorConstraint = null)
+        private struct PlacementContext
         {
-            var config = editor.Configuration;
-            var level = editor.Level;
-            float radius = config.ObjectBrush_Radius;
-            float density = config.ObjectBrush_Density;
-            var shape = config.ObjectBrush_Shape;
-            bool adjacent = config.ObjectBrush_PlaceInAdjacentRooms;
+            public Dictionary<ItemType, BoundingBox?> BboxCache;
+            public Dictionary<Room, List<Vector2>> PosCache;
+        }
+
+        // Main object placement operation.
+
+        public static List<PositionBasedObjectInstance> PlaceObjectsWithBrush(Editor editor, Room room, float x, float z,
+            IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint = null)
+        {
+            var shape = editor.Configuration.ObjectBrush_Shape;
+            float radius = editor.Configuration.ObjectBrush_Radius;
+            float density = editor.Configuration.ObjectBrush_Density;
 
             var placedObjects = new List<PositionBasedObjectInstance>();
 
-            // Min distance for spacing (derived from density, in world units)
+            // Min distance for spacing (derived from density, in world units).
             float cellSizeWorld = Level.SectorSizeUnit / (float)Math.Sqrt(Math.Max(0.01f, density));
             float minDistWorld = cellSizeWorld * 0.5f;
+            float minDistSq = minDistWorld * minDistWorld;
 
-            var rooms = GetBrushRooms(room, adjacent);
+            var rooms = GetBrushRooms(room, editor.Configuration.ObjectBrush_PlaceInAdjacentRooms);
+
+            // Build per-call context: bbox cache (shared across rooms) + position cache (per room).
+            // Pre-populate PosCache with existing matching objects so distance checks don't scan room.Objects.
+            var ctx = new PlacementContext
+            {
+                BboxCache = new Dictionary<ItemType, BoundingBox?>(),
+                PosCache  = new Dictionary<Room, List<Vector2>>()
+            };
+
+            foreach (var r in rooms)
+            {
+                var posList = new List<Vector2>();
+
+                foreach (var obj in r.Objects)
+                {
+                    if (obj is ItemInstance item && chosenItems.Contains(item.ItemType))
+                        posList.Add(new Vector2(item.Position.X, item.Position.Z));
+                }
+
+                ctx.PosCache[r] = posList;
+            }
 
             foreach (var targetRoom in rooms)
             {
-                // Convert brush center to target room's local space (already world units)
-                Vector3 offset = room.WorldPos - targetRoom.WorldPos;
-                float localCenterX = centerWorldX + offset.X;
-                float localCenterZ = centerWorldZ + offset.Z;
+                var offset = room.WorldPos - targetRoom.WorldPos;
+                float localCenterX = x + offset.X;
+                float localCenterZ = z + offset.Z;
 
-                int existingCount = CountMatchingObjectsInArea(targetRoom, localCenterX, localCenterZ, radius, shape, chosenItems);
+                int existingCount = CountMatchingObjectsInArea(ctx.PosCache[targetRoom], localCenterX, localCenterZ, radius, shape);
                 int targetCount = GetTargetObjectCount(radius, density, shape);
 
                 if (existingCount >= targetCount)
@@ -380,8 +357,8 @@ namespace TombEditor.Controls.ObjectBrush
                     // Pick random item type per placement
                     var chosenItem = chosenItems[_rng.Next(chosenItems.Count)];
 
-                    if (!TryPlaceObject(editor, level, targetRoom, candidate, chosenItem,
-                        minDistWorld, chosenItems, sectorConstraint, out var instance))
+                    if (!TryPlaceObject(editor, editor.Level, targetRoom, candidate, chosenItem,
+                        minDistSq, ref ctx, sectorConstraint, out var instance))
                         continue;
 
                     placedObjects.Add(instance);
@@ -393,14 +370,10 @@ namespace TombEditor.Controls.ObjectBrush
             return placedObjects;
         }
 
-        /// <summary>
-        /// Attempts to place a single object at the candidate position, checking all constraints.
-        /// When adjacent rooms is enabled, probes through floor portals to find the actual room below.
-        /// </summary>
+        // Individual object placement attempt.
+
         private static bool TryPlaceObject(Editor editor, Level level, Room targetRoom,
-            Vector2 candidate, ItemType chosenItem,
-            float minDistWorld, IReadOnlyList<ItemType> allChosenItems,
-            RectangleInt2? sectorConstraint,
+            Vector2 candidate, ItemType chosenItem, float minDistSq, ref PlacementContext ctx, RectangleInt2? sectorConstraint,
             out PositionBasedObjectInstance instance)
         {
             instance = null;
@@ -412,15 +385,17 @@ namespace TombEditor.Controls.ObjectBrush
 
             if (!IsValidFloorPosition(targetRoom, sectorX, sectorZ))
                 return false;
+
             if (!IsWithinConstraint(sectorX, sectorZ, sectorConstraint))
                 return false;
 
-            // Probe through floor portals to find the actual room and position
             var config = editor.Configuration;
+
             var placementRoom = targetRoom;
             float placeX = worldX;
             float placeZ = worldZ;
 
+            // Probe through floor portals to find the actual room and position.
             if (config.ObjectBrush_PlaceInAdjacentRooms)
             {
                 var resolved = ResolveFloorRoom(targetRoom, worldX, worldZ);
@@ -429,7 +404,14 @@ namespace TombEditor.Controls.ObjectBrush
                 placeZ = resolved.LocalZ;
             }
 
-            if (IsTooCloseToExisting(placementRoom, placeX, placeZ, minDistWorld, allChosenItems))
+            // Use cached position list instead of scanning room.Objects on every candidate
+            if (!ctx.PosCache.TryGetValue(placementRoom, out var posList))
+            {
+                posList = new List<Vector2>();
+                ctx.PosCache[placementRoom] = posList;
+            }
+
+            if (IsTooCloseInList(posList, placeX, placeZ, minDistSq))
                 return false;
 
             bool randomRot = config.ObjectBrush_RandomizeRotation;
@@ -437,12 +419,19 @@ namespace TombEditor.Controls.ObjectBrush
 
             float rotY = randomRot ? (float)(_rng.NextDouble() * 360.0) : 0.0f;
             float scale = 1.0f;
+
             if (randomScale && chosenItem.IsStatic)
                 scale = config.ObjectBrush_ScaleMin + (float)_rng.NextDouble() * (config.ObjectBrush_ScaleMax - config.ObjectBrush_ScaleMin);
 
-            // Determine Y position in the placement room
-            var bbox = GetItemBoundingBox(level, chosenItem);
+            // Determine Y position in the placement room (use cached bounds to avoid repeated wad look-ups).
+            if (!ctx.BboxCache.TryGetValue(chosenItem, out var bbox))
+            {
+                bbox = GetItemBoundingBox(level, chosenItem);
+                ctx.BboxCache[chosenItem] = bbox;
+            }
+
             float yPos;
+
             if (config.ObjectBrush_FitToGround && bbox.HasValue)
             {
                 float? safeHeight = GetSafePlacementHeight(placementRoom, new Vector3(placeX, 0, placeZ), rotY, scale, bbox.Value);
@@ -461,34 +450,28 @@ namespace TombEditor.Controls.ObjectBrush
 
             if (instance is IRotateableY rotatable)
                 rotatable.RotationY = rotY;
+
             if (instance is IScaleable scaleable && randomScale)
                 scaleable.Scale = scale;
 
             placementRoom.AddObject(level, instance);
             EditorActions.RebuildLightsForObject(instance);
 
+            // Record newly placed position in the cache for subsequent distance checks within this stroke.
+            ctx.PosCache[placementRoom].Add(new Vector2(placeX, placeZ));
+
             return true;
         }
 
-        /// <summary>
-        /// Eraser operation: removes objects of matching types within the brush area.
-        /// centerWorldX/Z are in room-local world units.
-        /// Respects density settings — removes at most targetCount objects per invocation,
-        /// mirroring the placement rate of the brush tool.
-        /// Returns the list of removed objects with their original rooms for undo support.
-        /// </summary>
-        public static List<(PositionBasedObjectInstance Obj, Room Room)> EraseObjectsWithBrush(
-            Editor editor, Room room,
-            float centerWorldX, float centerWorldZ,
-            IReadOnlyList<ItemType> chosenItems,
-            RectangleInt2? sectorConstraint = null)
+        // Main object erase operation.
+
+        public static List<(PositionBasedObjectInstance Obj, Room Room)> EraseObjectsWithBrush(Editor editor, Room room,
+            float centerWorldX, float centerWorldZ, IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint = null)
         {
-            var config = editor.Configuration;
-            var level = editor.Level;
-            float radius = config.ObjectBrush_Radius;
-            float density = config.ObjectBrush_Density;
-            var shape = config.ObjectBrush_Shape;
-            bool adjacent = config.ObjectBrush_PlaceInAdjacentRooms;
+            var shape     = editor.Configuration.ObjectBrush_Shape;
+            float radius  = editor.Configuration.ObjectBrush_Radius;
+            float density = editor.Configuration.ObjectBrush_Density;
+            bool adjacent = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
 
             int targetCount = GetTargetObjectCount(radius, density, shape);
 
@@ -501,7 +484,7 @@ namespace TombEditor.Controls.ObjectBrush
                 if (totalRemoved >= targetCount)
                     break;
 
-                Vector3 offset = room.WorldPos - targetRoom.WorldPos;
+                var offset = room.WorldPos - targetRoom.WorldPos;
                 float localCenterX = centerWorldX + offset.X;
                 float localCenterZ = centerWorldZ + offset.Z;
 
@@ -520,7 +503,7 @@ namespace TombEditor.Controls.ObjectBrush
                         editor.SelectedObject = null;
 
                     // Capture room reference before removal (RemoveObject sets obj.Room to null).
-                    targetRoom.RemoveObject(level, obj);
+                    targetRoom.RemoveObject(editor.Level, obj);
                     removedObjects.Add((obj, targetRoom));
                     totalRemoved++;
                 }
@@ -532,14 +515,11 @@ namespace TombEditor.Controls.ObjectBrush
             return removedObjects;
         }
 
-        /// <summary>
-        /// Collects all objects matching the criteria within the brush area for removal.
-        /// </summary>
-        private static List<PositionBasedObjectInstance> CollectObjectsInBrushArea(Room room,
-            float centerWorldX, float centerWorldZ, float radius, ObjectBrushShape shape,
-            IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint)
+        private static List<PositionBasedObjectInstance> CollectObjectsInBrushArea(Room room, float centerWorldX, float centerWorldZ, float radius,
+            ObjectBrushShape shape, IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint)
         {
             var result = new List<PositionBasedObjectInstance>();
+
             foreach (var obj in room.Objects)
             {
                 if (!(obj is ItemInstance item) || !chosenItems.Contains(item.ItemType))
@@ -559,17 +539,12 @@ namespace TombEditor.Controls.ObjectBrush
             return result;
         }
 
-        /// <summary>
-        /// Fisher-Yates shuffle.
-        /// </summary>
-        private static void ShuffleList<T>(List<T> list)
+        public static void ShuffleList<T>(List<T> list)
         {
             for (int i = list.Count - 1; i > 0; i--)
             {
-                int j = _rng.Next(i + 1);
-                T tmp = list[i];
-                list[i] = list[j];
-                list[j] = tmp;
+                int j = Random.Shared.Next(i + 1);
+                (list[i], list[j]) = (list[j], list[i]);
             }
         }
 

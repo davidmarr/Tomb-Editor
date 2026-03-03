@@ -48,9 +48,6 @@ namespace TombEditor.ToolWindows
                 return;
             }
 
-            // Incremental update — avoids O(K * N^2) rebuild-per-event cost that caused
-            // freezes when the brush tool placed or erased many objects rapidly.
-            // Each Add/Remove/Change is O(1) or O(N) instead of re-adding the whole list.
             if (obj is Editor.ObjectChangedEvent)
             {
                 var e = (Editor.ObjectChangedEvent)obj;
@@ -64,7 +61,6 @@ namespace TombEditor.ToolWindows
                 switch (e.ChangeType)
                 {
                     case ObjectChangeType.Add:
-                        // Append the new item without touching existing entries.
                         lstObjects.Items.Add(new DarkListItem(e.Object.ToShortString()) { Tag = e.Object });
                         break;
 

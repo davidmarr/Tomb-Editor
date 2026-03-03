@@ -157,7 +157,7 @@ namespace TombEditor.Controls.Panel3D
                         // Handle object brush/eraser tools
                         if (_editor.Tool.Tool == EditorToolType.ObjectBrush || _editor.Tool.Tool == EditorToolType.ObjectEraser)
                         {
-                            if (_editor.Mode == EditorMode.FaceEdit && newSectorPicking.BelongsToFloor)
+                            if ((_editor.Mode == EditorMode.FaceEdit || _editor.Mode == EditorMode.Lighting) && newSectorPicking.BelongsToFloor)
                             {
                                 _objectBrushEngaged = true;
                                 _brushStrokeUndoList.Clear();
@@ -256,6 +256,10 @@ namespace TombEditor.Controls.Panel3D
             }
             else if (newPicking is PickingResultObject)
             {
+                // If brush is active and Ctrl isn't held, click-through objects without selecting them.
+                if ((_editor.Tool.Tool == EditorToolType.ObjectBrush || _editor.Tool.Tool == EditorToolType.ObjectEraser) && !ModifierKeys.HasFlag(Keys.Control))
+                    return;
+
                 var obj = ((PickingResultObject)newPicking).ObjectInstance;
 
                 if (obj.Room != _editor.SelectedRoom && _editor.Configuration.Rendering3D_AutoswitchCurrentRoom)

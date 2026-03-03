@@ -48,9 +48,10 @@ namespace TombEditor.Controls.Panel3D
             _dragObjectMoved = false;
             _dragObjectPicked = false;
 
-            // Push batch undo for the entire brush stroke
+            // Push batch undo for the entire brush stroke.
             if (_objectBrushEngaged)
                 ObjectBrushActions.EndBrushStroke(_editor, _brushStrokeUndoList);
+
             _objectBrushEngaged = false;
             _lastBrushWorldPosition = null;
 

@@ -122,10 +122,10 @@ namespace TombEditor.Controls
                 toolTerrain.Visible = geometryMode;
                 toolPortalDigger.Visible = geometryMode;
 
-                bool faceEditMode = mode == EditorMode.FaceEdit;
-                toolSeparator3.Visible = faceEditMode;
-                toolObjectBrush.Visible = faceEditMode;
-                toolObjectEraser.Visible = faceEditMode;
+                bool brushMode = mode == EditorMode.FaceEdit || mode == EditorMode.Lighting;
+                toolSeparator3.Visible = brushMode;
+                toolObjectBrush.Visible = brushMode;
+                toolObjectEraser.Visible = brushMode;
 
                 toolStrip.AutoSize = true;
                 AutoSize = true;
