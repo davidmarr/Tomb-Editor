@@ -466,18 +466,25 @@ public partial class ContentBrowserViewModel : ObservableObject
     /// </summary>
     private readonly Dictionary<string, BitmapSource> _thumbnailCache = new();
 
+    // Stored for use in FilterPredicate (set during RefreshAssets)
+    private TRVersion.Game _gameVersion;
+    private bool _hideInternalObjects;
+
     /// <summary>
     /// Refreshes all assets from the current level settings.
     /// Builds moveable and static item lists in parallel for maximum performance.
     /// Also scans for catalog categories and populates filter options.
     /// </summary>
-    public void RefreshAssets(LevelSettings settings)
+    public void RefreshAssets(LevelSettings settings, bool hideInternalObjects = false)
     {
         var previousSelection = SelectedItem?.WadObject;
         var previousFilterName = SelectedFilter?.DisplayName;
 
         var gameVersion = settings.GameVersion;
         bool isTombEngine = gameVersion == TRVersion.Game.TombEngine;
+
+        _gameVersion = gameVersion;
+        _hideInternalObjects = hideInternalObjects;
 
         // Fetch all objects upfront (these iterate wad files)
         var allMoveables = settings.WadGetAllMoveables();
@@ -713,6 +720,13 @@ public partial class ContentBrowserViewModel : ObservableObject
     private bool FilterPredicate(object obj)
     {
         if (obj is not AssetItemViewModel item)
+            return false;
+
+        // Hide internal/engine-only moveables when configured
+        if (_hideInternalObjects &&
+            item.Category == AssetCategory.Moveables &&
+            item.WadObject is WadMoveable mov &&
+            TrCatalog.IsHidden(_gameVersion, mov.Id.TypeId))
             return false;
 
         var filter = SelectedFilter;
