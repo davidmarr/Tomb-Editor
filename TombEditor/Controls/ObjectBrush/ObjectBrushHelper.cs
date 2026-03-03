@@ -389,6 +389,7 @@ namespace TombEditor.Controls.ObjectBrush
                 }
             }
 
+            editor.ObjectChange(placedObjects, ObjectChangeType.Add);
             return placedObjects;
         }
 
@@ -465,7 +466,7 @@ namespace TombEditor.Controls.ObjectBrush
 
             placementRoom.AddObject(level, instance);
             EditorActions.RebuildLightsForObject(instance);
-            editor.ObjectChange(instance, ObjectChangeType.Add);
+
             return true;
         }
 
@@ -518,14 +519,15 @@ namespace TombEditor.Controls.ObjectBrush
                     if (editor.SelectedObject == obj)
                         editor.SelectedObject = null;
 
-                    // Capture room reference BEFORE removal (RemoveObject sets obj.Room to null)
-                    var objRoom = targetRoom;
+                    // Capture room reference before removal (RemoveObject sets obj.Room to null).
                     targetRoom.RemoveObject(level, obj);
-                    editor.ObjectChange(obj, ObjectChangeType.Remove, objRoom);
-                    removedObjects.Add((obj, objRoom));
+                    removedObjects.Add((obj, targetRoom));
                     totalRemoved++;
                 }
             }
+
+            foreach (var (obj, objRoom) in removedObjects)
+                editor.ObjectChange(obj, ObjectChangeType.Remove, objRoom);
 
             return removedObjects;
         }
