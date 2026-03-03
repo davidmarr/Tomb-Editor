@@ -72,7 +72,6 @@ namespace TombEditor.Forms
 
             // Restore window settings and prepare UI
             Configuration.LoadWindowProperties(this, _editor.Configuration);
-            LoadWindowLayout(_editor.Configuration);
             GenerateMenusRecursive(menuStrip.Items);
             UpdateUIColours();
             UpdateControls();
@@ -624,6 +623,12 @@ namespace TombEditor.Forms
         {
             base.OnActivated(e);
             _editor.Focus();
+        }
+
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+            LoadWindowLayout(_editor.Configuration);
         }
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)

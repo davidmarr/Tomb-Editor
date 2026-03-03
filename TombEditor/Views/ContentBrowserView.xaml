@@ -5,6 +5,7 @@
 	xmlns:controls="clr-namespace:DarkUI.WPF.CustomControls;assembly=DarkUI.WPF"
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:darkUI="clr-namespace:DarkUI.WPF;assembly=DarkUI.WPF"
+	xmlns:local="clr-namespace:TombEditor.Views"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 	xmlns:viewModels="clr-namespace:TombEditor.ViewModels"
 	d:DataContext="{d:DesignInstance Type=viewModels:ContentBrowserViewModel}"
@@ -17,6 +18,9 @@
 
 	<UserControl.Resources>
 		<BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+
+		<!--  Empty state visibility converter: shows when ItemCount is 0  -->
+		<local:EmptyStateVisibilityConverter x:Key="EmptyStateConverter" />
 
 		<!--  Inverted boolean to visibility (visible when false)  -->
 		<Style x:Key="HideWhenTrueStyle" TargetType="FrameworkElement">
@@ -386,6 +390,24 @@
 				BorderThickness="1"
 				Visibility="Collapsed" />
 		</Canvas>
+
+		<!--  Empty state message (shown when no WADs are loaded)  -->
+		<Border
+			Grid.Row="1"
+			Background="Transparent"
+			IsHitTestVisible="True"
+			MouseLeftButtonDown="EmptyState_MouseLeftButtonDown"
+			Visibility="{Binding HasLoadedWads, Converter={StaticResource EmptyStateConverter}}">
+			<TextBlock
+				HorizontalAlignment="Center"
+				VerticalAlignment="Center"
+				FontSize="11"
+				Foreground="{DynamicResource Brush_Text}"
+				Opacity="0.5"
+				Text="Click here to load new WAD file."
+				TextAlignment="Center"
+				Cursor="Hand" />
+		</Border>
 
 		<!--  Status bar: Tile slider + Wad source + Item count  -->
 		<Border

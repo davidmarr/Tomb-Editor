@@ -9,24 +9,21 @@ using TombLib.Wad.Catalog;
 
 namespace TombLib.Controls
 {
-    /// <summary>
-    /// Shared rendering helper for IWadObject items. Used by both PanelItemPreview
-    /// (on-screen rendering) and OffscreenItemRenderer (thumbnail rendering).
-    /// </summary>
     public static class WadObjectRenderHelper
     {
         /// <summary>
-        /// Applies Lara skin mesh substitution for moveables that need it.
+        /// Applies optional skin substitute for moveables that need it.
         /// If the object is a WadMoveable and has a skin defined in TrCatalog,
         /// replaces dummy meshes with the skin's meshes.
         /// Returns the original object unchanged for non-moveables or when no skin is found.
         /// </summary>
-        public static IWadObject ApplyLaraSkin(IWadObject wadObject, LevelSettings settings)
+        public static IWadObject GetRenderObject(IWadObject wadObject, LevelSettings settings)
         {
             if (wadObject is WadMoveable moveable)
             {
                 var skinId = new WadMoveableId(TrCatalog.GetMoveableSkin(settings.GameVersion, moveable.Id.TypeId));
                 var skin = settings.WadTryGetMoveable(skinId);
+
                 if (skin != null && skin != moveable)
                     return moveable.ReplaceDummyMeshes(skin);
             }
@@ -45,7 +42,7 @@ namespace TombLib.Controls
                 if (moveable.Meshes.Count == 0 || (moveable.Meshes.Count == 1 && moveable.Meshes[0] == null))
                     return bs;
 
-                AnimatedModel model = wadRenderer.GetMoveable(moveable);
+                var model = wadRenderer.GetMoveable(moveable);
                 if (model.Animations.Count > 0 && model.Animations[0].KeyFrames.Count > 0)
                 {
                     model.UpdateAnimation(0, 0);
@@ -82,31 +79,25 @@ namespace TombLib.Controls
             {
                 if (moveable.Meshes.Count == 0 || (moveable.Meshes.Count == 1 && moveable.Meshes[0] == null))
                     return null;
-            }
-            else if (wadObject is WadStatic) { }
-            else if (wadObject is ImportedGeometry) { }
-            else
-            {
-                return null;
-            }
+			}
+			else if (!(wadObject is WadStatic) && !(wadObject is ImportedGeometry))
+			{
+				return null;
+			}
 
-            var bs = ComputeBoundingSphere(wadObject, wadRenderer);
+			var bs = ComputeBoundingSphere(wadObject, wadRenderer);
             var center = bs.Center;
             var radius = bs.Radius * 1.15f;
 
-            return new ArcBallCamera(center,
-                MathC.DegToRad(35), MathC.DegToRad(35),
-                -(float)Math.PI / 2, (float)Math.PI / 2,
-                radius * 3, 50, 1000000,
-                fieldOfView * (float)(Math.PI / 180));
+            return new ArcBallCamera(center, MathC.DegToRad(35), MathC.DegToRad(35),
+				-(float)Math.PI / 2, (float)Math.PI / 2, radius * 3, 50, 1000000, fieldOfView * (float)(Math.PI / 180));
         }
 
         /// <summary>
         /// Renders any IWadObject (except WadSpriteSequence) using legacy rendering.
         /// </summary>
         public static void RenderObject(IWadObject wadObject, WadRenderer wadRenderer,
-            GraphicsDevice legacyDevice, Matrix4x4 viewProjection, Vector3 cameraPosition,
-            bool drawTransparency)
+            GraphicsDevice legacyDevice, Matrix4x4 viewProjection, Vector3 cameraPosition, bool drawTransparency)
         {
             if (wadObject is WadMoveable moveable)
                 RenderMoveable(moveable, wadRenderer, legacyDevice, viewProjection, cameraPosition, drawTransparency);
@@ -120,13 +111,12 @@ namespace TombLib.Controls
         /// Renders a WadMoveable using legacy rendering.
         /// </summary>
         public static void RenderMoveable(WadMoveable moveable, WadRenderer wadRenderer,
-            GraphicsDevice legacyDevice, Matrix4x4 viewProjection, Vector3 cameraPosition,
-            bool drawTransparency)
+            GraphicsDevice legacyDevice, Matrix4x4 viewProjection, Vector3 cameraPosition, bool drawTransparency)
         {
             if (moveable.Meshes.Count == 0 || (moveable.Meshes.Count == 1 && moveable.Meshes[0] == null))
                 return;
 
-            AnimatedModel model = wadRenderer.GetMoveable(moveable);
+            var model = wadRenderer.GetMoveable(moveable);
             model.UpdateAnimation(0, 0);
 
             var effect = DeviceManager.DefaultDeviceManager.___LegacyEffects["Model"];
@@ -183,10 +173,9 @@ namespace TombLib.Controls
         /// Renders a WadStatic using legacy rendering.
         /// </summary>
         public static void RenderStatic(WadStatic staticObj, WadRenderer wadRenderer,
-            GraphicsDevice legacyDevice, Matrix4x4 viewProjection, Vector3 cameraPosition,
-            bool drawTransparency)
+            GraphicsDevice legacyDevice, Matrix4x4 viewProjection, Vector3 cameraPosition, bool drawTransparency)
         {
-            StaticModel model = wadRenderer.GetStatic(staticObj);
+            var model = wadRenderer.GetStatic(staticObj);
 
             var effect = DeviceManager.DefaultDeviceManager.___LegacyEffects["Model"];
 
@@ -225,8 +214,7 @@ namespace TombLib.Controls
         /// Renders an ImportedGeometry using legacy rendering.
         /// </summary>
         public static void RenderImportedGeometry(ImportedGeometry geo,
-            GraphicsDevice legacyDevice, Matrix4x4 viewProjection, Vector3 cameraPosition,
-            bool drawTransparency)
+            GraphicsDevice legacyDevice, Matrix4x4 viewProjection, Vector3 cameraPosition, bool drawTransparency)
         {
             var model = geo.DirectXModel;
             if (model == null || model.Meshes == null || model.Meshes.Count == 0)

@@ -163,7 +163,7 @@ namespace TombEditor.ToolWindows
             if (comboItems.Items.Count == 0 || comboItems.SelectedIndex < 0 || !(comboItems.SelectedItem is WadMoveable item))
                 return;
 
-            panelItem.CurrentObject = WadObjectRenderHelper.ApplyLaraSkin(item, _editor.Level.Settings);
+            panelItem.CurrentObject = WadObjectRenderHelper.GetRenderObject(item, _editor.Level.Settings);
             panelItem.ResetCamera();
         }
 

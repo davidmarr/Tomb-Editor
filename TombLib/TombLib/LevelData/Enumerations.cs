@@ -47,7 +47,7 @@ namespace TombLib.LevelData
         // Checks for features supported by the game version
 
         public static bool UsesMainSfx(this Game ver)
-            => ver.Native() is Game.TR2 or Game.TR3;
+            => ver is Game.TR2 or Game.TR3;
 
         public static bool Supports16BitDithering(this Game ver)
             => ver.Native() is > Game.TR1 and < Game.TombEngine;

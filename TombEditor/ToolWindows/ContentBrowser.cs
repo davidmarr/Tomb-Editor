@@ -54,6 +54,7 @@ namespace TombEditor.ToolWindows
             _viewModel.ThumbnailRenderRequested += ViewModel_ThumbnailRenderRequested;
             _viewModel.LocateItemRequested += ViewModel_LocateItemRequested;
             _viewModel.AddItemRequested += ViewModel_AddItemRequested;
+            _viewModel.AddWadRequested += ViewModel_AddWadRequested;
             _viewModel.PropertyChanged += ViewModel_PropertyChanged;
 
             // Load saved tile width from configuration
@@ -81,6 +82,7 @@ namespace TombEditor.ToolWindows
                 _viewModel.ThumbnailRenderRequested -= ViewModel_ThumbnailRenderRequested;
                 _viewModel.LocateItemRequested -= ViewModel_LocateItemRequested;
                 _viewModel.AddItemRequested -= ViewModel_AddItemRequested;
+                _viewModel.AddWadRequested -= ViewModel_AddWadRequested;
                 _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
 
                 _thumbnailTimer?.Stop();
@@ -90,8 +92,10 @@ namespace TombEditor.ToolWindows
                 _renderer?.Dispose();
                 _renderer = null;
             }
+
             if (disposing && components != null)
                 components.Dispose();
+
             base.Dispose(disposing);
         }
 
@@ -108,17 +112,14 @@ namespace TombEditor.ToolWindows
 
             if (items.Count == 1)
             {
-                // Single item: pass IWadObject directly for backward compatibility
+                // Single item: pass IWadObject directly for backward compatibility.
                 if (items[0].WadObject != null)
                     DoDragDrop(items[0].WadObject, DragDropEffects.Copy);
             }
             else
             {
-                // Multiple items: pass as IWadObject array
-                var wadObjects = items
-                    .Where(i => i.WadObject != null)
-                    .Select(i => i.WadObject)
-                    .ToArray();
+                // Multiple items: pass as IWadObject array.
+                var wadObjects = items.Where(i => i.WadObject != null).Select(i => i.WadObject).ToArray();
 
                 if (wadObjects.Length > 0)
                     DoDragDrop(wadObjects, DragDropEffects.Copy);
@@ -130,25 +131,21 @@ namespace TombEditor.ToolWindows
         /// </summary>
         private void ViewModel_LocateItemRequested(object sender, AssetItemViewModel item)
         {
-            if (item == null) return;
+            if (item == null)
+                return;
 
             if (item.WadObject is ImportedGeometry geo)
+            {
                 EditorActions.FindImportedGeometry(geo);
+            }
             else if (item.WadObject is WadMoveable || item.WadObject is WadStatic)
             {
-                // Temporarily set ChosenItem to the alt-clicked item for FindItem to use
-                ItemType? previousChosen = _editor.ChosenItem;
-                IWadObject wadObj = item.WadObject;
-
-                if (wadObj is WadMoveable moveable)
+                if (item.WadObject is WadMoveable moveable)
                     _editor.ChosenItem = new ItemType(moveable.Id, _editor?.Level?.Settings);
-                else if (wadObj is WadStatic staticMesh)
+                else if (item.WadObject is WadStatic staticMesh)
                     _editor.ChosenItem = new ItemType(staticMesh.Id, _editor?.Level?.Settings);
 
                 EditorActions.FindItem();
-
-                // Restore previous chosen item if it was different
-                // (FindItem uses the current ChosenItem to search)
             }
 
             // Scroll to make the item visible in the list
@@ -162,21 +159,25 @@ namespace TombEditor.ToolWindows
         private void ViewModel_AddItemRequested(object sender, EventArgs e)
         {
             var selected = _viewModel.SelectedItem;
-            if (selected == null) return;
+            if (selected == null)
+                return;
 
             if (selected.WadObject is ImportedGeometry)
-            {
                 _editor.Action = new EditorActionPlace(false, (l, r) => new ImportedGeometryInstance());
-            }
             else
-            {
-                CommandHandler.GetCommand("AddItem").Execute?.Invoke(
-                    new CommandArgs { Editor = _editor, Window = FindForm() });
-            }
+                CommandHandler.GetCommand("AddItem").Execute?.Invoke(new CommandArgs { Editor = _editor, Window = FindForm() });
 
-            // If the action was not set (e.g. validation failed), restore the tile animation immediately
+            // If the action was not set (e.g. validation failed), restore the tile animation immediately.
             if (_editor.Action is not EditorActionPlace)
                 contentBrowserView.RestoreLastAnimation();
+        }
+
+        /// <summary>
+        /// Handles add WAD requests from the empty state message.
+        /// </summary>
+        private void ViewModel_AddWadRequested(object sender, EventArgs e)
+        {
+            EditorActions.AddWad(this, null);
         }
 
         /// <summary>
@@ -185,9 +186,7 @@ namespace TombEditor.ToolWindows
         private void ViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(ContentBrowserViewModel.TileWidth))
-            {
                 _editor.Configuration.ContentBrowser_TileWidth = _viewModel.TileWidth;
-            }
         }
 
         /// <summary>
@@ -196,7 +195,7 @@ namespace TombEditor.ToolWindows
         /// </summary>
         private void ViewModel_ThumbnailRenderRequested(object sender, EventArgs e)
         {
-            // Build/rebuild the queue from items that still need thumbnails
+            // Build/rebuild the queue from items that still need thumbnails,
             _thumbnailQueue = _viewModel.GetItemsNeedingThumbnails().ToList();
             _thumbnailQueueIndex = 0;
 
@@ -215,7 +214,7 @@ namespace TombEditor.ToolWindows
         {
             if (_thumbnailQueue == null || _thumbnailQueueIndex >= _thumbnailQueue.Count)
             {
-                // All items rendered — stop timer and clean up
+                // All items rendered — stop timer and clean up.
                 _thumbnailTimer?.Stop();
                 _thumbnailQueue = null;
                 _thumbnailQueueIndex = 0;
@@ -234,16 +233,12 @@ namespace TombEditor.ToolWindows
         {
             try
             {
-                // Lazily create the renderer (requires D3D11 device to be ready)
                 if (_renderer == null)
                     _renderer = new OffscreenItemRenderer();
 
-                // Sync background color from editor's color scheme
                 _renderer.ClearColor = _editor.Configuration.UI_ColorScheme.Color3DBackground;
 
-                // Determine thumbnail pixel size from current tile settings
-                int thumbPixelSize = Math.Max(64, (int)(_viewModel.ThumbSize * 2)); // render at 2x for quality
-
+                int thumbPixelSize = Math.Max(64, (int)(_viewModel.ThumbSize * 2));
                 int end = Math.Min(_thumbnailQueueIndex + ThumbnailBatchSize, _thumbnailQueue.Count);
 
                 for (int i = _thumbnailQueueIndex; i < end; i++)
@@ -256,8 +251,7 @@ namespace TombEditor.ToolWindows
                             continue;
 
                         // Apply Lara skin substitution for moveables (shared with ItemBrowser)
-                        IWadObject renderObject = WadObjectRenderHelper.ApplyLaraSkin(
-                            item.WadObject, _editor.Level.Settings);
+                        var renderObject = WadObjectRenderHelper.GetRenderObject(item.WadObject, _editor.Level.Settings);
 
                         var image = _renderer.RenderThumbnail(renderObject, thumbPixelSize);
                         var bitmapSource = AssetItemViewModel.ImageCToBitmapSource(image);
