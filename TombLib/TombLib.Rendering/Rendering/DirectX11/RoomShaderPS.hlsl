@@ -181,7 +181,7 @@ float4 main(PixelInputType input) : SV_TARGET
 		float edge = abs(dist - BrushCenter.w);
 		float lineWidth = (RoomGridLineWidth * 2048) / input.Position.w;
 		float edgeNorm = edge / max(fwidth(dist), 0.001f);
-		float alpha = BrushColor.w * saturate(1.0f - edgeNorm / max(lineWidth * 2.0f, 0.001f));
+		float alpha = BrushColor.w * saturate(1.0f - edgeNorm / max(lineWidth, 0.001f));
 		result.xyz = lerp(result.xyz, BrushColor.xyz, alpha);
 		result.w = max(result.w, alpha);
 	}
