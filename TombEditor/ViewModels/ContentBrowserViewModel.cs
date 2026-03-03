@@ -231,8 +231,7 @@ public partial class AssetItemViewModel : ObservableObject
 
         byte[] data = image.ToByteArray();
         int stride = image.Width * 4; // BGRA = 4 bytes per pixel
-        var bmp = BitmapSource.Create(image.Width, image.Height, 96, 96,
-            PixelFormats.Bgra32, null, data, stride);
+        var bmp = BitmapSource.Create(image.Width, image.Height, 96, 96, PixelFormats.Bgra32, null, data, stride);
         bmp.Freeze();
         return bmp;
     }
