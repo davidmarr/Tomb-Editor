@@ -265,6 +265,7 @@ namespace TombEditor
         }
         private EditorTool _lastGeometryTool = new EditorTool();
         private EditorTool _lastFaceEditTool = new EditorTool();
+        private EditorTool _lastObjectPlacementTool = new EditorTool();
 
         // Object brush cursor state (updated by Panel3D on mouse move)
         public class ObjectBrushCursorChangedEvent : IEditorEvent
@@ -1127,6 +1128,8 @@ namespace TombEditor
 
                 if (@event.Current == EditorMode.Geometry)
                     Tool = _lastGeometryTool;
+                else if (@event.Current == EditorMode.ObjectPlacement)
+                    Tool = _lastObjectPlacementTool;
                 else
                     Tool = _lastFaceEditTool;
             }
@@ -1140,6 +1143,10 @@ namespace TombEditor
                     _lastGeometryTool = @event.Current;
                     Configuration.UI_LastGeometryTool = _lastGeometryTool;
                 }    
+                else if (Mode == EditorMode.ObjectPlacement)
+                {
+                    _lastObjectPlacementTool = @event.Current;
+                }
                 else
                 {
                     _lastFaceEditTool = @event.Current;

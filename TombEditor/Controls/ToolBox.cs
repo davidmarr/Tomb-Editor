@@ -71,8 +71,7 @@ namespace TombEditor.Controls
                 toolPyramid.Checked = currentTool.Tool == EditorToolType.Pyramid;
                 toolTerrain.Checked = currentTool.Tool == EditorToolType.Terrain;
                 toolPortalDigger.Checked = currentTool.Tool == EditorToolType.PortalDigger;
-                toolObjectBrush.Checked = currentTool.Tool == EditorToolType.ObjectBrush;
-                toolObjectEraser.Checked = currentTool.Tool == EditorToolType.ObjectEraser;
+                toolObjectEraser.Checked = currentTool.Tool == EditorToolType.Eraser;
 
                 toolUVFixer.Checked = currentTool.TextureUVFixer;
 
@@ -103,13 +102,15 @@ namespace TombEditor.Controls
             {
                 EditorMode mode = _editor.Mode;
                 bool geometryMode = mode == EditorMode.Geometry;
+                bool faceEditMode = mode == EditorMode.FaceEdit || mode == EditorMode.Lighting;
+                bool objectPlacementMode = mode == EditorMode.ObjectPlacement;
 
-                toolFill.Visible = !geometryMode;
-                toolGroup.Visible = !geometryMode;
-                toolGridPaint.Visible = !geometryMode;
-                toolEraser.Visible = !geometryMode;
-                toolInvisibility.Visible = !geometryMode;
-                toolUVFixer.Visible = !geometryMode;
+                toolFill.Visible = faceEditMode || objectPlacementMode;
+                toolGroup.Visible = faceEditMode;
+                toolGridPaint.Visible = faceEditMode;
+                toolEraser.Visible = faceEditMode;
+                toolInvisibility.Visible = faceEditMode;
+                toolUVFixer.Visible = faceEditMode;
                 toolFlatten.Visible = geometryMode;
                 toolShovel.Visible = geometryMode;
                 toolSmooth.Visible = geometryMode;
@@ -122,14 +123,13 @@ namespace TombEditor.Controls
                 toolTerrain.Visible = geometryMode;
                 toolPortalDigger.Visible = geometryMode;
 
-                bool brushMode = mode == EditorMode.FaceEdit || mode == EditorMode.Lighting;
-                toolSeparator3.Visible = brushMode;
-                toolObjectBrush.Visible = brushMode;
-                toolObjectEraser.Visible = brushMode;
+                toolSeparator3.Visible = objectPlacementMode;
+                toolObjectEraser.Visible = objectPlacementMode;
 
                 toolStrip.AutoSize = true;
                 AutoSize = true;
-                toolStrip.Visible = mode == EditorMode.FaceEdit || mode == EditorMode.Lighting || mode == EditorMode.Geometry;
+                toolStrip.Visible = mode == EditorMode.FaceEdit || mode == EditorMode.Lighting ||
+                    mode == EditorMode.Geometry || mode == EditorMode.ObjectPlacement;
             }
         }
 
@@ -260,14 +260,9 @@ namespace TombEditor.Controls
                 ContextMenuTimer_Tick(sender, e);
         }
 
-        private void toolObjectBrush_Click(object sender, EventArgs e)
-        {
-            SwitchTool(EditorToolType.ObjectBrush);
-        }
-
         private void toolObjectEraser_Click(object sender, EventArgs e)
         {
-            SwitchTool(EditorToolType.ObjectEraser);
+            SwitchTool(EditorToolType.Eraser);
         }
     }
 }

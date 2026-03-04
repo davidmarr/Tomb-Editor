@@ -2335,6 +2335,12 @@ namespace TombEditor
                     AllocateScriptIds(obj);
         }
 
+        // Public wrapper for deferred script ID allocation after brush strokes.
+        public static void AllocateScriptIdsForObject(PositionBasedObjectInstance instance)
+        {
+            AllocateScriptIds(instance);
+        }
+
         public static void PlaceLight(LightType type)
         {
             var color = (type == LightType.FogBulb && _editor.Level.Settings.GameVersion.Native() <= TRVersion.Game.TR4) ?

@@ -187,11 +187,10 @@ namespace TombEditor.Forms
                 splitSectorObjectOnSelectionToolStripMenuItem.Enabled = _editor.SelectedObject is SectorBasedObjectInstance && validSectorSelection;
             }
 
-            // Show/hide object brush settings toolbox based on active tool
+            // Show/hide object brush settings toolbox based on active mode.
             if (obj is Editor.ToolChangedEvent || obj is Editor.ModeChangedEvent || obj is Editor.InitEvent)
             {
-                bool showBrushToolbox =
-                    _editor.Tool.Tool == EditorToolType.ObjectBrush || _editor.Tool.Tool == EditorToolType.ObjectEraser;
+                bool showBrushToolbox = _editor.Mode == EditorMode.ObjectPlacement;
 
                 if (showBrushToolbox && ObjectBrushSettings.Parent == null)
                 {

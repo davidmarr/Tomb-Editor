@@ -17,6 +17,7 @@ namespace TombLib.Rendering
         public int BrushShape = 0;
         public Vector4 BrushCenter = Vector4.Zero; // xyz = world center, w = radius
         public Vector4 BrushColor = Vector4.One;
+        public float BrushRotation = 0.0f; // Degrees, for rotation indicator line
     }
 
     public abstract class RenderingStateBuffer : IDisposable

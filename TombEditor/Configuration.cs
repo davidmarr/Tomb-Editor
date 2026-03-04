@@ -190,7 +190,7 @@ namespace TombEditor
 
         public string[] UI_ToolbarButtons { get; set; } = new string[]
         {
-            "2D", "3D", "FaceEdit", "LightingMode", "DrawWhiteLighting", "|",
+            "2D", "3D", "ObjectPlacement", "FaceEdit", "LightingMode", "DrawWhiteLighting", "|",
             "Undo", "Redo", "|",
             "CenterCamera", "ToggleFlyMode", "|",
             "DrawPortals", "DrawAllRooms", "DrawHorizon",
@@ -216,10 +216,12 @@ namespace TombEditor
         public ObjectBrushShape ObjectBrush_Shape { get; set; } = ObjectBrushShape.Circle;
         public bool ObjectBrush_PlaceInAdjacentRooms { get; set; } = false;
         public bool ObjectBrush_RandomizeRotation { get; set; } = true;
+        public float ObjectBrush_Rotation { get; set; } = 0.0f; // Degrees, 0-360
         public bool ObjectBrush_RandomizeScale { get; set; } = false;
         public float ObjectBrush_ScaleMin { get; set; } = 0.8f;
         public float ObjectBrush_ScaleMax { get; set; } = 1.2f;
         public bool ObjectBrush_FitToGround { get; set; } = true;
+        public bool ObjectBrush_ShowTextures { get; set; } = true;
         public Point Rendering3D_ObjectBrushToolboxPosition { get; set; } = new Point(15, 500);
 
         // Geometry IO Window

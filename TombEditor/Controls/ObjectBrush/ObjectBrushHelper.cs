@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Windows.Forms;
+
 using TombLib;
 using TombLib.LevelData;
 
@@ -68,15 +70,18 @@ namespace TombEditor.Controls.ObjectBrush
 
             if (sector?.FloorPortal != null)
             {
+                // Only probe through solid collisional portals.
+                var connInfo = room.GetFloorRoomConnectionInfo(new VectorInt2(sectorX, sectorZ), true);
+                if (!sector.FloorPortal.IsTraversable || connInfo.TraversableType != Room.RoomConnectionType.FullPortal)
+                    return (room, localX, localZ);
+
                 var bottomRoom = sector.FloorPortal.AdjoiningRoom;
 
                 if (bottomRoom != null)
                 {
-                    // Convert to bottom room's local coordinates
                     float bottomLocalX = localX + (room.WorldPos.X - bottomRoom.WorldPos.X);
                     float bottomLocalZ = localZ + (room.WorldPos.Z - bottomRoom.WorldPos.Z);
 
-                    // Validate the position in the bottom room
                     int bsx = (int)(bottomLocalX / Level.SectorSizeUnit);
                     int bsz = (int)(bottomLocalZ / Level.SectorSizeUnit);
 
@@ -86,6 +91,21 @@ namespace TombEditor.Controls.ObjectBrush
             }
 
             return (room, localX, localZ);
+        }
+
+        // Check if a position sits on a vertical non-solid non-collisional portal.
+        public static bool IsOnNonSolidPortal(Room room, float localX, float localZ)
+        {
+            int sectorX = (int)(localX / Level.SectorSizeUnit);
+            int sectorZ = (int)(localZ / Level.SectorSizeUnit);
+
+            var sector = room.GetSectorTry(new VectorInt2(sectorX, sectorZ));
+            if (sector?.FloorPortal == null)
+                return false;
+
+            var connInfo = room.GetFloorRoomConnectionInfo(new VectorInt2(sectorX, sectorZ), true);
+            return connInfo.TraversableType != Room.RoomConnectionType.NoPortal &&
+                   connInfo.TraversableType != Room.RoomConnectionType.FullPortal;
         }
 
         #endregion
@@ -403,6 +423,12 @@ namespace TombEditor.Controls.ObjectBrush
                 placeX = resolved.LocalX;
                 placeZ = resolved.LocalZ;
             }
+            else
+            {
+                // If not placing in adjacent rooms, skip positions on non-solid portals.
+                if (IsOnNonSolidPortal(targetRoom, worldX, worldZ))
+                    return false;
+            }
 
             // Use cached position list instead of scanning room.Objects on every candidate
             if (!ctx.PosCache.TryGetValue(placementRoom, out var posList))
@@ -417,7 +443,7 @@ namespace TombEditor.Controls.ObjectBrush
             bool randomRot = config.ObjectBrush_RandomizeRotation;
             bool randomScale = config.ObjectBrush_RandomizeScale;
 
-            float rotY = randomRot ? (float)(_rng.NextDouble() * 360.0) : 0.0f;
+            float rotY = randomRot ? (float)(_rng.NextDouble() * 360.0) : config.ObjectBrush_Rotation;
             float scale = 1.0f;
 
             if (randomScale && chosenItem.IsStatic)
@@ -546,6 +572,253 @@ namespace TombEditor.Controls.ObjectBrush
                 int j = Random.Shared.Next(i + 1);
                 (list[i], list[j]) = (list[j], list[i]);
             }
+        }
+
+        #endregion
+
+        #region Selection Tool
+
+        // Selects or deselects objects within brush radius.
+        // Ctrl deselects, Shift limits to current ChosenItems only.
+
+        public static void SelectObjectsWithBrush(Editor editor, Room room, float centerWorldX, float centerWorldZ,
+            IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint)
+        {
+            var shape = editor.Configuration.ObjectBrush_Shape;
+            float radius = editor.Configuration.ObjectBrush_Radius;
+            bool adjacent = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
+            bool deselect = Control.ModifierKeys.HasFlag(Keys.Control);
+            bool filterByChosen = Control.ModifierKeys.HasFlag(Keys.Shift);
+
+            var rooms = GetBrushRooms(room, adjacent);
+            var objectsInArea = new List<PositionBasedObjectInstance>();
+
+            foreach (var targetRoom in rooms)
+            {
+                var offset = room.WorldPos - targetRoom.WorldPos;
+                float localCenterX = centerWorldX + offset.X;
+                float localCenterZ = centerWorldZ + offset.Z;
+
+                foreach (var obj in targetRoom.Objects)
+                {
+                    if (!(obj is ItemInstance item))
+                        continue;
+
+                    if (filterByChosen && !chosenItems.Contains(item.ItemType))
+                        continue;
+
+                    if (sectorConstraint.HasValue)
+                    {
+                        int sx = (int)(obj.Position.X / Level.SectorSizeUnit);
+                        int sz = (int)(obj.Position.Z / Level.SectorSizeUnit);
+                        if (!IsWithinConstraint(sx, sz, sectorConstraint))
+                            continue;
+                    }
+
+                    if (IsInBrushArea(obj.Position.X, obj.Position.Z, localCenterX, localCenterZ, radius, shape))
+                        objectsInArea.Add(obj);
+                }
+            }
+
+            if (objectsInArea.Count == 0)
+                return;
+
+            if (deselect)
+            {
+                // Deselecting: if current selection is a group containing these objects, remove them.
+                if (editor.SelectedObject is ObjectGroup group)
+                {
+                    var remaining = group.Where(o => !objectsInArea.Contains(o)).ToList();
+                    if (remaining.Count == 0)
+                        editor.SelectedObject = null;
+                    else if (remaining.Count == 1)
+                        editor.SelectedObject = remaining[0];
+                }
+                else if (objectsInArea.Contains(editor.SelectedObject))
+                {
+                    editor.SelectedObject = null;
+                }
+            }
+            else
+            {
+                // Selecting: add objects to current selection.
+                foreach (var obj in objectsInArea)
+                    EditorActions.MultiSelect(obj);
+            }
+        }
+
+        #endregion
+
+        #region Pencil Tool
+
+        // Place a single object per step. Cycles through ChosenItems sequentially.
+        // ObjectBrush_Radius specifies fixed interval between placed objects.
+        // If Ctrl is held, advance only in the rotation direction.
+
+        public static List<PositionBasedObjectInstance> PlaceObjectWithPencil(Editor editor, Room room,
+            float centerWorldX, float centerWorldZ, IReadOnlyList<ItemType> chosenItems, ref int itemIndex,
+            RectangleInt2? sectorConstraint)
+        {
+            var config = editor.Configuration;
+            float radius = config.ObjectBrush_Radius;
+            bool adjacent = config.ObjectBrush_PlaceInAdjacentRooms;
+
+            var placedObjects = new List<PositionBasedObjectInstance>();
+            var level = editor.Level;
+
+            // Build bbox cache.
+            var bboxCache = new Dictionary<ItemType, BoundingBox?>();
+
+            // Select the item to place.
+            var chosenItem = chosenItems[itemIndex % chosenItems.Count];
+
+            // Check if placement would overlap with any existing object of any chosen type.
+            if (!bboxCache.TryGetValue(chosenItem, out var bbox))
+            {
+                bbox = GetItemBoundingBox(level, chosenItem);
+                bboxCache[chosenItem] = bbox;
+            }
+
+            // Compute minimum distance from bounding box for seamless placement.
+            float minDist = radius;
+            if (bbox.HasValue)
+            {
+                float extent = bbox.Value.Maximum.Z - bbox.Value.Minimum.Z;
+                if (extent > 0.0f)
+                    minDist = extent;
+            }
+            float minDistSq = minDist * minDist;
+
+            var rooms = GetBrushRooms(room, adjacent);
+
+            foreach (var targetRoom in rooms)
+            {
+                // Check for overlap with existing objects.
+                bool tooClose = false;
+                var offset = room.WorldPos - targetRoom.WorldPos;
+                float localX = centerWorldX + offset.X;
+                float localZ = centerWorldZ + offset.Z;
+
+                foreach (var obj in targetRoom.Objects)
+                {
+                    if (obj is ItemInstance item && chosenItems.Contains(item.ItemType))
+                    {
+                        float dx = obj.Position.X - localX;
+                        float dz = obj.Position.Z - localZ;
+                        if (dx * dx + dz * dz < minDistSq)
+                        {
+                            tooClose = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (tooClose)
+                    continue;
+
+                var ctx = new PlacementContext
+                {
+                    BboxCache = bboxCache,
+                    PosCache = new Dictionary<Room, List<Vector2>>()
+                };
+
+                var candidate = new Vector2(localX, localZ);
+                if (TryPlaceObject(editor, level, targetRoom, candidate, chosenItem, 0, ref ctx, sectorConstraint, out var instance))
+                {
+                    placedObjects.Add(instance);
+                    itemIndex++;
+                    break;
+                }
+            }
+
+            editor.ObjectChange(placedObjects, ObjectChangeType.Add);
+            return placedObjects;
+        }
+
+        #endregion
+
+        #region Fill Tool
+
+        // Fill a defined area with objects using density setting.
+
+        public static List<PositionBasedObjectInstance> FillAreaWithObjects(Editor editor, Room room,
+            IReadOnlyList<ItemType> chosenItems, RectangleInt2 area)
+        {
+            var config = editor.Configuration;
+            float density = config.ObjectBrush_Density;
+            bool adjacent = config.ObjectBrush_PlaceInAdjacentRooms;
+
+            var placedObjects = new List<PositionBasedObjectInstance>();
+            var level = editor.Level;
+
+            // Calculate center and extent of area in world units.
+            float areaMinX = area.X0 * Level.SectorSizeUnit;
+            float areaMinZ = area.Y0 * Level.SectorSizeUnit;
+            float areaMaxX = (area.X1 + 1) * Level.SectorSizeUnit;
+            float areaMaxZ = (area.Y1 + 1) * Level.SectorSizeUnit;
+
+            // Generate candidate positions using density.
+            float cellSizeWorld = Level.SectorSizeUnit / (float)Math.Sqrt(Math.Max(0.01f, density));
+            float minDistWorld = cellSizeWorld * 0.5f;
+            float minDistSq = minDistWorld * minDistWorld;
+
+            var ctx = new PlacementContext
+            {
+                BboxCache = new Dictionary<ItemType, BoundingBox?>(),
+                PosCache = new Dictionary<Room, List<Vector2>>()
+            };
+
+            // Pre-populate position cache.
+            var rooms = GetBrushRooms(room, adjacent);
+            foreach (var r in rooms)
+            {
+                var posList = new List<Vector2>();
+                foreach (var obj in r.Objects)
+                {
+                    if (obj is ItemInstance item && chosenItems.Contains(item.ItemType))
+                        posList.Add(new Vector2(item.Position.X, item.Position.Z));
+                }
+                ctx.PosCache[r] = posList;
+            }
+
+            // Generate candidates within the area.
+            int gridMinX = (int)Math.Floor(areaMinX / cellSizeWorld);
+            int gridMaxX = (int)Math.Ceiling(areaMaxX / cellSizeWorld);
+            int gridMinZ = (int)Math.Floor(areaMinZ / cellSizeWorld);
+            int gridMaxZ = (int)Math.Ceiling(areaMaxZ / cellSizeWorld);
+
+            var candidates = new List<Vector2>();
+            for (int gx = gridMinX; gx <= gridMaxX; gx++)
+            {
+                for (int gz = gridMinZ; gz <= gridMaxZ; gz++)
+                {
+                    float px = (gx + (float)_rng.NextDouble()) * cellSizeWorld;
+                    float pz = (gz + (float)_rng.NextDouble()) * cellSizeWorld;
+
+                    if (px >= areaMinX && px < areaMaxX && pz >= areaMinZ && pz < areaMaxZ)
+                        candidates.Add(new Vector2(px, pz));
+                }
+            }
+
+            ShuffleList(candidates);
+
+            foreach (var targetRoom in rooms)
+            {
+                var offset = room.WorldPos - targetRoom.WorldPos;
+
+                foreach (var candidate in candidates)
+                {
+                    var localCandidate = new Vector2(candidate.X + offset.X, candidate.Y + offset.Z);
+                    var chosenItem = chosenItems[_rng.Next(chosenItems.Count)];
+
+                    if (TryPlaceObject(editor, level, targetRoom, localCandidate, chosenItem, minDistSq, ref ctx,
+                        (RectangleInt2?)area, out var instance))
+                        placedObjects.Add(instance);
+                }
+            }
+
+            editor.ObjectChange(placedObjects, ObjectChangeType.Add);
+            return placedObjects;
         }
 
         #endregion

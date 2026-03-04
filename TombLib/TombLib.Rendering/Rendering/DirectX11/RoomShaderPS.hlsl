@@ -8,7 +8,7 @@ cbuffer WorldData
 	bool ShowLightingWhiteTextureOnly;
 	int LightMode;
 	int BrushShape; // 0=none, 1=circle, 2=square
-	float _brushPad;
+	float BrushRotation; // Degrees, for rotation indicator line
 	float4 BrushCenter; // xyz = world center, w = radius
 	float4 BrushColor;
 };
@@ -168,7 +168,7 @@ float4 main(PixelInputType input) : SV_TARGET
 	// Use overlay's alpha as global alpha for any mode (needed for hidden rooms), as we've run out of flag space.
 	result *= input.Overlay.w;
 
-	// Draw brush outline projected onto room geometry
+	// Draw brush outline projected onto room geometry.
 	if (BrushShape > 0)
 	{
 		float2 delta = input.WorldPosition.xz - BrushCenter.xz;
@@ -180,10 +180,60 @@ float4 main(PixelInputType input) : SV_TARGET
 
 		float edge = abs(dist - BrushCenter.w);
 		float lineWidth = (RoomGridLineWidth * 2048) / input.Position.w;
-		float edgeNorm = edge / max(fwidth(dist), 0.001f);
-		float alpha = BrushColor.w * saturate(1.0f - edgeNorm / max(lineWidth, 0.001f));
-		result.xyz = lerp(result.xyz, BrushColor.xyz, alpha);
-		result.w = max(result.w, alpha);
+		float fw = max(fwidth(dist), 0.001f);
+
+		// Black outline (outer).
+		float outerEdge = edge / fw;
+		float outerAlpha = saturate(1.0f - outerEdge / max(lineWidth * 1.8f, 0.001f));
+
+		// White inner contour (sharp).
+		float innerAlpha = saturate(1.0f - outerEdge / max(lineWidth, 0.001f));
+
+		// Composite: black outline behind white line.
+		float3 contourColor = lerp(float3(0, 0, 0), float3(1, 1, 1), innerAlpha);
+		float contourAlpha = BrushColor.w * max(outerAlpha, innerAlpha);
+
+		// Rotation indicator line from center to edge.
+		float rotRad = BrushRotation * 3.14159265f / 180.0f;
+		float2 rotDir = float2(sin(rotRad), cos(rotRad));
+
+		// Project delta onto perpendicular of rotation direction.
+		float along = dot(delta, rotDir);
+		float perp = abs(dot(delta, float2(-rotDir.y, rotDir.x)));
+
+		float perpFw = max(fwidth(perp), 0.001f);
+		float perpNorm = perp / perpFw;
+		float lineInnerAlpha = saturate(1.0f - perpNorm / max(lineWidth * 0.7f, 0.001f));
+		float lineOuterAlpha = saturate(1.0f - perpNorm / max(lineWidth * 1.5f, 0.001f));
+
+		// Only draw the line from center to brush edge, and within the brush area.
+		float withinLine = step(0.0f, along) * step(along, BrushCenter.w);
+
+		// Filled circle at center.
+		float centerDist = length(delta);
+		float centerFw = max(fwidth(centerDist), 0.001f);
+		float centerRadius = lineWidth * fw * 2.5f;
+		float centerFill = saturate(1.0f - (centerDist - centerRadius) / centerFw);
+		float centerOutline = saturate(1.0f - (centerDist - centerRadius * 1.3f) / centerFw);
+
+		// Merge rotation line with contour.
+		float3 lineColor = lerp(float3(0, 0, 0), float3(1, 1, 1), lineInnerAlpha);
+		float lineAlpha = BrushColor.w * max(lineInnerAlpha, lineOuterAlpha) * withinLine;
+
+		// Merge center circle.
+		float3 centerColor = lerp(float3(0, 0, 0), float3(1, 1, 1), centerFill);
+		float centerAlpha = BrushColor.w * max(centerFill, centerOutline);
+
+		// Combine all elements.
+		float totalAlpha = max(max(contourAlpha, lineAlpha), centerAlpha);
+		float3 totalColor = contourColor;
+		if (lineAlpha > contourAlpha)
+			totalColor = lineColor;
+		if (centerAlpha > max(contourAlpha, lineAlpha))
+			totalColor = centerColor;
+
+		result.xyz = lerp(result.xyz, totalColor, totalAlpha);
+		result.w = max(result.w, totalAlpha);
 	}
 
     if ((result.x + result.y + result.z + result.w) < 0.02f)

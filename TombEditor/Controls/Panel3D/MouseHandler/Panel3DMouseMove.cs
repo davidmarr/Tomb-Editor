@@ -192,26 +192,65 @@ namespace TombEditor.Controls.Panel3D
             }
             else
             {
-                // Handle object brush/eraser continuous painting
-                if (_objectBrushEngaged &&
-                    (_editor.Tool.Tool == EditorToolType.ObjectBrush || _editor.Tool.Tool == EditorToolType.ObjectEraser))
+                // Handle object brush continuous painting in ObjectPlacement mode.
+                if (_objectBrushEngaged && _editor.Mode == EditorMode.ObjectPlacement)
                 {
                     var brushPicking = DoPicking(GetRay(location.X, location.Y)) as PickingResultSector;
                     if (brushPicking != null && brushPicking.BelongsToFloor)
                     {
-                        var result = ObjectBrushActions.ContinueBrushStroke(
-                            _editor,
-                            brushPicking.Room,
-                            _editor.SelectedRoom,
-                            brushPicking.Pos,
-                            _lastBrushWorldPosition,
-                            _brushPaintQuantizationDistance);
+                        float quantizationDistance = _editor.Configuration.ObjectBrush_Radius;
 
-                        if (result.HasValue)
+                        // For pencil with Ctrl held, constrain movement to the rotation direction.
+                        // Use bounding box extent along the rotation axis for seamless spacing.
+                        if (_editor.Tool.Tool == EditorToolType.Pencil && Control.ModifierKeys.HasFlag(Keys.Control) && _lastBrushWorldPosition.HasValue)
                         {
-                            _brushStrokeUndoList.AddRange(result.Value.UndoInstances);
-                            _lastBrushWorldPosition = result.Value.WorldPosition;
-                            Invalidate();
+                            float rotRad = _editor.Configuration.ObjectBrush_Rotation * (float)(System.Math.PI / 180.0);
+                            var rotDir = new Vector3((float)System.Math.Sin(rotRad), 0, (float)System.Math.Cos(rotRad));
+                            var delta = new Vector3(
+                                (brushPicking.Pos.X + 0.5f) * Level.SectorSizeUnit + brushPicking.Room.WorldPos.X - _lastBrushWorldPosition.Value.X,
+                                0,
+                                (brushPicking.Pos.Y + 0.5f) * Level.SectorSizeUnit + brushPicking.Room.WorldPos.Z - _lastBrushWorldPosition.Value.Z);
+                            float proj = Vector3.Dot(delta, rotDir);
+                            var constrained = _lastBrushWorldPosition.Value + rotDir * proj;
+
+                            // Compute seamless spacing from bounding box extent along local Z (rotation axis).
+                            float spacing = ComputePencilSpacing(_editor);
+
+                            // Convert back to sector coordinates for the brush action.
+                            var room = brushPicking.Room == _editor.SelectedRoom ? _editor.SelectedRoom : brushPicking.Room;
+                            int sx = (int)((constrained.X - room.WorldPos.X) / Level.SectorSizeUnit);
+                            int sz = (int)((constrained.Z - room.WorldPos.Z) / Level.SectorSizeUnit);
+                            var constrainedPos = new VectorInt2(sx, sz);
+
+                            var result = ObjectBrushActions.ContinueBrushStroke(
+                                _editor, room, _editor.SelectedRoom, constrainedPos,
+                                _lastBrushWorldPosition, spacing);
+
+                            if (result.HasValue)
+                            {
+                                _brushStrokeUndoList.AddRange(result.Value.UndoInstances);
+                                _brushStrokePlacedObjects.AddRange(result.Value.PlacedObjects);
+                                _lastBrushWorldPosition = result.Value.WorldPosition;
+                                Invalidate();
+                            }
+                        }
+                        else
+                        {
+                            var result = ObjectBrushActions.ContinueBrushStroke(
+                                _editor,
+                                brushPicking.Room,
+                                _editor.SelectedRoom,
+                                brushPicking.Pos,
+                                _lastBrushWorldPosition,
+                                quantizationDistance);
+
+                            if (result.HasValue)
+                            {
+                                _brushStrokeUndoList.AddRange(result.Value.UndoInstances);
+                                _brushStrokePlacedObjects.AddRange(result.Value.PlacedObjects);
+                                _lastBrushWorldPosition = result.Value.WorldPosition;
+                                Invalidate();
+                            }
                         }
                     }
                     return true;
@@ -369,8 +408,8 @@ namespace TombEditor.Controls.Panel3D
 
         private bool OnMouseMovedNone(Point location)
         {
-            // Update object brush cursor for radius visualization
-            if (_editor.Tool.Tool == EditorToolType.ObjectBrush || _editor.Tool.Tool == EditorToolType.ObjectEraser)
+            // Update object brush cursor for radius visualization.
+            if (_editor.Mode == EditorMode.ObjectPlacement)
             {
                 var brushPicking = DoPicking(GetRay(location.X, location.Y)) as PickingResultSector;
                 if (brushPicking != null && brushPicking.BelongsToFloor)
@@ -419,6 +458,26 @@ namespace TombEditor.Controls.Panel3D
             }
 
             return false;
+        }
+
+        // Computes spacing for seamless pencil placement along the rotation direction.
+        // Uses bounding box Z extent (local depth axis) of the first chosen item.
+
+        private static float ComputePencilSpacing(Editor editor)
+        {
+            if (editor.ChosenItems.Count == 0)
+                return editor.Configuration.ObjectBrush_Radius;
+
+            var bbox = ObjectBrushHelper.GetItemBoundingBox(editor.Level, editor.ChosenItems[0]);
+            if (!bbox.HasValue)
+                return editor.Configuration.ObjectBrush_Radius;
+
+            float scale = editor.Configuration.ObjectBrush_RandomizeScale
+                ? (editor.Configuration.ObjectBrush_ScaleMin + editor.Configuration.ObjectBrush_ScaleMax) / 2.0f
+                : 1.0f;
+
+            float extent = (bbox.Value.Maximum.Z - bbox.Value.Minimum.Z) * scale;
+            return extent > 0.0f ? extent : editor.Configuration.ObjectBrush_Radius;
         }
     }
 }

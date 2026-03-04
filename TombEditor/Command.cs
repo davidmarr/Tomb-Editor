@@ -180,6 +180,11 @@ namespace TombEditor
                 args.Editor.Mode = EditorMode.Lighting;
             });
 
+            AddCommand("SwitchObjectPlacementMode", "Switch to Object Placement mode", CommandType.General, delegate (CommandArgs args)
+            {
+                args.Editor.Mode = EditorMode.ObjectPlacement;
+            });
+
             AddCommand("ResetCamera", "Reset camera position", CommandType.View, delegate (CommandArgs args)
             {
                 args.Editor.ResetCamera();

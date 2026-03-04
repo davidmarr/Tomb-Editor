@@ -44,10 +44,14 @@ namespace TombEditor.Controls.ObjectBrush
 			nudScaleMin = new DarkUI.Controls.DarkNumericUpDown();
 			nudScaleMax = new DarkUI.Controls.DarkNumericUpDown();
 			lblDash = new DarkUI.Controls.DarkLabel();
+			lblRotation = new DarkUI.Controls.DarkLabel();
+			nudRotation = new DarkUI.Controls.DarkNumericUpDown();
+			chkShowTextures = new DarkUI.Controls.DarkCheckBox();
 			((System.ComponentModel.ISupportInitialize)nudRadius).BeginInit();
 			((System.ComponentModel.ISupportInitialize)nudDensity).BeginInit();
 			((System.ComponentModel.ISupportInitialize)nudScaleMin).BeginInit();
 			((System.ComponentModel.ISupportInitialize)nudScaleMax).BeginInit();
+			((System.ComponentModel.ISupportInitialize)nudRotation).BeginInit();
 			SuspendLayout();
 			// 
 			// btnShapeCircle
@@ -188,12 +192,48 @@ namespace TombEditor.Controls.ObjectBrush
 			lblDash.Name = "lblDash";
 			lblDash.Size = new System.Drawing.Size(19, 15);
 			lblDash.TabIndex = 10;
-			lblDash.Text = "—";
+			lblDash.Text = "\u2013";
+			// 
+			// lblRotation
+			// 
+			lblRotation.AutoSize = true;
+			lblRotation.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
+			lblRotation.Location = new System.Drawing.Point(4, 108);
+			lblRotation.Name = "lblRotation";
+			lblRotation.Size = new System.Drawing.Size(55, 15);
+			lblRotation.TabIndex = 11;
+			lblRotation.Text = "Rotation:";
+			// 
+			// nudRotation
+			// 
+			nudRotation.DecimalPlaces = 1;
+			nudRotation.Increment = new decimal(new int[] { 5, 0, 0, 0 });
+			nudRotation.IncrementAlternate = new decimal(new int[] { 1, 0, 0, 0 });
+			nudRotation.Location = new System.Drawing.Point(62, 105);
+			nudRotation.LoopValues = true;
+			nudRotation.Maximum = new decimal(new int[] { 360, 0, 0, 0 });
+			nudRotation.Minimum = new decimal(new int[] { 0, 0, 0, 0 });
+			nudRotation.Name = "nudRotation";
+			nudRotation.Size = new System.Drawing.Size(52, 23);
+			nudRotation.TabIndex = 12;
+			nudRotation.Value = new decimal(new int[] { 0, 0, 0, 0 });
+			// 
+			// chkShowTextures
+			// 
+			chkShowTextures.AutoSize = true;
+			chkShowTextures.Location = new System.Drawing.Point(124, 108);
+			chkShowTextures.Name = "chkShowTextures";
+			chkShowTextures.Size = new System.Drawing.Size(105, 19);
+			chkShowTextures.TabIndex = 13;
+			chkShowTextures.Text = "Show textures";
 			// 
 			// ObjectBrushToolbox
 			// 
 			AutoAnchor = true;
 			BackColor = System.Drawing.Color.FromArgb(60, 63, 65);
+			Controls.Add(chkShowTextures);
+			Controls.Add(nudRotation);
+			Controls.Add(lblRotation);
 			Controls.Add(nudScaleMin);
 			Controls.Add(chkRandomScale);
 			Controls.Add(lblDash);
@@ -208,11 +248,12 @@ namespace TombEditor.Controls.ObjectBrush
 			Controls.Add(chkAdjacentRooms);
 			Controls.Add(nudScaleMax);
 			Name = "ObjectBrushToolbox";
-			Size = new System.Drawing.Size(269, 101);
+			Size = new System.Drawing.Size(269, 130);
 			((System.ComponentModel.ISupportInitialize)nudRadius).EndInit();
 			((System.ComponentModel.ISupportInitialize)nudDensity).EndInit();
 			((System.ComponentModel.ISupportInitialize)nudScaleMin).EndInit();
 			((System.ComponentModel.ISupportInitialize)nudScaleMax).EndInit();
+			((System.ComponentModel.ISupportInitialize)nudRotation).EndInit();
 			ResumeLayout(false);
 			PerformLayout();
 		}
@@ -232,5 +273,8 @@ namespace TombEditor.Controls.ObjectBrush
         private DarkUI.Controls.DarkNumericUpDown nudScaleMin;
         private DarkUI.Controls.DarkNumericUpDown nudScaleMax;
 		private DarkUI.Controls.DarkLabel lblDash;
+		private DarkUI.Controls.DarkLabel lblRotation;
+		private DarkUI.Controls.DarkNumericUpDown nudRotation;
+		private DarkUI.Controls.DarkCheckBox chkShowTextures;
 	}
 }

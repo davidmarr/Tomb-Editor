@@ -76,3 +76,15 @@
 - Large methods should group related actions together, separated by blank lines.
 - Constants and static helpers should appear at the top of a class.
 - One-liner lambdas may be grouped together, if they share similar meaning or functionality.
+
+## User Interface Implementation
+
+- For existing controls and containers based on `DarkUI` WinForms-based framework, prefer to use existing `DarkUI` controls.
+- For new controls and containers with complex logic, or where WinForms may not perform fast enough, prefer `DarkUI.WPF` framework. Use `GeometryIOSettingsWindow` as a reference.
+- Use `CommunityToolkit` functionality where possible.
+
+## Performance
+
+- For 3D rendering controls, prefer more performant approaches and attempt to locally cache repeatedly used data within a function scope.
+- Avoid scenarios where bulk data updates may cause event floods, because the project relies heavily on event subscriptions in multiple controls and sub-controls.
+- Use `Parallel` in bulk operations where possible to maximize the performance. Avoid using it in thread-unsafe contexts and while operating on serial data sets.

@@ -50,7 +50,7 @@ namespace TombEditor.Controls.Panel3D
 
             // Push batch undo for the entire brush stroke.
             if (_objectBrushEngaged)
-                ObjectBrushActions.EndBrushStroke(_editor, _brushStrokeUndoList);
+                ObjectBrushActions.EndBrushStroke(_editor, _brushStrokeUndoList, _brushStrokePlacedObjects);
 
             _objectBrushEngaged = false;
             _lastBrushWorldPosition = null;
@@ -150,12 +150,24 @@ namespace TombEditor.Controls.Panel3D
 
         private void OnMouseWheelScroll(int delta)
         {
-            if (!_movementTimer.Animating)
+            if (_movementTimer.Animating)
+                return;
+
+            // Alt + mousewheel adjusts brush rotation in ObjectPlacement mode.
+            if (_editor.Mode == EditorMode.ObjectPlacement &&
+                Control.ModifierKeys.HasFlag(Keys.Alt))
             {
-                Console.WriteLine("Delta: " + delta);
-                Camera.Zoom(-delta * _editor.Configuration.Rendering3D_NavigationSpeedMouseWheelZoom);
+                float step = 5.0f;
+                float rotation = _editor.Configuration.ObjectBrush_Rotation + (delta > 0 ? step : -step);
+                rotation = ((rotation % 360.0f) + 360.0f) % 360.0f;
+                _editor.Configuration.ObjectBrush_Rotation = rotation;
+                _editor.ConfigurationChange();
                 Invalidate();
+                return;
             }
+
+            Camera.Zoom(-delta * _editor.Configuration.Rendering3D_NavigationSpeedMouseWheelZoom);
+            Invalidate();
         }
 
         private void OnMouseEntered()

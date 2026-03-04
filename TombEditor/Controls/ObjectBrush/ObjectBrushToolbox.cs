@@ -37,8 +37,17 @@ namespace TombEditor.Controls.ObjectBrush
 
 			nudRadius.ValueChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
 			nudDensity.ValueChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
+			nudRotation.ValueChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
 			chkAdjacentRooms.CheckedChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
-			chkRandomRotation.CheckedChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
+			chkShowTextures.CheckedChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
+			chkRandomRotation.CheckedChanged += (s, e) =>
+			{
+				if (!_suppressEvents)
+				{
+					SaveSettings();
+					UpdateRotationFieldVisibility();
+				}
+			};
 			chkFitToGround.CheckedChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
 			chkRandomScale.CheckedChanged += (s, e) =>
 			{
@@ -68,6 +77,11 @@ namespace TombEditor.Controls.ObjectBrush
 			nudScaleMax.Enabled = show;
 		}
 
+		private void UpdateRotationFieldVisibility()
+		{
+			nudRotation.Enabled = !chkRandomRotation.Checked;
+		}
+
 		private void LoadSettings()
 		{
 			if (_editor == null) return;
@@ -83,6 +97,8 @@ namespace TombEditor.Controls.ObjectBrush
 
 			chkAdjacentRooms.Checked = config.ObjectBrush_PlaceInAdjacentRooms;
 			chkRandomRotation.Checked = config.ObjectBrush_RandomizeRotation;
+			chkShowTextures.Checked = config.ObjectBrush_ShowTextures;
+			nudRotation.Value = ClampDecimal(config.ObjectBrush_Rotation, nudRotation.Minimum, nudRotation.Maximum);
 			chkFitToGround.Checked = config.ObjectBrush_FitToGround;
 			chkRandomScale.Checked = config.ObjectBrush_RandomizeScale;
 			nudScaleMin.Value = ClampDecimal(config.ObjectBrush_ScaleMin, nudScaleMin.Minimum, nudScaleMin.Maximum);
@@ -90,6 +106,7 @@ namespace TombEditor.Controls.ObjectBrush
 
 			_suppressEvents = false;
 			UpdateScaleFieldsVisibility();
+			UpdateRotationFieldVisibility();
 		}
 
 		private void SaveSettings()
@@ -104,6 +121,8 @@ namespace TombEditor.Controls.ObjectBrush
 			config.ObjectBrush_Shape = btnShapeSquare.Checked ? ObjectBrushShape.Square : ObjectBrushShape.Circle;
 			config.ObjectBrush_PlaceInAdjacentRooms = chkAdjacentRooms.Checked;
 			config.ObjectBrush_RandomizeRotation = chkRandomRotation.Checked;
+			config.ObjectBrush_ShowTextures = chkShowTextures.Checked;
+			config.ObjectBrush_Rotation = (float)nudRotation.Value;
 			config.ObjectBrush_FitToGround = chkFitToGround.Checked;
 			config.ObjectBrush_RandomizeScale = chkRandomScale.Checked;
 			config.ObjectBrush_ScaleMin = (float)nudScaleMin.Value;

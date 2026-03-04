@@ -1896,23 +1896,29 @@ namespace TombEditor.Controls.Panel3D
             // New rendering setup
             _viewProjection = Camera.GetViewProjectionMatrix(ClientSize.Width, ClientSize.Height);
 
-            // Determine brush overlay state
+            // Determine brush overlay state.
             int brushShape = 0;
             var brushCenter = Vector4.Zero;
             var brushColor = Vector4.One;
-            if ((_editor.Tool.Tool == EditorToolType.ObjectBrush || _editor.Tool.Tool == EditorToolType.ObjectEraser) && 
+            float brushRotation = 0.0f;
+            if (_editor.Mode == EditorMode.ObjectPlacement &&
                 _editor.ObjectBrushCursorPosition.HasValue && _editor.ObjectBrushCursorRoom != null)
             {
                 var cursorPos = _editor.ObjectBrushCursorPosition.Value;
                 float radius = _editor.Configuration.ObjectBrush_Radius;
                 brushShape = _editor.Configuration.ObjectBrush_Shape == ObjectBrushShape.Circle ? 1 : 2;
                 brushCenter = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, radius);
-                var triggerColor = _editor.Configuration.UI_ColorScheme.ColorTrigger;
+                brushColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 
-                brushColor = _editor.Tool.Tool == EditorToolType.ObjectEraser
-                    ? new Vector4(triggerColor.X, triggerColor.Y, triggerColor.Z, 0.7f)
-                    : new Vector4(triggerColor.X, triggerColor.Y, triggerColor.Z, 1.0f);
+                if (!_editor.Configuration.ObjectBrush_RandomizeRotation)
+                    brushRotation = _editor.Configuration.ObjectBrush_Rotation;
+                else
+                    brushRotation = -1.0f; // Negative signals no indicator.
             }
+
+            // In ObjectPlacement mode, force white textures if ShowTextures is off.
+            bool whiteTextureOnly = ShowLightingWhiteTextureOnly ||
+                (_editor.Mode == EditorMode.ObjectPlacement && !_editor.Configuration.ObjectBrush_ShowTextures);
 
             _renderingStateBuffer.Set(new RenderingState
             {
@@ -1921,11 +1927,12 @@ namespace TombEditor.Controls.Panel3D
                 RoomDisableVertexColors = _editor.Mode == EditorMode.FaceEdit,
                 RoomGridLineWidth = _editor.Configuration.Rendering3D_LineWidth,
                 TransformMatrix = _viewProjection,
-                ShowLightingWhiteTextureOnly = ShowLightingWhiteTextureOnly,
+                ShowLightingWhiteTextureOnly = whiteTextureOnly,
                 LightMode = lightMode,
                 BrushShape = brushShape,
                 BrushCenter = brushCenter,
-                BrushColor = brushColor
+                BrushColor = brushColor,
+                BrushRotation = brushRotation
             });
 
             var renderArgs = new RenderingDrawingRoom.RenderArgs

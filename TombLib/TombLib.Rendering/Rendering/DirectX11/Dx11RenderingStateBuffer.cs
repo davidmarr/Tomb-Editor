@@ -28,7 +28,8 @@ namespace TombLib.Rendering.DirectX11
             public int LightMode;
             [FieldOffset(88)]
             public int BrushShape; // 0=none, 1=circle, 2=square
-            // 4 bytes implicit padding at offset 92 (float4 needs 16-byte alignment)
+            [FieldOffset(92)]
+            public float BrushRotation; // Degrees, for rotation indicator line
             [FieldOffset(96)]
             public Vector4 BrushCenter; // xyz = world center, w = radius
             [FieldOffset(112)]
@@ -62,6 +63,7 @@ namespace TombLib.Rendering.DirectX11
             Buffer.ShowLightingWhiteTextureOnly = State.ShowLightingWhiteTextureOnly ? 1 : 0;
             Buffer.LightMode = State.LightMode;
             Buffer.BrushShape = State.BrushShape;
+            Buffer.BrushRotation = State.BrushRotation;
             Buffer.BrushCenter = State.BrushCenter;
             Buffer.BrushColor = State.BrushColor;
             Context.UpdateSubresource(ref Buffer, ConstantBuffer);

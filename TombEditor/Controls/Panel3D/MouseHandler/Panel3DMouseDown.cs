@@ -58,7 +58,8 @@ namespace TombEditor.Controls.Panel3D
 
                 // Handle face selection
                 if ((_editor.Tool.Tool == EditorToolType.Selection || _editor.Tool.Tool == EditorToolType.Group ||
-                    (_editor.Tool.Tool >= EditorToolType.Drag && _editor.Tool.Tool != EditorToolType.ObjectBrush && _editor.Tool.Tool != EditorToolType.ObjectEraser)) &&
+                    (_editor.Tool.Tool >= EditorToolType.Drag && _editor.Tool.Tool != EditorToolType.Eraser)) &&
+                    _editor.Mode != EditorMode.ObjectPlacement &&
                     (ModifierKeys == Keys.None || ModifierKeys == Keys.Control))
                 {
                     if (!_editor.SelectedSectors.Valid || !_editor.SelectedSectors.Area.Contains(pos))
@@ -154,21 +155,6 @@ namespace TombEditor.Controls.Panel3D
 
                     case EditorMode.Lighting:
                     case EditorMode.FaceEdit:
-                        // Handle object brush/eraser tools
-                        if (_editor.Tool.Tool == EditorToolType.ObjectBrush || _editor.Tool.Tool == EditorToolType.ObjectEraser)
-                        {
-                            if ((_editor.Mode == EditorMode.FaceEdit || _editor.Mode == EditorMode.Lighting) && newSectorPicking.BelongsToFloor)
-                            {
-                                _objectBrushEngaged = true;
-                                _brushStrokeUndoList.Clear();
-
-                                var result = ObjectBrushActions.BeginBrushStroke(_editor, _editor.SelectedRoom, pos);
-                                _lastBrushWorldPosition = result.WorldPosition;
-                                _brushStrokeUndoList.AddRange(result.UndoInstances);
-                                Invalidate();
-                            }
-                            break;
-                        }
 
                         // Disable texturing in lighting mode, if option is set
                         if (_editor.Mode == EditorMode.Lighting &&
@@ -241,6 +227,36 @@ namespace TombEditor.Controls.Panel3D
 
                         }
                         break;
+
+                    case EditorMode.ObjectPlacement:
+                        if (newSectorPicking.BelongsToFloor)
+                        {
+                            if (_editor.Tool.Tool == EditorToolType.Fill)
+                            {
+                                // Fill executes immediately without brush engagement.
+                                var fillResult = ObjectBrushActions.ExecuteFill(_editor, _editor.SelectedRoom);
+                                if (fillResult.UndoInstances.Count > 0)
+                                {
+                                    foreach (var obj in fillResult.PlacedObjects)
+                                        EditorActions.AllocateScriptIdsForObject(obj);
+                                    _editor.UndoManager.Push(fillResult.UndoInstances);
+                                }
+                                Invalidate();
+                            }
+                            else
+                            {
+                                _objectBrushEngaged = true;
+                                _brushStrokeUndoList.Clear();
+                                _brushStrokePlacedObjects.Clear();
+
+                                var result = ObjectBrushActions.BeginBrushStroke(_editor, _editor.SelectedRoom, pos);
+                                _lastBrushWorldPosition = result.WorldPosition;
+                                _brushStrokeUndoList.AddRange(result.UndoInstances);
+                                _brushStrokePlacedObjects.AddRange(result.PlacedObjects);
+                                Invalidate();
+                            }
+                        }
+                        break;
                 }
             }
             else if (newPicking is PickingResultGizmo)
@@ -256,8 +272,8 @@ namespace TombEditor.Controls.Panel3D
             }
             else if (newPicking is PickingResultObject)
             {
-                // If brush is active and Ctrl isn't held, click-through objects without selecting them.
-                if ((_editor.Tool.Tool == EditorToolType.ObjectBrush || _editor.Tool.Tool == EditorToolType.ObjectEraser) && !ModifierKeys.HasFlag(Keys.Control))
+                // If brush is active in ObjectPlacement mode and Ctrl isn't held, click-through objects without selecting them.
+                if (_editor.Mode == EditorMode.ObjectPlacement && !ModifierKeys.HasFlag(Keys.Control))
                     return;
 
                 var obj = ((PickingResultObject)newPicking).ObjectInstance;

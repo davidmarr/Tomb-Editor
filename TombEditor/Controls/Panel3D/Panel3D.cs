@@ -125,7 +125,7 @@ namespace TombEditor.Controls.Panel3D
         private bool _objectBrushEngaged = false;
         private Vector3? _lastBrushWorldPosition;
         private readonly List<UndoRedoInstance> _brushStrokeUndoList = new List<UndoRedoInstance>();
-        private const float _brushPaintQuantizationDistance = 128.0f; // World units between paint steps
+        private readonly List<PositionBasedObjectInstance> _brushStrokePlacedObjects = new List<PositionBasedObjectInstance>();
 
         // Legacy rendering state
         private WadRenderer _wadRenderer;
