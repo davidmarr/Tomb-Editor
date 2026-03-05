@@ -434,8 +434,10 @@ namespace TombEditor.Controls.ObjectBrush
             }
             else
             {
-                // If not placing in adjacent rooms, skip positions on non-solid portals.
-                if (IsOnNonSolidPortal(targetRoom, worldX, worldZ))
+                // Skip positions over traversable floor portals (would fall into room below)
+                // and over non-solid partial portals with ambiguous geometry.
+                var resolved = ResolveFloorRoom(targetRoom, worldX, worldZ);
+                if (resolved.Room != targetRoom || IsOnNonSolidPortal(targetRoom, worldX, worldZ))
                     return false;
             }
 

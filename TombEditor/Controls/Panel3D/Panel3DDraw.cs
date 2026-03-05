@@ -1924,14 +1924,15 @@ namespace TombEditor.Controls.Panel3D
                 }
             }
 
-            // In ObjectPlacement mode, force white textures if ShowTextures is off.
-            bool whiteTextureOnly = ShowLightingWhiteTextureOnly ||
-                (_editor.Mode == EditorMode.ObjectPlacement && !_editor.Configuration.ObjectBrush_ShowTextures);
+            // In ObjectPlacement (brush) mode, use only the brush-specific ShowTextures flag;
+            // the global white-lighting override is ignored so it doesn't bleed into brush mode.
+            bool brushHidesTextures = _editor.Mode == EditorMode.ObjectPlacement && !_editor.Configuration.ObjectBrush_ShowTextures;
+            bool whiteTextureOnly = _editor.Mode == EditorMode.ObjectPlacement ? brushHidesTextures : ShowLightingWhiteTextureOnly;
 
             _renderingStateBuffer.Set(new RenderingState
             {
                 ShowExtraBlendingModes = ShowExtraBlendingModes,
-                RoomGridForce = _editor.Mode == EditorMode.Geometry,
+                RoomGridForce = _editor.Mode == EditorMode.Geometry || brushHidesTextures,
                 RoomDisableVertexColors = _editor.Mode == EditorMode.FaceEdit,
                 RoomGridLineWidth = _editor.Configuration.Rendering3D_LineWidth,
                 TransformMatrix = _viewProjection,
