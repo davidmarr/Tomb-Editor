@@ -582,12 +582,13 @@ namespace TombEditor.Controls.ObjectBrush
         // Ctrl deselects, Shift limits to current ChosenItems only.
 
         public static void SelectObjectsWithBrush(Editor editor, Room room, float centerWorldX, float centerWorldZ,
-            IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint)
+            IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint,
+            HashSet<ObjectInstance> processedObjects = null)
         {
             var shape = editor.Configuration.ObjectBrush_Shape;
             float radius = editor.Configuration.ObjectBrush_Radius;
             bool adjacent = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
-            bool deselect = Control.ModifierKeys.HasFlag(Keys.Control);
+            bool ctrlHeld = Control.ModifierKeys.HasFlag(Keys.Control);
             bool filterByChosen = Control.ModifierKeys.HasFlag(Keys.Shift);
 
             var rooms = GetBrushRooms(room, adjacent);
@@ -602,6 +603,10 @@ namespace TombEditor.Controls.ObjectBrush
                 foreach (var obj in targetRoom.Objects)
                 {
                     if (!(obj is ItemInstance item))
+                        continue;
+
+                    // Skip objects already processed during this stroke.
+                    if (processedObjects != null && processedObjects.Contains(obj))
                         continue;
 
                     if (filterByChosen && !chosenItems.Contains(item.ItemType))
@@ -623,9 +628,16 @@ namespace TombEditor.Controls.ObjectBrush
             if (objectsInArea.Count == 0)
                 return;
 
-            if (deselect)
+            // Mark all newly found objects as processed for this stroke.
+            if (processedObjects != null)
             {
-                // Deselecting: if current selection is a group containing these objects, remove them.
+                foreach (var obj in objectsInArea)
+                    processedObjects.Add(obj);
+            }
+
+            if (ctrlHeld)
+            {
+                // Deselect all objects in the brush area from current selection.
                 if (editor.SelectedObject is ObjectGroup group)
                 {
                     var remaining = group.Where(o => !objectsInArea.Contains(o)).ToList();
@@ -633,17 +645,24 @@ namespace TombEditor.Controls.ObjectBrush
                         editor.SelectedObject = null;
                     else if (remaining.Count == 1)
                         editor.SelectedObject = remaining[0];
+                    else
+                        editor.SelectedObject = new ObjectGroup(remaining);
                 }
-                else if (objectsInArea.Contains(editor.SelectedObject))
+                else if (objectsInArea.Any(o => o == editor.SelectedObject))
                 {
                     editor.SelectedObject = null;
                 }
             }
             else
             {
-                // Selecting: add objects to current selection.
+                // Only select objects not already in the current selection.
                 foreach (var obj in objectsInArea)
-                    EditorActions.MultiSelect(obj);
+                {
+                    bool alreadySelected = editor.SelectedObject == obj ||
+                        (editor.SelectedObject is ObjectGroup existing && existing.Contains(obj));
+                    if (!alreadySelected)
+                        EditorActions.MultiSelect(obj);
+                }
             }
         }
 

@@ -126,6 +126,7 @@ namespace TombEditor.Controls.Panel3D
         private Vector3? _lastBrushWorldPosition;
         private readonly List<UndoRedoInstance> _brushStrokeUndoList = new List<UndoRedoInstance>();
         private readonly List<PositionBasedObjectInstance> _brushStrokePlacedObjects = new List<PositionBasedObjectInstance>();
+        private readonly HashSet<ObjectInstance> _brushStrokeProcessedObjects = new HashSet<ObjectInstance>();
 
         // Legacy rendering state
         private WadRenderer _wadRenderer;
@@ -308,6 +309,10 @@ namespace TombEditor.Controls.Panel3D
                 obj is Editor.ConfigurationChangedEvent ||
                 obj is SectorColoringManager.ChangeSectorColoringInfoEvent)
                 _renderingCachedRooms.Clear();
+
+            // Invalidate on brush settings change (lightweight, no cache clear).
+            if (obj is Editor.ObjectBrushSettingsChangedEvent)
+                Invalidate();
 
             // Update drawing
             if (_editor.Mode != EditorMode.Map2D)

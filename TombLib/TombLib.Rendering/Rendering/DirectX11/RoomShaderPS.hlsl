@@ -193,47 +193,37 @@ float4 main(PixelInputType input) : SV_TARGET
 		float3 contourColor = lerp(float3(0, 0, 0), float3(1, 1, 1), innerAlpha);
 		float contourAlpha = BrushColor.w * max(outerAlpha, innerAlpha);
 
-		// Rotation indicator line from center to edge.
-		float rotRad = BrushRotation * 3.14159265f / 180.0f;
-		float2 rotDir = float2(sin(rotRad), cos(rotRad));
+		// Draw circle contour.
+		result.xyz = lerp(result.xyz, contourColor, contourAlpha);
+		result.w = max(result.w, contourAlpha);
 
-		// Project delta onto perpendicular of rotation direction.
-		float along = dot(delta, rotDir);
-		float perp = abs(dot(delta, float2(-rotDir.y, rotDir.x)));
+		// Rotation indicator line drawn on top of the circle.
+		// Line extends to at least 1024 world units so it is visible even at very small radii.
+		if (BrushRotation >= 0.0f)
+		{
+			float rotRad = BrushRotation * 3.14159265f / 180.0f;
+			float2 rotDir = float2(sin(rotRad), cos(rotRad));
 
-		float perpFw = max(fwidth(perp), 0.001f);
-		float perpNorm = perp / perpFw;
-		float lineInnerAlpha = saturate(1.0f - perpNorm / max(lineWidth * 0.7f, 0.001f));
-		float lineOuterAlpha = saturate(1.0f - perpNorm / max(lineWidth * 1.5f, 0.001f));
+			// Project delta onto perpendicular of rotation direction.
+			float along = dot(delta, rotDir);
+			float perp = abs(dot(delta, float2(-rotDir.y, rotDir.x)));
 
-		// Only draw the line from center to brush edge, and within the brush area.
-		float withinLine = step(0.0f, along) * step(along, BrushCenter.w);
+			float perpFw = max(fwidth(perp), 0.001f);
+			float perpNorm = perp / perpFw;
+			float lineInnerAlpha = saturate(1.0f - perpNorm / max(lineWidth * 0.7f, 0.001f));
+			float lineOuterAlpha = saturate(1.0f - perpNorm / max(lineWidth * 1.5f, 0.001f));
 
-		// Filled circle at center.
-		float centerDist = length(delta);
-		float centerFw = max(fwidth(centerDist), 0.001f);
-		float centerRadius = lineWidth * fw * 2.5f;
-		float centerFill = saturate(1.0f - (centerDist - centerRadius) / centerFw);
-		float centerOutline = saturate(1.0f - (centerDist - centerRadius * 1.3f) / centerFw);
+			// Clamp line extent to minimum 1024 so direction is visible at small radii.
+			float lineExtent = max(BrushCenter.w, 1024.0f);
+			float withinLine = step(0.0f, along) * step(along, lineExtent);
 
-		// Merge rotation line with contour.
-		float3 lineColor = lerp(float3(0, 0, 0), float3(1, 1, 1), lineInnerAlpha);
-		float lineAlpha = BrushColor.w * max(lineInnerAlpha, lineOuterAlpha) * withinLine;
+			float3 lineColor = lerp(float3(0, 0, 0), float3(1, 1, 1), lineInnerAlpha);
+			float lineAlpha = BrushColor.w * max(lineInnerAlpha, lineOuterAlpha) * withinLine;
 
-		// Merge center circle.
-		float3 centerColor = lerp(float3(0, 0, 0), float3(1, 1, 1), centerFill);
-		float centerAlpha = BrushColor.w * max(centerFill, centerOutline);
-
-		// Combine all elements.
-		float totalAlpha = max(max(contourAlpha, lineAlpha), centerAlpha);
-		float3 totalColor = contourColor;
-		if (lineAlpha > contourAlpha)
-			totalColor = lineColor;
-		if (centerAlpha > max(contourAlpha, lineAlpha))
-			totalColor = centerColor;
-
-		result.xyz = lerp(result.xyz, totalColor, totalAlpha);
-		result.w = max(result.w, totalAlpha);
+			// Line always composites on top of the circle outline.
+			result.xyz = lerp(result.xyz, lineColor, lineAlpha);
+			result.w = max(result.w, lineAlpha);
+		}
 	}
 
     if ((result.x + result.y + result.z + result.w) < 0.02f)

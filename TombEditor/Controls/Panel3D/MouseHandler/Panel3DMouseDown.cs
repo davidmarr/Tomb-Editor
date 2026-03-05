@@ -1,4 +1,5 @@
 ﻿using System.Drawing;
+using System.Numerics;
 using System.Windows.Forms;
 using TombLib.Controls;
 using TombLib.Graphics;
@@ -8,7 +9,6 @@ using TombLib;
 using TombLib.LevelData.SectorEnums;
 using TombLib.LevelData.SectorEnums.Extensions;
 using TombEditor.Controls.ObjectBrush;
-using TombLib.Utils;
 
 namespace TombEditor.Controls.Panel3D
 {
@@ -237,8 +237,7 @@ namespace TombEditor.Controls.Panel3D
                                 var fillResult = ObjectBrushActions.ExecuteFill(_editor, _editor.SelectedRoom);
                                 if (fillResult.UndoInstances.Count > 0)
                                 {
-                                    foreach (var obj in fillResult.PlacedObjects)
-                                        EditorActions.AllocateScriptIdsForObject(obj);
+                                    EditorActions.AllocateScriptIdsForObjects(fillResult.PlacedObjects);
                                     _editor.UndoManager.Push(fillResult.UndoInstances);
                                 }
                                 Invalidate();
@@ -248,8 +247,17 @@ namespace TombEditor.Controls.Panel3D
                                 _objectBrushEngaged = true;
                                 _brushStrokeUndoList.Clear();
                                 _brushStrokePlacedObjects.Clear();
+                                _brushStrokeProcessedObjects.Clear();
 
-                                var result = ObjectBrushActions.BeginBrushStroke(_editor, _editor.SelectedRoom, pos);
+                                // Compute actual cursor position from ray for sub-sector precision.
+                                var ray = GetRay(location.X, location.Y);
+                                var cursorWorldPos = new Vector3(
+                                    ray.Position.X + ray.Direction.X * newSectorPicking.Distance,
+                                    0,
+                                    ray.Position.Z + ray.Direction.Z * newSectorPicking.Distance);
+
+                                var result = ObjectBrushActions.BeginBrushStroke(_editor, _editor.SelectedRoom, pos,
+                                    cursorWorldPos, _brushStrokeProcessedObjects);
                                 _lastBrushWorldPosition = result.WorldPosition;
                                 _brushStrokeUndoList.AddRange(result.UndoInstances);
                                 _brushStrokePlacedObjects.AddRange(result.PlacedObjects);

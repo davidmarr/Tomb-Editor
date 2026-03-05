@@ -267,6 +267,14 @@ namespace TombEditor
         private EditorTool _lastFaceEditTool = new EditorTool();
         private EditorTool _lastObjectPlacementTool = new EditorTool();
 
+        // Raised when brush settings (radius, density, rotation, etc.) change in the toolbox.
+        // Only Panel3D needs to respond, so this avoids the heavier ConfigurationChangedEvent.
+        public class ObjectBrushSettingsChangedEvent : IEditorEvent { }
+        public void ObjectBrushSettingsChange()
+        {
+            RaiseEvent(new ObjectBrushSettingsChangedEvent());
+        }
+
         // Object brush cursor state (updated by Panel3D on mouse move)
         public class ObjectBrushCursorChangedEvent : IEditorEvent
         {

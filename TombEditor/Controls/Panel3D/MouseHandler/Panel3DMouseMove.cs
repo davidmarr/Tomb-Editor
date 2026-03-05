@@ -195,7 +195,7 @@ namespace TombEditor.Controls.Panel3D
                 // Handle object brush continuous painting in ObjectPlacement mode.
                 if (_objectBrushEngaged && _editor.Mode == EditorMode.ObjectPlacement)
                 {
-                    var brushPicking = DoPicking(GetRay(location.X, location.Y)) as PickingResultSector;
+                    var brushPicking = DoPicking(GetRay(location.X, location.Y), skipObjects: true) as PickingResultSector;
                     if (brushPicking != null && brushPicking.BelongsToFloor)
                     {
                         float quantizationDistance = _editor.Configuration.ObjectBrush_Radius;
@@ -206,43 +206,68 @@ namespace TombEditor.Controls.Panel3D
                         {
                             float rotRad = _editor.Configuration.ObjectBrush_Rotation * (float)(System.Math.PI / 180.0);
                             var rotDir = new Vector3((float)System.Math.Sin(rotRad), 0, (float)System.Math.Cos(rotRad));
-                            var delta = new Vector3(
-                                (brushPicking.Pos.X + 0.5f) * Level.SectorSizeUnit + brushPicking.Room.WorldPos.X - _lastBrushWorldPosition.Value.X,
+
+                            // Use actual ray-intersection position, not sector-center-snapped position.
+                            var ray = GetRay(location.X, location.Y);
+                            var hitPos = new Vector3(
+                                ray.Position.X + ray.Direction.X * brushPicking.Distance,
                                 0,
-                                (brushPicking.Pos.Y + 0.5f) * Level.SectorSizeUnit + brushPicking.Room.WorldPos.Z - _lastBrushWorldPosition.Value.Z);
+                                ray.Position.Z + ray.Direction.Z * brushPicking.Distance);
+
+                            var delta = hitPos - _lastBrushWorldPosition.Value;
+                            delta.Y = 0;
                             float proj = Vector3.Dot(delta, rotDir);
-                            var constrained = _lastBrushWorldPosition.Value + rotDir * proj;
 
                             // Compute seamless spacing from bounding box extent along local Z (rotation axis).
                             float spacing = ComputePencilSpacing(_editor);
 
-                            // Convert back to sector coordinates for the brush action.
                             var room = brushPicking.Room == _editor.SelectedRoom ? _editor.SelectedRoom : brushPicking.Room;
-                            int sx = (int)((constrained.X - room.WorldPos.X) / Level.SectorSizeUnit);
-                            int sz = (int)((constrained.Z - room.WorldPos.Z) / Level.SectorSizeUnit);
+
+                            if (proj < spacing)
+                            {
+                                // Not yet moved far enough; update cursor display only.
+                                ObjectBrushActions.UpdateBrushCursor(_editor, room, brushPicking.Pos, hitPos.X, hitPos.Z);
+                                return true;
+                            }
+
+                            // Snap placement to exact spacing step from last anchor for gapless tiling.
+                            var snappedPos = _lastBrushWorldPosition.Value + rotDir * spacing;
+
+                            int sx = (int)((snappedPos.X - room.WorldPos.X) / Level.SectorSizeUnit);
+                            int sz = (int)((snappedPos.Z - room.WorldPos.Z) / Level.SectorSizeUnit);
                             var constrainedPos = new VectorInt2(sx, sz);
 
                             var result = ObjectBrushActions.ContinueBrushStroke(
                                 _editor, room, _editor.SelectedRoom, constrainedPos,
-                                _lastBrushWorldPosition, spacing);
+                                _lastBrushWorldPosition, spacing, snappedPos,
+                                _brushStrokeProcessedObjects);
 
                             if (result.HasValue)
                             {
                                 _brushStrokeUndoList.AddRange(result.Value.UndoInstances);
                                 _brushStrokePlacedObjects.AddRange(result.Value.PlacedObjects);
-                                _lastBrushWorldPosition = result.Value.WorldPosition;
+                                _lastBrushWorldPosition = snappedPos;
                                 Invalidate();
                             }
                         }
                         else
                         {
+                            // Compute actual cursor position from ray intersection for sub-sector precision.
+                            var ray = GetRay(location.X, location.Y);
+                            var cursorWorldPos = new Vector3(
+                                ray.Position.X + ray.Direction.X * brushPicking.Distance,
+                                0,
+                                ray.Position.Z + ray.Direction.Z * brushPicking.Distance);
+
                             var result = ObjectBrushActions.ContinueBrushStroke(
                                 _editor,
                                 brushPicking.Room,
                                 _editor.SelectedRoom,
                                 brushPicking.Pos,
                                 _lastBrushWorldPosition,
-                                quantizationDistance);
+                                quantizationDistance,
+                                cursorWorldPos,
+                                _brushStrokeProcessedObjects);
 
                             if (result.HasValue)
                             {
@@ -411,11 +436,14 @@ namespace TombEditor.Controls.Panel3D
             // Update object brush cursor for radius visualization.
             if (_editor.Mode == EditorMode.ObjectPlacement)
             {
-                var brushPicking = DoPicking(GetRay(location.X, location.Y)) as PickingResultSector;
+                var brushPicking = DoPicking(GetRay(location.X, location.Y), skipObjects: true) as PickingResultSector;
                 if (brushPicking != null && brushPicking.BelongsToFloor)
                 {
                     var room = brushPicking.Room == _editor.SelectedRoom ? _editor.SelectedRoom : brushPicking.Room;
-                    ObjectBrushActions.UpdateBrushCursor(_editor, room, brushPicking.Pos);
+                    var ray = GetRay(location.X, location.Y);
+                    float hitX = ray.Position.X + ray.Direction.X * brushPicking.Distance;
+                    float hitZ = ray.Position.Z + ray.Direction.Z * brushPicking.Distance;
+                    ObjectBrushActions.UpdateBrushCursor(_editor, room, brushPicking.Pos, hitX, hitZ);
                     return true;
                 }
                 else

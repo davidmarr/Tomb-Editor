@@ -2341,6 +2341,48 @@ namespace TombEditor
             AllocateScriptIds(instance);
         }
 
+        // Batch-optimized version that builds the Lua name set once for all objects.
+
+        public static void AllocateScriptIdsForObjects(IEnumerable<PositionBasedObjectInstance> instances)
+        {
+            if (_editor.Level.IsTombEngine)
+            {
+                var existingNames = new HashSet<string>(
+                    _editor.Level.GetAllObjects()
+                        .OfType<IHasLuaName>()
+                        .Select(o => o.LuaName)
+                        .Where(n => !string.IsNullOrEmpty(n)));
+
+                foreach (var instance in instances)
+                    AllocateScriptIdsWithCache(instance, existingNames);
+            }
+            else
+            {
+                foreach (var instance in instances)
+                    AllocateScriptIds(instance);
+            }
+        }
+
+        private static void AllocateScriptIdsWithCache(PositionBasedObjectInstance instance, HashSet<string> luaNameCache)
+        {
+            if (instance is IHasScriptID &&
+                (_editor.Level.Settings.GameVersion == TRVersion.Game.TR4 || _editor.Level.IsNG))
+            {
+                var si = instance as IHasScriptID;
+                if (si.ScriptId == null)
+                    si.AllocateNewScriptId();
+            }
+            else if (instance is PositionAndScriptBasedObjectInstance scriptObj && _editor.Level.IsTombEngine)
+            {
+                if (string.IsNullOrEmpty(scriptObj.LuaName))
+                    scriptObj.AllocateNewLuaName(luaNameCache);
+            }
+
+            if (instance is ObjectGroup group)
+                foreach (var obj in group)
+                    AllocateScriptIdsWithCache(obj, luaNameCache);
+        }
+
         public static void PlaceLight(LightType type)
         {
             var color = (type == LightType.FogBulb && _editor.Level.Settings.GameVersion.Native() <= TRVersion.Game.TR4) ?

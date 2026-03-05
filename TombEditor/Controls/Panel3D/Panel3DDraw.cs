@@ -1902,6 +1902,7 @@ namespace TombEditor.Controls.Panel3D
             var brushColor = Vector4.One;
             float brushRotation = 0.0f;
             if (_editor.Mode == EditorMode.ObjectPlacement &&
+                _editor.Tool.Tool != EditorToolType.Fill &&
                 _editor.ObjectBrushCursorPosition.HasValue && _editor.ObjectBrushCursorRoom != null)
             {
                 var cursorPos = _editor.ObjectBrushCursorPosition.Value;
@@ -1910,10 +1911,11 @@ namespace TombEditor.Controls.Panel3D
                 brushCenter = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, radius);
                 brushColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 
-                if (!_editor.Configuration.ObjectBrush_RandomizeRotation)
-                    brushRotation = _editor.Configuration.ObjectBrush_Rotation;
-                else
+                if (_editor.Tool.Tool == EditorToolType.Selection ||
+                    _editor.Configuration.ObjectBrush_RandomizeRotation)
                     brushRotation = -1.0f; // Negative signals no indicator.
+                else
+                    brushRotation = _editor.Configuration.ObjectBrush_Rotation;
             }
 
             // In ObjectPlacement mode, force white textures if ShowTextures is off.

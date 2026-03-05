@@ -115,7 +115,7 @@ namespace TombEditor.Controls.ObjectBrush
 
 			var config = _editor.Configuration;
 
-			// Radius displayed in blocks, stored in world units
+			// Radius displayed in blocks, stored in world units.
 			config.ObjectBrush_Radius = (float)nudRadius.Value * Level.SectorSizeUnit;
 			config.ObjectBrush_Density = (float)nudDensity.Value;
 			config.ObjectBrush_Shape = btnShapeSquare.Checked ? ObjectBrushShape.Square : ObjectBrushShape.Circle;
@@ -127,11 +127,17 @@ namespace TombEditor.Controls.ObjectBrush
 			config.ObjectBrush_RandomizeScale = chkRandomScale.Checked;
 			config.ObjectBrush_ScaleMin = (float)nudScaleMin.Value;
 			config.ObjectBrush_ScaleMax = (float)nudScaleMax.Value;
+
+			_editor.ObjectBrushSettingsChange();
 		}
 
 		private void EditorEventRaised(IEditorEvent obj)
 		{
 			if (obj is Editor.ConfigurationChangedEvent)
+				LoadSettings();
+
+			// Reload when brush settings change externally (e.g. Alt+Mousewheel rotation).
+			if (obj is Editor.ObjectBrushSettingsChangedEvent)
 				LoadSettings();
 		}
 
