@@ -552,6 +552,32 @@ public partial class ContentBrowserView : UserControl
             vm.AddWadCommand.Execute(null);
         }
     }
+
+    /// <summary>
+    /// Raised when one or more files are dropped onto the Content Browser from Windows Explorer.
+    /// The WinForms host subscribes to this to call EditorActions.
+    /// </summary>
+    public event EventHandler<string[]>? FilesDropped;
+
+    private void ContentBrowser_DragEnter(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            e.Effects = DragDropEffects.Copy;
+        else
+            e.Effects = DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void ContentBrowser_Drop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (files != null && files.Length > 0)
+                FilesDropped?.Invoke(this, files);
+        }
+        e.Handled = true;
+    }
 }
 
 /// <summary>

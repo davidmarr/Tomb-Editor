@@ -226,7 +226,11 @@
 		</Style>
 	</UserControl.Resources>
 
-	<Grid>
+	<Grid
+		AllowDrop="True"
+		DragEnter="ContentBrowser_DragEnter"
+		DragOver="ContentBrowser_DragEnter"
+		Drop="ContentBrowser_Drop">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto" />
 			<RowDefinition Height="*" />

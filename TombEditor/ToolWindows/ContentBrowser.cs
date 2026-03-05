@@ -5,8 +5,9 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows.Forms;
 using TombLib.Controls;
-using TombLib.Forms;
+using TombLib.GeometryIO;
 using TombLib.LevelData;
+using TombLib.Utils;
 using TombLib.Wad;
 using TombEditor.ViewModels;
 
@@ -64,8 +65,9 @@ namespace TombEditor.ToolWindows
             _thumbnailTimer = new Timer { Interval = 50 };
             _thumbnailTimer.Tick += ThumbnailTimer_Tick;
 
-            // Enable drag-drop on this WinForms control
-            AllowDrop = false; // We are a drag source, not a target
+            // Accept file drops from Windows Explorer (WAD files and 3D geometry files)
+            AllowDrop = true;
+            contentBrowserView.FilesDropped += ContentBrowserView_FilesDropped;
 
             // Subscribe to editor events
             _editor.EditorEventRaised += EditorEventRaised;
@@ -84,6 +86,8 @@ namespace TombEditor.ToolWindows
                 _viewModel.AddItemRequested -= ViewModel_AddItemRequested;
                 _viewModel.AddWadRequested -= ViewModel_AddWadRequested;
                 _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+
+                contentBrowserView.FilesDropped -= ContentBrowserView_FilesDropped;
 
                 _thumbnailTimer?.Stop();
                 _thumbnailTimer?.Dispose();
@@ -178,6 +182,29 @@ namespace TombEditor.ToolWindows
         private void ViewModel_AddWadRequested(object sender, EventArgs e)
         {
             EditorActions.AddWad(this, null);
+        }
+
+        /// <summary>
+        /// Handles files dropped from Windows Explorer onto the Content Browser.
+        /// Accepts WAD files (loaded as object archives) and 3D geometry files
+        /// (added as imported geometry), matching what ItemBrowser and
+        /// ImportedGeometryBrowser support via the global drag-drop handler.
+        /// </summary>
+        private void ContentBrowserView_FilesDropped(object sender, string[] files)
+        {
+            if (files == null || files.Length == 0)
+                return;
+
+            var wadFiles = files
+                .Where(f => Wad2.FileExtensions.Matches(f))
+                .Select(f => _editor.Level.Settings.MakeRelative(f, VariableType.LevelDirectory))
+                .ToList();
+
+            if (wadFiles.Count > 0)
+                EditorActions.AddWad(this, wadFiles);
+
+            foreach (var file in files.Where(f => BaseGeometryImporter.FileExtensions.Matches(f)))
+                EditorActions.AddImportedGeometry(this, _editor.Level.Settings.MakeRelative(file, VariableType.LevelDirectory));
         }
 
         /// <summary>
