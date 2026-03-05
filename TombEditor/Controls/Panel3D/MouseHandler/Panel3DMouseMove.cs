@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
 using System.Windows.Forms;
+using TombEditor.Controls.ObjectBrush;
 using TombLib;
 using TombLib.LevelData;
 using TombLib.LevelData.SectorEnums;
 using TombLib.LevelData.SectorEnums.Extensions;
 using TombLib.LevelData.SectorStructs;
 using TombLib.Rendering;
-using TombEditor.Controls.ObjectBrush;
-using TombLib.Utils;
 
 namespace TombEditor.Controls.Panel3D
 {
@@ -192,94 +191,8 @@ namespace TombEditor.Controls.Panel3D
             }
             else
             {
-                // Handle object brush continuous painting in ObjectPlacement mode.
-                if (_objectBrushEngaged && _editor.Mode == EditorMode.ObjectPlacement)
-                {
-                    var brushPicking = DoPicking(GetRay(location.X, location.Y), skipObjects: true) as PickingResultSector;
-                    if (brushPicking != null && brushPicking.BelongsToFloor)
-                    {
-                        float quantizationDistance = _editor.Configuration.ObjectBrush_Radius;
-
-                        // For Line tool, constrain movement to the rotation direction.
-                        // Use bounding box extent along the rotation axis for seamless spacing.
-                        if (_editor.Tool.Tool == EditorToolType.Line && _lastBrushWorldPosition.HasValue)
-                        {
-                            float rotRad = _editor.Configuration.ObjectBrush_Rotation * (float)(System.Math.PI / 180.0);
-                            var rotDir = new Vector3((float)System.Math.Sin(rotRad), 0, (float)System.Math.Cos(rotRad));
-
-                            // Use actual ray-intersection position, not sector-center-snapped position.
-                            var ray = GetRay(location.X, location.Y);
-                            var hitPos = new Vector3(
-                                ray.Position.X + ray.Direction.X * brushPicking.Distance,
-                                0,
-                                ray.Position.Z + ray.Direction.Z * brushPicking.Distance);
-
-                            var delta = hitPos - _lastBrushWorldPosition.Value;
-                            delta.Y = 0;
-                            float proj = Vector3.Dot(delta, rotDir);
-
-                            // Compute seamless spacing from bounding box extent along local Z (rotation axis).
-                            float spacing = ComputePencilSpacing(_editor);
-
-                            var room = brushPicking.Room == _editor.SelectedRoom ? _editor.SelectedRoom : brushPicking.Room;
-
-                            if (proj < spacing)
-                            {
-                                // Not yet moved far enough; update cursor display only.
-                                ObjectBrushActions.UpdateBrushCursor(_editor, room, brushPicking.Pos, hitPos.X, hitPos.Z);
-                                return true;
-                            }
-
-                            // Snap to exact one-step advance from the last anchor for gapless tiling.
-                            // Pass null as lastWorldPosition to force paint regardless of distance, avoiding
-                            // the floating-point precision issue that caused the brush to get stuck.
-                            var snappedPos = _lastBrushWorldPosition.Value + rotDir * spacing;
-                            int sx = (int)((snappedPos.X - room.WorldPos.X) / Level.SectorSizeUnit);
-                            int sz = (int)((snappedPos.Z - room.WorldPos.Z) / Level.SectorSizeUnit);
-                            var constrainedPos = new VectorInt2(sx, sz);
-
-                            var result = ObjectBrushActions.ContinueBrushStroke(
-                                _editor, room, _editor.SelectedRoom, constrainedPos,
-                                null, spacing, snappedPos, _brushStrokeProcessedObjects, skipOverlapCheck: true);
-
-                            if (result.HasValue)
-                            {
-                                _brushStrokeUndoList.AddRange(result.Value.UndoInstances);
-                                _brushStrokePlacedObjects.AddRange(result.Value.PlacedObjects);
-                                _lastBrushWorldPosition = snappedPos;
-                                Invalidate();
-                            }
-                        }
-                        else
-                        {
-                            // Compute actual cursor position from ray intersection for sub-sector precision.
-                            var ray = GetRay(location.X, location.Y);
-                            var cursorWorldPos = new Vector3(
-                                ray.Position.X + ray.Direction.X * brushPicking.Distance,
-                                0,
-                                ray.Position.Z + ray.Direction.Z * brushPicking.Distance);
-
-                            var result = ObjectBrushActions.ContinueBrushStroke(
-                                _editor,
-                                brushPicking.Room,
-                                _editor.SelectedRoom,
-                                brushPicking.Pos,
-                                _lastBrushWorldPosition,
-                                quantizationDistance,
-                                cursorWorldPos,
-                                _brushStrokeProcessedObjects);
-
-                            if (result.HasValue)
-                            {
-                                _brushStrokeUndoList.AddRange(result.Value.UndoInstances);
-                                _brushStrokePlacedObjects.AddRange(result.Value.PlacedObjects);
-                                _lastBrushWorldPosition = result.Value.WorldPosition;
-                                Invalidate();
-                            }
-                        }
-                    }
+                if (HandleBrushMouseMove(location))
                     return true;
-                }
 
                 var newSectorPicking = DoPicking(GetRay(location.X, location.Y)) as PickingResultSector;
 
@@ -486,29 +399,6 @@ namespace TombEditor.Controls.Panel3D
             }
 
             return false;
-        }
-
-        // Computes spacing for seamless pencil placement along the rotation direction.
-        // Uses bounding box Z extent (local depth axis) of the first chosen item, or X if Perpendicular.
-
-        private static float ComputePencilSpacing(Editor editor)
-        {
-            if (editor.ChosenItems.Count == 0)
-                return editor.Configuration.ObjectBrush_Radius;
-
-            var bbox = ObjectBrushHelper.GetItemBoundingBox(editor.Level, editor.ChosenItems[0]);
-            if (!bbox.HasValue)
-                return editor.Configuration.ObjectBrush_Radius;
-
-            float scale = editor.Configuration.ObjectBrush_RandomizeScale
-                ? (editor.Configuration.ObjectBrush_ScaleMin + editor.Configuration.ObjectBrush_ScaleMax) / 2.0f
-                : 1.0f;
-
-            float extent = editor.Configuration.ObjectBrush_Perpendicular
-                ? (bbox.Value.Maximum.X - bbox.Value.Minimum.X) * scale
-                : (bbox.Value.Maximum.Z - bbox.Value.Minimum.Z) * scale;
-            float radius = editor.Configuration.ObjectBrush_Radius;
-            return extent > 0.0f ? Math.Max(extent, radius) : radius;
         }
     }
 }

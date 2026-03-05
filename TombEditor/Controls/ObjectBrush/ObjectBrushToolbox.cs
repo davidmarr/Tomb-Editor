@@ -92,12 +92,13 @@ namespace TombEditor.Controls.ObjectBrush
 
 			// Rotation and perpendicular: brush, pencil, line.
 			bool allowRotation = isBrush || isPencil || isLine;
-			chkPerpendicular.Enabled  = allowRotation;
-			chkRandomRotation.Enabled = allowRotation;
-			nudRotation.Enabled       = allowRotation && !chkRandomRotation.Checked;
 
-			// Scale and fit to ground: brush, pencil, line.
+			chkPerpendicular.Enabled  = allowRotation;
+            chkRandomRotation.Enabled = isBrush || isPencil;
+            nudRotation.Enabled       = isLine || (allowRotation && !chkRandomRotation.Checked);
+
 			bool allowScale = isBrush || isPencil || isLine;
+
 			chkFitToGround.Enabled = allowScale;
 			chkRandomScale.Enabled = allowScale;
 			nudScaleMin.Enabled    = allowScale && chkRandomScale.Checked;

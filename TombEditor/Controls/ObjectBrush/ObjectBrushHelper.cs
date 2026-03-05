@@ -188,8 +188,17 @@ namespace TombEditor.Controls.ObjectBrush
             {
                 foreach (var portal in currentRoom.Portals)
                 {
-                    if (portal.AdjoiningRoom != null && !rooms.Contains(portal.AdjoiningRoom))
-                        rooms.Add(portal.AdjoiningRoom);
+                    if (portal.AdjoiningRoom == null || rooms.Contains(portal.AdjoiningRoom))
+                        continue;
+
+                    // Skip ceiling portals (room above) and non-traversable floor portals
+                    // to match the traversability logic applied in ResolveFloorRoom.
+                    if (portal.Direction == PortalDirection.Ceiling)
+                        continue;
+                    if (portal.Direction == PortalDirection.Floor && !portal.IsTraversable)
+                        continue;
+
+                    rooms.Add(portal.AdjoiningRoom);
                 }
             }
             return rooms;
@@ -440,7 +449,7 @@ namespace TombEditor.Controls.ObjectBrush
             if (IsTooCloseInList(posList, placeX, placeZ, minDistSq))
                 return false;
 
-            bool randomRot = config.ObjectBrush_RandomizeRotation;
+            bool randomRot = config.ObjectBrush_RandomizeRotation && editor.Tool.Tool != EditorToolType.Line;
             bool randomScale = config.ObjectBrush_RandomizeScale;
 
             float rotY = randomRot ? (float)(_rng.NextDouble() * 360.0) : config.ObjectBrush_Rotation;
@@ -670,6 +679,29 @@ namespace TombEditor.Controls.ObjectBrush
         #endregion
 
         #region Pencil Tool
+
+        // Computes spacing for seamless pencil placement along the rotation direction.
+        // Uses bounding box Z extent (local depth axis) of the first chosen item, or X if Perpendicular.
+
+        public static float ComputePencilSpacing(Editor editor)
+        {
+            if (editor.ChosenItems.Count == 0)
+                return editor.Configuration.ObjectBrush_Radius;
+
+            var bbox = GetItemBoundingBox(editor.Level, editor.ChosenItems[0]);
+            if (!bbox.HasValue)
+                return editor.Configuration.ObjectBrush_Radius;
+
+            float scale = editor.Configuration.ObjectBrush_RandomizeScale
+                ? (editor.Configuration.ObjectBrush_ScaleMin + editor.Configuration.ObjectBrush_ScaleMax) / 2.0f
+                : 1.0f;
+
+            float extent = editor.Configuration.ObjectBrush_Perpendicular
+                ? (bbox.Value.Maximum.X - bbox.Value.Minimum.X) * scale
+                : (bbox.Value.Maximum.Z - bbox.Value.Minimum.Z) * scale;
+            float radius = editor.Configuration.ObjectBrush_Radius;
+            return extent > 0.0f ? Math.Max(extent, radius) : radius;
+        }
 
         // Place a single object per step. Cycles through ChosenItems sequentially.
         // ObjectBrush_Radius specifies fixed interval between placed objects.

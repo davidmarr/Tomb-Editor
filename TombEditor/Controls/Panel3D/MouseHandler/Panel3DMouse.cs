@@ -5,7 +5,6 @@ using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
-using TombEditor.Controls.ObjectBrush;
 using TombLib.Forms;
 using TombLib.GeometryIO;
 using TombLib.Graphics;
@@ -48,13 +47,7 @@ namespace TombEditor.Controls.Panel3D
             _dragObjectMoved = false;
             _dragObjectPicked = false;
 
-            // Push batch undo for the entire brush stroke.
-            if (_objectBrushEngaged)
-                ObjectBrushActions.EndBrushStroke(_editor, _brushStrokeUndoList, _brushStrokePlacedObjects);
-
-            _objectBrushEngaged = false;
-            _lastBrushWorldPosition = null;
-            _brushStrokeProcessedObjects.Clear();
+            HandleBrushMouseUp();
 
             if (_gizmo.MouseUp())
                 Invalidate();
@@ -154,41 +147,8 @@ namespace TombEditor.Controls.Panel3D
             if (_movementTimer.Animating)
                 return;
 
-            if (_editor.Mode == EditorMode.ObjectPlacement)
-            {
-                var modifiers = Control.ModifierKeys;
-
-                // Alt + mousewheel adjusts brush rotation.
-                if (modifiers.HasFlag(Keys.Alt))
-                {
-                    float rotation = _editor.Configuration.ObjectBrush_Rotation + (delta > 0 ? 5.0f : -5.0f);
-                    rotation = ((rotation % 360.0f) + 360.0f) % 360.0f;
-                    _editor.Configuration.ObjectBrush_Rotation = rotation;
-                    _editor.ObjectBrushSettingsChange();
-                    Invalidate();
-                    return;
-                }
-
-                // Ctrl + mousewheel adjusts brush radius.
-                if (modifiers.HasFlag(Keys.Control))
-                {
-                    float radius = _editor.Configuration.ObjectBrush_Radius + (delta > 0 ? 64.0f : -64.0f);
-                    _editor.Configuration.ObjectBrush_Radius = System.Math.Max(64.0f, radius);
-                    _editor.ObjectBrushSettingsChange();
-                    Invalidate();
-                    return;
-                }
-
-                // Shift + mousewheel adjusts brush density.
-                if (modifiers.HasFlag(Keys.Shift))
-                {
-                    float density = _editor.Configuration.ObjectBrush_Density + (delta > 0 ? 0.1f : -0.1f);
-                    _editor.Configuration.ObjectBrush_Density = System.Math.Max(0.1f, (float)System.Math.Round(density, 1));
-                    _editor.ObjectBrushSettingsChange();
-                    Invalidate();
-                    return;
-                }
-            }
+            if (HandleBrushWheelScroll(delta))
+                return;
 
             Camera.Zoom(-delta * _editor.Configuration.Rendering3D_NavigationSpeedMouseWheelZoom);
             Invalidate();

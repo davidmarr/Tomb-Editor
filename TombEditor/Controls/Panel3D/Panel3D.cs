@@ -121,13 +121,6 @@ namespace TombEditor.Controls.Panel3D
         private bool _dragObjectMoved = false;
         private HighlightedObjects _highlightedObjects = HighlightedObjects.Create(null);
 
-        // Object brush state
-        private bool _objectBrushEngaged = false;
-        private Vector3? _lastBrushWorldPosition;
-        private readonly List<UndoRedoInstance> _brushStrokeUndoList = new List<UndoRedoInstance>();
-        private readonly List<PositionBasedObjectInstance> _brushStrokePlacedObjects = new List<PositionBasedObjectInstance>();
-        private readonly HashSet<ObjectInstance> _brushStrokeProcessedObjects = new HashSet<ObjectInstance>();
-
         // Legacy rendering state
         private WadRenderer _wadRenderer;
         private RasterizerState _rasterizerStateDepthBias;

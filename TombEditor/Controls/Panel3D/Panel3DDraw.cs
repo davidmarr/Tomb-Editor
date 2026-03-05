@@ -1913,7 +1913,8 @@ namespace TombEditor.Controls.Panel3D
                 brushColor = new Vector4(selColor.X, selColor.Y, selColor.Z, 1.0f);
 
                 if (_editor.Tool.Tool == EditorToolType.Selection || _editor.Tool.Tool == EditorToolType.Deselect ||
-                    _editor.Tool.Tool == EditorToolType.Eraser || _editor.Configuration.ObjectBrush_RandomizeRotation)
+                    _editor.Tool.Tool == EditorToolType.Eraser ||
+                    (_editor.Configuration.ObjectBrush_RandomizeRotation && _editor.Tool.Tool != EditorToolType.Line))
                 {
                     brushRotation = -1.0f; // Negative signals no indicator.
                 }
