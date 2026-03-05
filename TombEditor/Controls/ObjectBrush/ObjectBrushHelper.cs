@@ -132,14 +132,9 @@ namespace TombEditor.Controls.ObjectBrush
             return null;
         }
 
-        /// <summary>
-        /// Checks that all 4 bounding box bottom corners at a given position and rotation
-        /// are above valid floor geometry. Returns the corrected Y position or null if any corner
-        /// is over invalid geometry. The object is placed such that no bounding box bottom corner
-        /// hangs in the air — it rests on the lowest floor point under any corner, with other corners
-        /// potentially submerging into higher terrain.
-        /// </summary>
-        /// 
+        // Checks bounding box corners at a given position and rotation for valid floor geometry.
+        // Returns corrected Y position or null if any corner is over invalid geometry.
+
         public static float? GetSafePlacementHeight(Room room, Vector3 localPos, float rotationYDeg, float scale, BoundingBox bbox)
         {
             var scaledMin = new Vector2(bbox.Minimum.X * scale, bbox.Minimum.Z * scale);
@@ -279,25 +274,6 @@ namespace TombEditor.Controls.ObjectBrush
         #endregion
 
         #region Distance and Overlap Checks
-
-        public static bool IsTooCloseToExisting(Room room, float worldX, float worldZ, float minDistWorld, IReadOnlyList<ItemType> chosenItems)
-        {
-            float minDistSq = minDistWorld * minDistWorld;
-
-            foreach (var obj in room.Objects)
-            {
-                if (obj is ItemInstance item && chosenItems.Contains(item.ItemType))
-                {
-                    float dx = obj.Position.X - worldX;
-                    float dz = obj.Position.Z - worldZ;
-
-                    if (dx * dx + dz * dz < minDistSq)
-                        return true;
-                }
-            }
-
-            return false;
-        }
 
         private static bool IsTooCloseInList(List<Vector2> positions, float x, float z, float minDistSq)
         {
@@ -582,7 +558,7 @@ namespace TombEditor.Controls.ObjectBrush
         {
             for (int i = list.Count - 1; i > 0; i--)
             {
-                int j = Random.Shared.Next(i + 1);
+                int j = _rng.Next(i + 1);
                 (list[i], list[j]) = (list[j], list[i]);
             }
         }
