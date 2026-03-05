@@ -183,7 +183,7 @@ float4 main(PixelInputType input) : SV_TARGET
 		float fw = max(fwidth(dist), 0.001f);
 
 		// Semi-transparent fill using BrushColor inside the brush area.
-		float fillAlpha = step(dist, BrushCenter.w) * 0.25f;
+		float fillAlpha = step(dist, BrushCenter.w) * 0.35f;
 		result.xyz = lerp(result.xyz, BrushColor.xyz, fillAlpha);
 		result.w = max(result.w, fillAlpha);
 
@@ -206,18 +206,14 @@ float4 main(PixelInputType input) : SV_TARGET
 
 			float perpFw = max(fwidth(perp), 0.001f);
 			float perpNorm = perp / perpFw;
-			float lineInnerAlpha = saturate(1.0f - perpNorm / max(lineWidth * 0.7f, 0.001f));
-			float lineOuterAlpha = saturate(1.0f - perpNorm / max(lineWidth * 1.5f, 0.001f));
-
 			// Clamp line extent to minimum 1024 so direction is visible at small radii.
 			float lineExtent = max(BrushCenter.w, 1024.0f);
 			float withinLine = step(0.0f, along) * step(along, lineExtent);
 
-			float3 lineColor = lerp(float3(0, 0, 0), float3(1, 1, 1), lineInnerAlpha);
-			float lineAlpha = max(lineInnerAlpha, lineOuterAlpha) * withinLine;
+			float lineAlpha = saturate(1.0f - perpNorm / max(lineWidth * 0.7f, 0.001f)) * withinLine;
 
 			// Line always composites on top of the circle outline.
-			result.xyz = lerp(result.xyz, lineColor, lineAlpha);
+			result.xyz = lerp(result.xyz, float3(1, 1, 1), lineAlpha);
 			result.w = max(result.w, lineAlpha);
 		}
 	}
