@@ -585,12 +585,11 @@ namespace TombEditor.Controls.ObjectBrush
 
         public static void SelectObjectsWithBrush(Editor editor, Room room, float centerWorldX, float centerWorldZ,
             IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint,
-            HashSet<ObjectInstance> processedObjects = null)
+            HashSet<ObjectInstance> processedObjects = null, bool deselect = false)
         {
             var shape = editor.Configuration.ObjectBrush_Shape;
             float radius = editor.Configuration.ObjectBrush_Radius;
             bool adjacent = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
-            bool ctrlHeld = Control.ModifierKeys.HasFlag(Keys.Control);
             bool filterByChosen = Control.ModifierKeys.HasFlag(Keys.Shift);
 
             var rooms = GetBrushRooms(room, adjacent);
@@ -637,7 +636,7 @@ namespace TombEditor.Controls.ObjectBrush
                     processedObjects.Add(obj);
             }
 
-            if (ctrlHeld)
+            if (deselect)
             {
                 // Deselect all objects in the brush area from current selection.
                 if (editor.SelectedObject is ObjectGroup group)

@@ -16,7 +16,7 @@ namespace TombEditor
         Fill, Group, GridPaint,
         Shovel, Smooth, Flatten,
         Drag, Ramp, QuarterPipe, HalfPipe, Bowl, Pyramid, Terrain, PortalDigger, /* Do not modify enum order after drag tool! */
-        Eraser
+        Line, Eraser, Deselect
     }
 
     public enum PaintGridSize

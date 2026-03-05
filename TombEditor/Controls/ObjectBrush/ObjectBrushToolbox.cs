@@ -32,15 +32,11 @@ namespace TombEditor.Controls.ObjectBrush
 
 		private void WireEvents()
 		{
-			btnShapeCircle.Click += (s, e) => SetShape(ObjectBrushShape.Circle);
-			btnShapeSquare.Click += (s, e) => SetShape(ObjectBrushShape.Square);
-
 			nudRadius.ValueChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
 			nudDensity.ValueChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
 			nudRotation.ValueChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
 			chkPerpendicular.CheckedChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
 			chkAdjacentRooms.CheckedChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
-			chkShowTextures.CheckedChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
 			chkRandomRotation.CheckedChanged += (s, e) =>
 			{
 				if (!_suppressEvents)
@@ -60,15 +56,6 @@ namespace TombEditor.Controls.ObjectBrush
 			};
 			nudScaleMin.ValueChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
 			nudScaleMax.ValueChanged += (s, e) => { if (!_suppressEvents) SaveSettings(); };
-		}
-
-		private void SetShape(ObjectBrushShape shape)
-		{
-			btnShapeCircle.Checked = (shape == ObjectBrushShape.Circle);
-			btnShapeSquare.Checked = (shape == ObjectBrushShape.Square);
-
-			if (!_suppressEvents)
-				SaveSettings();
 		}
 
 		private void UpdateScaleFieldsVisibility()
@@ -91,37 +78,37 @@ namespace TombEditor.Controls.ObjectBrush
 			var tool = _editor.Tool.Tool;
 			bool isBrush    = tool == EditorToolType.Brush;
 			bool isPencil   = tool == EditorToolType.Pencil;
+			bool isLine     = tool == EditorToolType.Line;
 			bool isEraser   = tool == EditorToolType.Eraser;
+			bool isFill     = tool == EditorToolType.Fill;
 
-			// Shape and radius apply to all placement tools.
-			btnShapeCircle.Enabled  = true;
-			btnShapeSquare.Enabled  = true;
-			nudRadius.Enabled       = true;
+			nudRadius.Enabled = true;
 
 			// Density: brush and eraser only.
-			nudDensity.Enabled = isBrush || isEraser;
+			nudDensity.Enabled = isBrush || isEraser || isFill;
 
-			// Adjacent rooms: brush, eraser, pencil.
-			chkAdjacentRooms.Enabled = isBrush || isEraser || isPencil;
+			// Adjacent rooms: brush, eraser, pencil, line.
+			chkAdjacentRooms.Enabled = isBrush || isEraser || isPencil || isLine;
 
-			// Rotation and perpendicular: brush and pencil.
-			bool allowRotation = isBrush || isPencil;
+			// Rotation and perpendicular: brush, pencil, line.
+			bool allowRotation = isBrush || isPencil || isLine;
 			chkPerpendicular.Enabled  = allowRotation;
 			chkRandomRotation.Enabled = allowRotation;
 			nudRotation.Enabled       = allowRotation && !chkRandomRotation.Checked;
 
-			// Scale, fit to ground, show textures: brush and pencil.
-			bool allowScale = isBrush || isPencil;
-			chkFitToGround.Enabled  = allowScale;
-			chkRandomScale.Enabled  = allowScale;
-			nudScaleMin.Enabled     = allowScale && chkRandomScale.Checked;
-			nudScaleMax.Enabled     = allowScale && chkRandomScale.Checked;
-			chkShowTextures.Enabled = isBrush || isPencil;
+			// Scale and fit to ground: brush, pencil, line.
+			bool allowScale = isBrush || isPencil || isLine;
+			chkFitToGround.Enabled = allowScale;
+			chkRandomScale.Enabled = allowScale;
+			nudScaleMin.Enabled    = allowScale && chkRandomScale.Checked;
+			nudScaleMax.Enabled    = allowScale && chkRandomScale.Checked;
 		}
 
 		private void LoadSettings()
 		{
-			if (_editor == null) return;
+			if (_editor == null)
+				return;
+
 			_suppressEvents = true;
 
 			var config = _editor.Configuration;
@@ -130,11 +117,8 @@ namespace TombEditor.Controls.ObjectBrush
 			nudRadius.Value = ClampDecimal(config.ObjectBrush_Radius / (float)Level.SectorSizeUnit, nudRadius.Minimum, nudRadius.Maximum);
 			nudDensity.Value = ClampDecimal(config.ObjectBrush_Density, nudDensity.Minimum, nudDensity.Maximum);
 
-			SetShape(config.ObjectBrush_Shape);
-
 			chkAdjacentRooms.Checked = config.ObjectBrush_PlaceInAdjacentRooms;
 			chkRandomRotation.Checked = config.ObjectBrush_RandomizeRotation;
-			chkShowTextures.Checked = config.ObjectBrush_ShowTextures;
 			nudRotation.Value = ClampDecimal(config.ObjectBrush_Rotation, nudRotation.Minimum, nudRotation.Maximum);
 			chkPerpendicular.Checked = config.ObjectBrush_Perpendicular;
 			chkFitToGround.Checked = config.ObjectBrush_FitToGround;
@@ -143,6 +127,7 @@ namespace TombEditor.Controls.ObjectBrush
 			nudScaleMax.Value = ClampDecimal(config.ObjectBrush_ScaleMax, nudScaleMax.Minimum, nudScaleMax.Maximum);
 
 			_suppressEvents = false;
+
 			UpdateScaleFieldsVisibility();
 			UpdateRotationFieldVisibility();
 			UpdateControlsForTool();
@@ -157,10 +142,8 @@ namespace TombEditor.Controls.ObjectBrush
 			// Radius displayed in blocks, stored in world units.
 			config.ObjectBrush_Radius = (float)nudRadius.Value * Level.SectorSizeUnit;
 			config.ObjectBrush_Density = (float)nudDensity.Value;
-			config.ObjectBrush_Shape = btnShapeSquare.Checked ? ObjectBrushShape.Square : ObjectBrushShape.Circle;
 			config.ObjectBrush_PlaceInAdjacentRooms = chkAdjacentRooms.Checked;
 			config.ObjectBrush_RandomizeRotation = chkRandomRotation.Checked;
-			config.ObjectBrush_ShowTextures = chkShowTextures.Checked;
 			config.ObjectBrush_Rotation = (float)nudRotation.Value;
 			config.ObjectBrush_Perpendicular = chkPerpendicular.Checked;
 			config.ObjectBrush_FitToGround = chkFitToGround.Checked;

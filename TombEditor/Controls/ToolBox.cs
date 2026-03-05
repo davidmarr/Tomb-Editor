@@ -57,6 +57,8 @@ namespace TombEditor.Controls
                 toolSelection.Checked = currentTool.Tool == EditorToolType.Selection;
                 toolBrush.Checked = currentTool.Tool == EditorToolType.Brush;
                 toolPencil.Checked = currentTool.Tool == EditorToolType.Pencil;
+                toolLine.Checked = currentTool.Tool == EditorToolType.Line;
+                toolObjectDeselect.Checked = currentTool.Tool == EditorToolType.Deselect;
                 toolFill.Checked = currentTool.Tool == EditorToolType.Fill;
                 toolGroup.Checked = currentTool.Tool == EditorToolType.Group;
                 toolGridPaint.Checked = currentTool.Tool == EditorToolType.GridPaint;
@@ -92,6 +94,13 @@ namespace TombEditor.Controls
                 }
             }
 
+            if (obj is Editor.ObjectBrushSettingsChangedEvent || obj is Editor.ConfigurationChangedEvent || obj is Editor.InitEvent)
+            {
+                toolBrushShapeCircle.Checked = _editor.Configuration.ObjectBrush_Shape == ObjectBrushShape.Circle;
+                toolBrushShapeSquare.Checked = _editor.Configuration.ObjectBrush_Shape == ObjectBrushShape.Square;
+                toolShowTextures.Checked = _editor.Configuration.ObjectBrush_ShowTextures;
+            }
+
             if (obj is Editor.SelectedTexturesChangedEvent || obj is Editor.InitEvent)
             {
                 toolEraser.Checked = _editor.SelectedTexture.Texture == null;
@@ -123,8 +132,14 @@ namespace TombEditor.Controls
                 toolTerrain.Visible = geometryMode;
                 toolPortalDigger.Visible = geometryMode;
 
-                toolSeparator3.Visible = objectPlacementMode;
+                toolBrushShapeCircle.Visible = objectPlacementMode;
+                toolBrushShapeSquare.Visible = objectPlacementMode;
+                toolBrushShapeSeparator.Visible = objectPlacementMode;
+                toolLine.Visible = objectPlacementMode;
+                toolObjectDeselect.Visible = objectPlacementMode;
                 toolObjectEraser.Visible = objectPlacementMode;
+                toolSeparator2.Visible = !objectPlacementMode;
+                toolShowTextures.Visible = objectPlacementMode;
 
                 toolStrip.AutoSize = true;
                 AutoSize = true;
@@ -159,6 +174,34 @@ namespace TombEditor.Controls
         private void toolPencil_Click(object sender, EventArgs e)
         {
             SwitchTool(EditorToolType.Pencil);
+        }
+
+        private void toolLine_Click(object sender, EventArgs e)
+        {
+            SwitchTool(EditorToolType.Line);
+        }
+
+        private void toolObjectDeselect_Click(object sender, EventArgs e)
+        {
+            SwitchTool(EditorToolType.Deselect);
+        }
+
+        private void toolBrushShapeCircle_Click(object sender, EventArgs e)
+        {
+            _editor.Configuration.ObjectBrush_Shape = ObjectBrushShape.Circle;
+            _editor.ObjectBrushSettingsChange();
+        }
+
+        private void toolBrushShapeSquare_Click(object sender, EventArgs e)
+        {
+            _editor.Configuration.ObjectBrush_Shape = ObjectBrushShape.Square;
+            _editor.ObjectBrushSettingsChange();
+        }
+
+        private void toolShowTextures_Click(object sender, EventArgs e)
+        {
+            _editor.Configuration.ObjectBrush_ShowTextures = !_editor.Configuration.ObjectBrush_ShowTextures;
+            _editor.ObjectBrushSettingsChange();
         }
 
         private void toolShovel_Click(object sender, EventArgs e)

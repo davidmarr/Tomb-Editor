@@ -44,9 +44,15 @@ namespace TombEditor.Controls.ObjectBrush
                     ObjectBrushHelper.SelectObjectsWithBrush(editor, selectedRoom, centerWorldX, centerWorldZ, editor.ChosenItems, sectorConstraint, processedObjects);
                     break;
 
+                case EditorToolType.Deselect:
+                    ObjectBrushHelper.SelectObjectsWithBrush(editor, selectedRoom, centerWorldX, centerWorldZ, editor.ChosenItems, sectorConstraint, processedObjects, deselect: true);
+                    break;
+
                 case EditorToolType.Pencil:
-                    var pencilPlaced = ObjectBrushHelper.PlaceObjectWithPencil(editor, selectedRoom, centerWorldX, centerWorldZ,
-                        editor.ChosenItems, ref _pencilItemIndex, sectorConstraint, skipOverlapCheck);
+                case EditorToolType.Line:
+                    var pencilPlaced = ObjectBrushHelper.PlaceObjectWithPencil(editor, selectedRoom, centerWorldX, centerWorldZ, editor.ChosenItems, ref _pencilItemIndex, sectorConstraint,
+                        skipOverlapCheck: editor.Tool.Tool == EditorToolType.Line);
+
                     undoInstances.AddRange(pencilPlaced.Select(o => new AddRemoveObjectUndoInstance(editor.UndoManager, o, true)));
                     placedTracker?.AddRange(pencilPlaced);
                     break;

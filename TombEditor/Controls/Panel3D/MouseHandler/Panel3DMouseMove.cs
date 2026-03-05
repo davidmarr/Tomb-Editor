@@ -200,9 +200,9 @@ namespace TombEditor.Controls.Panel3D
                     {
                         float quantizationDistance = _editor.Configuration.ObjectBrush_Radius;
 
-                        // For pencil with Ctrl held, constrain movement to the rotation direction.
+                        // For Line tool, constrain movement to the rotation direction.
                         // Use bounding box extent along the rotation axis for seamless spacing.
-                        if (_editor.Tool.Tool == EditorToolType.Pencil && Control.ModifierKeys.HasFlag(Keys.Control) && _lastBrushWorldPosition.HasValue)
+                        if (_editor.Tool.Tool == EditorToolType.Line && _lastBrushWorldPosition.HasValue)
                         {
                             float rotRad = _editor.Configuration.ObjectBrush_Rotation * (float)(System.Math.PI / 180.0);
                             var rotDir = new Vector3((float)System.Math.Sin(rotRad), 0, (float)System.Math.Cos(rotRad));
