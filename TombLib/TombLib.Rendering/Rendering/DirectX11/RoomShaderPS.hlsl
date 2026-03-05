@@ -182,19 +182,15 @@ float4 main(PixelInputType input) : SV_TARGET
 		float lineWidth = (RoomGridLineWidth * 2048) / input.Position.w;
 		float fw = max(fwidth(dist), 0.001f);
 
-		// Black outline (outer).
+		// Semi-transparent fill using BrushColor inside the brush area.
+		float fillAlpha = step(dist, BrushCenter.w) * 0.25f;
+		result.xyz = lerp(result.xyz, BrushColor.xyz, fillAlpha);
+		result.w = max(result.w, fillAlpha);
+
+		// White contour ring.
 		float outerEdge = edge / fw;
-		float outerAlpha = saturate(1.0f - outerEdge / max(lineWidth * 1.8f, 0.001f));
-
-		// White inner contour (sharp).
-		float innerAlpha = saturate(1.0f - outerEdge / max(lineWidth, 0.001f));
-
-		// Composite: black outline behind white line.
-		float3 contourColor = lerp(float3(0, 0, 0), float3(1, 1, 1), innerAlpha);
-		float contourAlpha = BrushColor.w * max(outerAlpha, innerAlpha);
-
-		// Draw circle contour.
-		result.xyz = lerp(result.xyz, contourColor, contourAlpha);
+		float contourAlpha = saturate(1.0f - outerEdge / max(lineWidth, 0.001f));
+		result.xyz = lerp(result.xyz, float3(1, 1, 1), contourAlpha);
 		result.w = max(result.w, contourAlpha);
 
 		// Rotation indicator line drawn on top of the circle.
@@ -218,7 +214,7 @@ float4 main(PixelInputType input) : SV_TARGET
 			float withinLine = step(0.0f, along) * step(along, lineExtent);
 
 			float3 lineColor = lerp(float3(0, 0, 0), float3(1, 1, 1), lineInnerAlpha);
-			float lineAlpha = BrushColor.w * max(lineInnerAlpha, lineOuterAlpha) * withinLine;
+			float lineAlpha = max(lineInnerAlpha, lineOuterAlpha) * withinLine;
 
 			// Line always composites on top of the circle outline.
 			result.xyz = lerp(result.xyz, lineColor, lineAlpha);

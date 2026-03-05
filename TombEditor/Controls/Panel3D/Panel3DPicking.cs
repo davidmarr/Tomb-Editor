@@ -111,6 +111,10 @@ namespace TombEditor.Controls.Panel3D
 
         private PickingResult DoPicking(Ray ray, bool pickAnyRoom = false, bool skipObjects = false)
         {
+            // In ObjectPlacement mode, never pick objects — only room geometry is relevant.
+            if (_editor.Mode == EditorMode.ObjectPlacement)
+                skipObjects = true;
+
             // The gizmo has the priority because it always drawn on top
             PickingResult result = _gizmo.DoPicking(ray);
             if (result != null)

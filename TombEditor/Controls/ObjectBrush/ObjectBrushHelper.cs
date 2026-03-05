@@ -444,6 +444,8 @@ namespace TombEditor.Controls.ObjectBrush
             bool randomScale = config.ObjectBrush_RandomizeScale;
 
             float rotY = randomRot ? (float)(_rng.NextDouble() * 360.0) : config.ObjectBrush_Rotation;
+            if (config.ObjectBrush_Perpendicular)
+                rotY = (rotY + 90.0f) % 360.0f;
             float scale = 1.0f;
 
             if (randomScale && chosenItem.IsStatic)
@@ -499,7 +501,7 @@ namespace TombEditor.Controls.ObjectBrush
             float density = editor.Configuration.ObjectBrush_Density;
             bool adjacent = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
 
-            int targetCount = GetTargetObjectCount(radius, density, shape);
+            int targetCount = GetTargetObjectCount(radius, density * 0.3f, shape);
 
             var removedObjects = new List<(PositionBasedObjectInstance, Room)>();
             var rooms = GetBrushRooms(room, adjacent);
@@ -676,7 +678,7 @@ namespace TombEditor.Controls.ObjectBrush
 
         public static List<PositionBasedObjectInstance> PlaceObjectWithPencil(Editor editor, Room room,
             float centerWorldX, float centerWorldZ, IReadOnlyList<ItemType> chosenItems, ref int itemIndex,
-            RectangleInt2? sectorConstraint)
+            RectangleInt2? sectorConstraint, bool skipOverlapCheck = false)
         {
             var config = editor.Configuration;
             float radius = config.ObjectBrush_Radius;
@@ -699,12 +701,15 @@ namespace TombEditor.Controls.ObjectBrush
             }
 
             // Compute minimum distance from bounding box for seamless placement.
+            // Use X extent if Perpendicular flag adds a 90-degree rotation to placed objects.
             float minDist = radius;
             if (bbox.HasValue)
             {
-                float extent = bbox.Value.Maximum.Z - bbox.Value.Minimum.Z;
+                float extent = config.ObjectBrush_Perpendicular
+                    ? bbox.Value.Maximum.X - bbox.Value.Minimum.X
+                    : bbox.Value.Maximum.Z - bbox.Value.Minimum.Z;
                 if (extent > 0.0f)
-                    minDist = extent;
+                    minDist = Math.Max(extent, radius);
             }
             float minDistSq = minDist * minDist;
 
@@ -712,25 +717,26 @@ namespace TombEditor.Controls.ObjectBrush
 
             foreach (var targetRoom in rooms)
             {
-                // Check for overlap with existing objects.
+                // Check for overlap with existing objects, unless the caller opted out (e.g. Ctrl+pencil line mode).
                 bool tooClose = false;
                 var offset = room.WorldPos - targetRoom.WorldPos;
                 float localX = centerWorldX + offset.X;
                 float localZ = centerWorldZ + offset.Z;
 
-                foreach (var obj in targetRoom.Objects)
-                {
-                    if (obj is ItemInstance item && chosenItems.Contains(item.ItemType))
+                if (!skipOverlapCheck)
+                    foreach (var obj in targetRoom.Objects)
                     {
-                        float dx = obj.Position.X - localX;
-                        float dz = obj.Position.Z - localZ;
-                        if (dx * dx + dz * dz < minDistSq)
+                        if (obj is ItemInstance item && chosenItems.Contains(item.ItemType))
                         {
-                            tooClose = true;
-                            break;
+                            float dx = obj.Position.X - localX;
+                            float dz = obj.Position.Z - localZ;
+                            if (dx * dx + dz * dz < minDistSq)
+                            {
+                                tooClose = true;
+                                break;
+                            }
                         }
                     }
-                }
 
                 if (tooClose)
                     continue;

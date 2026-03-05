@@ -20,7 +20,7 @@ namespace TombEditor.Controls.ObjectBrush
 
         private static List<UndoRedoInstance> ExecuteBrushAction(Editor editor, Room selectedRoom, float centerWorldX, float centerWorldZ,
             RectangleInt2? sectorConstraint, List<PositionBasedObjectInstance> placedTracker,
-            HashSet<ObjectInstance> processedObjects = null)
+            HashSet<ObjectInstance> processedObjects = null, bool skipOverlapCheck = false)
         {
             var undoInstances = new List<UndoRedoInstance>();
 
@@ -46,7 +46,7 @@ namespace TombEditor.Controls.ObjectBrush
 
                 case EditorToolType.Pencil:
                     var pencilPlaced = ObjectBrushHelper.PlaceObjectWithPencil(editor, selectedRoom, centerWorldX, centerWorldZ,
-                        editor.ChosenItems, ref _pencilItemIndex, sectorConstraint);
+                        editor.ChosenItems, ref _pencilItemIndex, sectorConstraint, skipOverlapCheck);
                     undoInstances.AddRange(pencilPlaced.Select(o => new AddRemoveObjectUndoInstance(editor.UndoManager, o, true)));
                     placedTracker?.AddRange(pencilPlaced);
                     break;
@@ -79,7 +79,7 @@ namespace TombEditor.Controls.ObjectBrush
 
         public static BrushPaintResult? ContinueBrushStroke(Editor editor, Room pickedRoom, Room selectedRoom,
             VectorInt2 sectorPos, Vector3? lastWorldPosition, float quantizationDistance,
-            Vector3? cursorWorldPos = null, HashSet<ObjectInstance> processedObjects = null)
+            Vector3? cursorWorldPos = null, HashSet<ObjectInstance> processedObjects = null, bool skipOverlapCheck = false)
         {
             var room = pickedRoom == selectedRoom ? selectedRoom : pickedRoom;
 
@@ -126,7 +126,7 @@ namespace TombEditor.Controls.ObjectBrush
             var sectorConstraint = editor.SelectedSectors.Valid && !editor.SelectedSectors.Empty ? (RectangleInt2?)editor.SelectedSectors.Area : null;
 
             var placedObjects = new List<PositionBasedObjectInstance>();
-            var undoInstances = ExecuteBrushAction(editor, selectedRoom, centerWorldX, centerWorldZ, sectorConstraint, placedObjects, processedObjects);
+            var undoInstances = ExecuteBrushAction(editor, selectedRoom, centerWorldX, centerWorldZ, sectorConstraint, placedObjects, processedObjects, skipOverlapCheck);
 
             UpdateBrushCursor(editor, room, sectorPos,
                 cursorWorldPos.HasValue ? cursorWorldPos.Value.X : (float?)null,

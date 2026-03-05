@@ -1909,7 +1909,8 @@ namespace TombEditor.Controls.Panel3D
                 float radius = _editor.Configuration.ObjectBrush_Radius;
                 brushShape = _editor.Configuration.ObjectBrush_Shape == ObjectBrushShape.Circle ? 1 : 2;
                 brushCenter = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, radius);
-                brushColor = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+                var selColor = _editor.Configuration.UI_ColorScheme.ColorSelection;
+                brushColor = new Vector4(selColor.X, selColor.Y, selColor.Z, 1.0f);
 
                 if (_editor.Tool.Tool == EditorToolType.Selection ||
                     _editor.Configuration.ObjectBrush_RandomizeRotation)

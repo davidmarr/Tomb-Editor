@@ -230,17 +230,17 @@ namespace TombEditor.Controls.Panel3D
                                 return true;
                             }
 
-                            // Snap placement to exact spacing step from last anchor for gapless tiling.
+                            // Snap to exact one-step advance from the last anchor for gapless tiling.
+                            // Pass null as lastWorldPosition to force paint regardless of distance, avoiding
+                            // the floating-point precision issue that caused the brush to get stuck.
                             var snappedPos = _lastBrushWorldPosition.Value + rotDir * spacing;
-
                             int sx = (int)((snappedPos.X - room.WorldPos.X) / Level.SectorSizeUnit);
                             int sz = (int)((snappedPos.Z - room.WorldPos.Z) / Level.SectorSizeUnit);
                             var constrainedPos = new VectorInt2(sx, sz);
 
                             var result = ObjectBrushActions.ContinueBrushStroke(
                                 _editor, room, _editor.SelectedRoom, constrainedPos,
-                                _lastBrushWorldPosition, spacing, snappedPos,
-                                _brushStrokeProcessedObjects);
+                                null, spacing, snappedPos, _brushStrokeProcessedObjects, skipOverlapCheck: true);
 
                             if (result.HasValue)
                             {
@@ -489,7 +489,7 @@ namespace TombEditor.Controls.Panel3D
         }
 
         // Computes spacing for seamless pencil placement along the rotation direction.
-        // Uses bounding box Z extent (local depth axis) of the first chosen item.
+        // Uses bounding box Z extent (local depth axis) of the first chosen item, or X if Perpendicular.
 
         private static float ComputePencilSpacing(Editor editor)
         {
@@ -504,8 +504,11 @@ namespace TombEditor.Controls.Panel3D
                 ? (editor.Configuration.ObjectBrush_ScaleMin + editor.Configuration.ObjectBrush_ScaleMax) / 2.0f
                 : 1.0f;
 
-            float extent = (bbox.Value.Maximum.Z - bbox.Value.Minimum.Z) * scale;
-            return extent > 0.0f ? extent : editor.Configuration.ObjectBrush_Radius;
+            float extent = editor.Configuration.ObjectBrush_Perpendicular
+                ? (bbox.Value.Maximum.X - bbox.Value.Minimum.X) * scale
+                : (bbox.Value.Maximum.Z - bbox.Value.Minimum.Z) * scale;
+            float radius = editor.Configuration.ObjectBrush_Radius;
+            return extent > 0.0f ? Math.Max(extent, radius) : radius;
         }
     }
 }
