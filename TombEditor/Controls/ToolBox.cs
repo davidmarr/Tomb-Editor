@@ -32,12 +32,19 @@ namespace TombEditor.Controls
             InitializeComponent();
             _toolBoxView.SetWinFormsHost(_elementHost);
             _toolBoxView.PreferredHeightChanged += OnPreferredHeightChanged;
+            _toolBoxView.PreferredWidthChanged += OnPreferredWidthChanged;
         }
 
         private void OnPreferredHeightChanged(int preferredHeight)
         {
             if (Height != preferredHeight)
                 Height = preferredHeight;
+        }
+
+        private void OnPreferredWidthChanged(int preferredWidth)
+        {
+            if (preferredWidth > 0 && Width != preferredWidth)
+                Width = preferredWidth;
         }
 
         protected override void OnSizeChanged(EventArgs e)

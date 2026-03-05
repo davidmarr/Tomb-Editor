@@ -31,12 +31,13 @@
             // ToolBox
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             Controls.Add(_elementHost);
+            Padding = new System.Windows.Forms.Padding(0);
             Margin = new System.Windows.Forms.Padding(0);
             Name = "ToolBox";
-            Size = new System.Drawing.Size(33, 599);
+            Size = new System.Drawing.Size(35, 599);
             ResumeLayout(false);
         }
 

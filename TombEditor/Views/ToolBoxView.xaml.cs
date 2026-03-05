@@ -25,9 +25,13 @@ namespace TombEditor.Views
         // Fires when the preferred height of the visible content changes.
         public event Action<int> PreferredHeightChanged;
 
+        // Fires when the preferred width of the visible content changes.
+        public event Action<int> PreferredWidthChanged;
+
         public ToolBoxView()
         {
             InitializeComponent();
+            Loaded += OnLoaded;
 
             if (!DesignerProperties.GetIsInDesignMode(this))
             {
@@ -65,6 +69,7 @@ namespace TombEditor.Views
 
                 toolPanel.Orientation = value;
                 UpdateSeparatorOrientation();
+                RequestWidthUpdate();
             }
         }
 
@@ -251,6 +256,35 @@ namespace TombEditor.Views
         public void RequestHeightUpdate()
         {
             Dispatcher.BeginInvoke(new Action(NotifyPreferredHeightChanged), DispatcherPriority.Render);
+        }
+
+        // Schedules a deferred preferred width recalculation (vertical orientation only).
+
+        public void RequestWidthUpdate()
+        {
+            if (toolPanel.Orientation == System.Windows.Controls.Orientation.Vertical)
+                Dispatcher.BeginInvoke(new Action(NotifyPreferredWidthChanged), DispatcherPriority.Render);
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            RequestWidthUpdate();
+        }
+
+        private void NotifyPreferredWidthChanged()
+        {
+            if (Visibility != Visibility.Visible)
+            {
+                PreferredWidthChanged?.Invoke(0);
+                return;
+            }
+
+            Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+
+            double dpiScale = GetDpiScale();
+            int width = Math.Max(1, (int)Math.Ceiling(DesiredSize.Width * dpiScale));
+
+            PreferredWidthChanged?.Invoke(width);
         }
 
         private void NotifyPreferredHeightChanged()

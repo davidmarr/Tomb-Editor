@@ -98,7 +98,7 @@ namespace TombEditor.ToolWindows
 			toolStrip.BackColor = System.Drawing.Color.FromArgb(60, 63, 65);
 			toolStrip.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
 			toolStrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
-			toolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { but2D, but3D, butObjectPlacement, butFaceEdit, butLightingMode, butUndo, butRedo, butCenterCamera, butDrawPortals, butDrawAllRooms, butDrawHorizon, butDrawRoomNames, butDrawCardinalDirections, butDrawExtraBlendingModes, butHideTransparentFaces, butBilinearFilter, butDrawWhiteLighting, butDrawStaticTint, butDrawIllegalSlopes, butDrawSlideDirections, butDisableGeometryPicking, butDisableHiddenRoomPicking, butDrawObjects, butFlipMap, butCopy, butPaste, butStamp, butOpacityNone, butOpacitySolidFaces, butOpacityTraversableFaces, butMirror, butAddCamera, butAddSprite, butAddFlybyCamera, butAddSink, butAddSoundSource, butAddImportedGeometry, butAddGhostBlock, butAddMemo, butCompileLevel, butCompileLevelAndPlay, butCompileAndPlayPreview, butAddBoxVolume, butAddSphereVolume, butTextureFloor, butTextureCeiling, butTextureWalls, butEditLevelSettings, butToggleFlyMode, butSearch, butSearchAndReplaceObjects });
+			toolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { but2D, but3D, butFaceEdit, butObjectPlacement, butLightingMode, butUndo, butRedo, butCenterCamera, butDrawPortals, butDrawAllRooms, butDrawHorizon, butDrawRoomNames, butDrawCardinalDirections, butDrawExtraBlendingModes, butHideTransparentFaces, butBilinearFilter, butDrawWhiteLighting, butDrawStaticTint, butDrawIllegalSlopes, butDrawSlideDirections, butDisableGeometryPicking, butDisableHiddenRoomPicking, butDrawObjects, butFlipMap, butCopy, butPaste, butStamp, butOpacityNone, butOpacitySolidFaces, butOpacityTraversableFaces, butMirror, butAddCamera, butAddSprite, butAddFlybyCamera, butAddSink, butAddSoundSource, butAddImportedGeometry, butAddGhostBlock, butAddMemo, butCompileLevel, butCompileLevelAndPlay, butCompileAndPlayPreview, butAddBoxVolume, butAddSphereVolume, butTextureFloor, butTextureCeiling, butTextureWalls, butEditLevelSettings, butToggleFlyMode, butSearch, butSearchAndReplaceObjects });
 			toolStrip.Location = new System.Drawing.Point(0, 0);
 			toolStrip.Name = "toolStrip";
 			toolStrip.Padding = new System.Windows.Forms.Padding(6, 0, 1, 0);
@@ -136,7 +136,7 @@ namespace TombEditor.ToolWindows
 			butObjectPlacement.BackColor = System.Drawing.Color.FromArgb(60, 63, 65);
 			butObjectPlacement.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			butObjectPlacement.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-			butObjectPlacement.Image = Properties.Resources.toolbox_Paint_16;
+			butObjectPlacement.Image = Properties.Resources.toolbox_ObjectPlacement_16;
 			butObjectPlacement.ImageTransparentColor = System.Drawing.Color.Magenta;
 			butObjectPlacement.Name = "butObjectPlacement";
 			butObjectPlacement.Size = new System.Drawing.Size(23, 29);
