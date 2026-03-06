@@ -244,7 +244,7 @@ public partial class ContentBrowserView : UserControl
     {
         if (_isRubberBanding)
         {
-            bool wasClick = SelectionRect.Visibility == Visibility.Collapsed;
+            bool wasClicked = SelectionRect.Visibility == Visibility.Collapsed;
 
             // Clear IsRubberBandSelected visual flags from all in-progress items.
             foreach (var item in _rubberBandSelected)
@@ -256,7 +256,7 @@ public partial class ContentBrowserView : UserControl
 
             if (DataContext is ContentBrowserViewModel vm)
             {
-                if (wasClick)
+                if (wasClicked)
                 {
                     // Empty-space click with no drag: deselect all.
                     _rubberBandSelected.Clear();

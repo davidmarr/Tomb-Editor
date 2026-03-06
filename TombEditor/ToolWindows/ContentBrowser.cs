@@ -42,8 +42,6 @@ namespace TombEditor.ToolWindows
             // Set the WPF view's DataContext
             contentBrowserView.DataContext = _viewModel;
 
-            // Subscribe to ViewModel events
-            _viewModel.SelectedItemChanged += ViewModel_SelectedItemChanged;
             _viewModel.SelectedItemsChanged += ViewModel_SelectedItemsChanged;
             _viewModel.DragDropRequested += ViewModel_DragDropRequested;
             _viewModel.ThumbnailRenderRequested += ViewModel_ThumbnailRenderRequested;
@@ -72,7 +70,6 @@ namespace TombEditor.ToolWindows
             if (disposing)
             {
                 _editor.EditorEventRaised -= EditorEventRaised;
-                _viewModel.SelectedItemChanged -= ViewModel_SelectedItemChanged;
                 _viewModel.SelectedItemsChanged -= ViewModel_SelectedItemsChanged;
                 _viewModel.DragDropRequested -= ViewModel_DragDropRequested;
                 _viewModel.ThumbnailRenderRequested -= ViewModel_ThumbnailRenderRequested;
@@ -381,49 +378,54 @@ namespace TombEditor.ToolWindows
         }
 
         /// <summary>
-        /// Updates the Editor's ChosenItem/ChosenImportedGeometry when the user
-        /// selects an asset in the Content Browser.
-        /// </summary>
-        private void ViewModel_SelectedItemChanged(object sender, AssetItemViewModel item)
-        {
-            if (item == null)
-                return;
-
-            var wadObject = item.WadObject;
-
-            _suppressEditorSync = true;
-
-            if (wadObject is WadMoveable moveable)
-                _editor.ChosenItem = new ItemType(moveable.Id, _editor?.Level?.Settings);
-            else if (wadObject is WadStatic staticMesh)
-                _editor.ChosenItem = new ItemType(staticMesh.Id, _editor?.Level?.Settings);
-            else if (wadObject is ImportedGeometry geo)
-                _editor.ChosenImportedGeometry = geo;
-
-            _suppressEditorSync = false;
-        }
-
-        /// <summary>
-        /// Updates the Editor's ChosenItems when multi-selection changes.
+        /// Updates the Editor's ChosenItems / ChosenImportedGeometry for every selection change
+        /// (single item or multi-selection). This is the single authoritative path —
+        /// the legacy SelectedItemChanged event is no longer subscribed.
+        /// <para>
+        /// Differentiation rules:
+        /// <list type="bullet">
+        ///   <item>One or more moveables/statics → set ChosenItems, clear ChosenImportedGeometry.</item>
+        ///   <item>Exactly one ImportedGeometry → set ChosenImportedGeometry, clear ChosenItems.</item>
+        ///   <item>Empty → no-op; ChosenItem/ChosenImportedGeometry keep their last value so that
+        ///         the item browser never shows an empty selection after a deselect in ContentBrowser.</item>
+        /// </list>
+        /// Mixed selections (geo + moveables) populate ChosenItems from the moveable/static subset
+        /// and clear ChosenImportedGeometry, matching the behaviour of the placement tools.
+        /// </para>
         /// </summary>
         private void ViewModel_SelectedItemsChanged(object sender, IReadOnlyList<AssetItemViewModel> items)
         {
+            // When the user clears the ContentBrowser selection, leave ChosenItem/ChosenImportedGeometry
+            // unchanged so the legacy item browser and imported geometry browser still show the last
+            // chosen item. The ContentBrowser itself shows no visual selection (empty), which is the
+            // intended UX: the user deliberately deselected everything here.
+            if (items.Count == 0)
+                return;
+
             var itemTypes = new List<ItemType>();
+            ImportedGeometry singleGeo = null;
+
             foreach (var vm in items)
             {
                 if (vm.WadObject is WadMoveable moveable)
                     itemTypes.Add(new ItemType(moveable.Id, _editor?.Level?.Settings));
                 else if (vm.WadObject is WadStatic staticMesh)
                     itemTypes.Add(new ItemType(staticMesh.Id, _editor?.Level?.Settings));
+                else if (vm.WadObject is ImportedGeometry geo && items.Count == 1)
+                    singleGeo = geo;
             }
 
             _suppressEditorSync = true;
-            _editor.ChosenItems = itemTypes;
+            
+            // HACK: Preserve existing singular selections to maintain legacy workflow.
+            if (itemTypes.Count > 0)
+                _editor.ChosenItems = itemTypes;
+            if (singleGeo != null)
+                _editor.ChosenImportedGeometry = singleGeo;
+
             _suppressEditorSync = false;
 
-            // Scroll to make the first selected item visible
-            if (items.Count > 0)
-                contentBrowserView.ScrollToItem(items[0]);
+            contentBrowserView.ScrollToItem(items[0]);
         }
 
         /// <summary>
@@ -457,8 +459,7 @@ namespace TombEditor.ToolWindows
 
         private void SelectWadObject(IWadObject wadObject)
         {
-            // Temporarily detach event to avoid feedback loop
-            _viewModel.SelectedItemChanged -= ViewModel_SelectedItemChanged;
+            // Temporarily detach event to avoid feedback loop.
             _viewModel.SelectedItemsChanged -= ViewModel_SelectedItemsChanged;
 
             var item = _viewModel.AllItems
@@ -467,7 +468,6 @@ namespace TombEditor.ToolWindows
             contentBrowserView.SetSelectionSilently(item);
             contentBrowserView.ScrollToItem(item);
 
-            _viewModel.SelectedItemChanged += ViewModel_SelectedItemChanged;
             _viewModel.SelectedItemsChanged += ViewModel_SelectedItemsChanged;
         }
     }
