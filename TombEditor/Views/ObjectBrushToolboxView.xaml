@@ -60,17 +60,23 @@
 				VerticalAlignment="Center" />
 		</StackPanel>
 
-		<!-- Row 1: Random rotation | Random scale + NUDs -->
+		<!-- Row 1: Random rotation | Follow mouse direction | Random scale + NUDs -->
 		<Grid Grid.Row="1" Margin="0,0,0,3">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="Auto" SharedSizeGroup="LeftCol" />
 				<ColumnDefinition Width="*" />
 			</Grid.ColumnDefinitions>
-			<CheckBox
-				x:Name="chkRandomRotation"
-				Grid.Column="0"
-				Content="Random rotation"
-				VerticalAlignment="Center" />
+			<StackPanel Grid.Column="0" Orientation="Horizontal">
+				<CheckBox
+					x:Name="chkRandomRotation"
+					Content="Random rotation"
+					VerticalAlignment="Center" />
+				<CheckBox
+					x:Name="chkFollowMouseDirection"
+					Content="Follow mouse direction"
+					Margin="8,0,0,0"
+					VerticalAlignment="Center" />
+			</StackPanel>
 			<StackPanel Grid.Column="1" Orientation="Horizontal">
 				<CheckBox
 					x:Name="chkRandomScale"

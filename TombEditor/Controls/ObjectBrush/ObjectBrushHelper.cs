@@ -12,6 +12,9 @@ namespace TombEditor.Controls.ObjectBrush
     public static class ObjectBrushHelper
     {
         private static readonly Random _rng = new Random();
+        private static float? _mouseDirectionAngle;
+
+        internal static void SetMouseDirectionAngle(float? angle) => _mouseDirectionAngle = angle;
 
         #region Floor Height and Geometry Queries
 
@@ -428,11 +431,32 @@ namespace TombEditor.Controls.ObjectBrush
                 return false;
 
             bool randomRot = config.ObjectBrush_RandomizeRotation && editor.Tool.Tool != EditorToolType.Line;
+            bool followDir = config.ObjectBrush_FollowMouseDirection && _mouseDirectionAngle.HasValue;
             bool randomScale = config.ObjectBrush_RandomizeScale;
 
-            float rotY = randomRot ? (float)(_rng.NextDouble() * 360.0) : config.ObjectBrush_Rotation;
+            float rotY;
+            if (followDir)
+            {
+                rotY = _mouseDirectionAngle.Value;
+
+                if (randomRot)
+                    rotY += (float)((_rng.NextDouble() - 0.5f) * 45.0f);
+
+                rotY = ((rotY % 360.0f) + 360.0f) % 360.0f;
+            }
+            else if (randomRot)
+            {
+                rotY = (float)(_rng.NextDouble() * 360.0f);
+            }	
+            else
+            {
+
+                rotY = config.ObjectBrush_Rotation;
+            }
+
             if (config.ObjectBrush_Perpendicular)
                 rotY = (rotY + 90.0f) % 360.0f;
+
             float scale = 1.0f;
 
             if (randomScale && chosenItem.IsStatic)

@@ -14,6 +14,7 @@ namespace TombEditor.Controls.Panel3D
         // Object brush state
         private bool _objectBrushEngaged = false;
         private Vector3? _lastBrushWorldPosition;
+        private float? _lastMouseDirectionAngle;
         private readonly List<UndoRedoInstance> _brushStrokeUndoList = new List<UndoRedoInstance>();
         private readonly List<PositionBasedObjectInstance> _brushStrokePlacedObjects = new List<PositionBasedObjectInstance>();
         private readonly HashSet<ObjectInstance> _brushStrokeProcessedObjects = new HashSet<ObjectInstance>();
@@ -25,6 +26,8 @@ namespace TombEditor.Controls.Panel3D
 
             _objectBrushEngaged = false;
             _lastBrushWorldPosition = null;
+            _lastMouseDirectionAngle = null;
+            ObjectBrush.ObjectBrushHelper.SetMouseDirectionAngle(null);
             _brushStrokeProcessedObjects.Clear();
         }
 
@@ -179,6 +182,19 @@ namespace TombEditor.Controls.Panel3D
                     ray.Position.X + ray.Direction.X * brushPicking.Distance,
                     0,
                     ray.Position.Z + ray.Direction.Z * brushPicking.Distance);
+
+                // Track mouse movement direction for the FollowMouseDirection option.
+                if (_lastBrushWorldPosition.HasValue)
+                {
+                    float dx = cursorWorldPos.X - _lastBrushWorldPosition.Value.X;
+                    float dz = cursorWorldPos.Z - _lastBrushWorldPosition.Value.Z;
+                    if (dx * dx + dz * dz > 0.01f)
+                    {
+                        float angle = (float)(Math.Atan2(dx, dz) * (180.0 / Math.PI));
+                        _lastMouseDirectionAngle = ((angle % 360.0f) + 360.0f) % 360.0f;
+                    }
+                }
+                ObjectBrush.ObjectBrushHelper.SetMouseDirectionAngle(_lastMouseDirectionAngle);
 
                 var result = ObjectBrush.ObjectBrushActions.ContinueBrushStroke(
                     _editor,

@@ -1914,9 +1914,13 @@ namespace TombEditor.Controls.Panel3D
 
                 if (_editor.Tool.Tool == EditorToolType.Selection || _editor.Tool.Tool == EditorToolType.Deselect ||
                     _editor.Tool.Tool == EditorToolType.Eraser ||
-                    (_editor.Configuration.ObjectBrush_RandomizeRotation && _editor.Tool.Tool != EditorToolType.Line))
+                    (_editor.Configuration.ObjectBrush_RandomizeRotation && !_editor.Configuration.ObjectBrush_FollowMouseDirection && _editor.Tool.Tool != EditorToolType.Line))
                 {
                     brushRotation = -1.0f; // Negative signals no indicator.
+                }
+                else if (_editor.Configuration.ObjectBrush_FollowMouseDirection && _lastMouseDirectionAngle.HasValue && _editor.Tool.Tool != EditorToolType.Line)
+                {
+                    brushRotation = _lastMouseDirectionAngle.Value;
                 }
                 else
                 {

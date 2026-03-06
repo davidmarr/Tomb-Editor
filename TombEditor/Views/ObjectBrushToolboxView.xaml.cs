@@ -50,6 +50,9 @@ namespace TombEditor.Views
             chkRandomRotation.Checked += OnRandomRotationChanged;
             chkRandomRotation.Unchecked += OnRandomRotationChanged;
 
+            chkFollowMouseDirection.Checked += OnFollowMouseDirectionChanged;
+            chkFollowMouseDirection.Unchecked += OnFollowMouseDirectionChanged;
+
             chkRandomScale.Checked += OnRandomScaleChanged;
             chkRandomScale.Unchecked += OnRandomScaleChanged;
         }
@@ -61,6 +64,15 @@ namespace TombEditor.Views
         }
 
         private void OnRandomRotationChanged(object sender, RoutedEventArgs e)
+        {
+            if (!_suppressEvents)
+            {
+                SaveSettings();
+                UpdateRotationFieldVisibility();
+            }
+        }
+
+        private void OnFollowMouseDirectionChanged(object sender, RoutedEventArgs e)
         {
             if (!_suppressEvents)
             {
@@ -87,7 +99,8 @@ namespace TombEditor.Views
 
         private void UpdateRotationFieldVisibility()
         {
-            nudRotation.IsEnabled = chkRandomRotation.IsChecked != true;
+            bool followDir = chkFollowMouseDirection.IsChecked == true;
+            nudRotation.IsEnabled = chkRandomRotation.IsChecked != true && !followDir;
         }
 
         private void UpdateControlsForTool()
@@ -110,7 +123,8 @@ namespace TombEditor.Views
 
             chkPerpendicular.IsEnabled = allowRotation;
             chkRandomRotation.IsEnabled = isBrush || isPencil;
-            nudRotation.IsEnabled = isLine || (allowRotation && chkRandomRotation.IsChecked != true);
+            chkFollowMouseDirection.IsEnabled = isBrush || isPencil;
+            nudRotation.IsEnabled = isLine || (allowRotation && chkRandomRotation.IsChecked != true && chkFollowMouseDirection.IsChecked != true);
 
             bool allowScale = isBrush || isPencil || isLine;
 
@@ -135,6 +149,7 @@ namespace TombEditor.Views
 
             chkAdjacentRooms.IsChecked = config.ObjectBrush_PlaceInAdjacentRooms;
             chkRandomRotation.IsChecked = config.ObjectBrush_RandomizeRotation;
+            chkFollowMouseDirection.IsChecked = config.ObjectBrush_FollowMouseDirection;
             chkPerpendicular.IsChecked = config.ObjectBrush_Perpendicular;
             chkFitToGround.IsChecked = config.ObjectBrush_FitToGround;
             chkRandomScale.IsChecked = config.ObjectBrush_RandomizeScale;
@@ -161,6 +176,7 @@ namespace TombEditor.Views
             config.ObjectBrush_Rotation = (float)nudRotation.Value;
             config.ObjectBrush_PlaceInAdjacentRooms = chkAdjacentRooms.IsChecked == true;
             config.ObjectBrush_RandomizeRotation = chkRandomRotation.IsChecked == true;
+            config.ObjectBrush_FollowMouseDirection = chkFollowMouseDirection.IsChecked == true;
             config.ObjectBrush_Perpendicular = chkPerpendicular.IsChecked == true;
             config.ObjectBrush_FitToGround = chkFitToGround.IsChecked == true;
             config.ObjectBrush_RandomizeScale = chkRandomScale.IsChecked == true;

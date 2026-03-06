@@ -216,6 +216,7 @@ namespace TombEditor
         public ObjectBrushShape ObjectBrush_Shape { get; set; } = ObjectBrushShape.Circle;
         public bool ObjectBrush_PlaceInAdjacentRooms { get; set; } = false;
         public bool ObjectBrush_RandomizeRotation { get; set; } = true;
+        public bool ObjectBrush_FollowMouseDirection { get; set; } = false;
         public float ObjectBrush_Rotation { get; set; } = 0.0f; // Degrees, 0-360
         public bool ObjectBrush_Perpendicular { get; set; } = false; // Add 90 degrees to placed object rotation
         public bool ObjectBrush_RandomizeScale { get; set; } = false;
