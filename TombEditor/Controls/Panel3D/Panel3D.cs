@@ -303,7 +303,6 @@ namespace TombEditor.Controls.Panel3D
                 obj is SectorColoringManager.ChangeSectorColoringInfoEvent)
                 _renderingCachedRooms.Clear();
 
-            // Invalidate on brush settings change (lightweight, no cache clear).
             if (obj is Editor.ObjectBrushSettingsChangedEvent)
                 Invalidate();
 
@@ -318,6 +317,7 @@ namespace TombEditor.Controls.Panel3D
                     obj is Editor.HighlightedSectorChangedEvent ||
                     obj is Editor.SelectedRoomChangedEvent ||
                     obj is Editor.ModeChangedEvent ||
+                    obj is Editor.ToolChangedEvent ||
                     obj is Editor.LoadedWadsChangedEvent ||
                     obj is Editor.LoadedTexturesChangedEvent ||
                     obj is Editor.LoadedImportedGeometriesChangedEvent ||
