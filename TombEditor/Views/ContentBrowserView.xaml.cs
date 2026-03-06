@@ -13,7 +13,6 @@ using TombEditor.ViewModels;
 
 namespace TombEditor.Views
 {
-
     public partial class ContentBrowserView : UserControl
     {
         private Point _dragStartPoint;
