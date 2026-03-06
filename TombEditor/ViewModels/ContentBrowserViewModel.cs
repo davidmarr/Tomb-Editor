@@ -175,6 +175,14 @@ public partial class AssetItemViewModel : ObservableObject
     public bool HasThumbnail => Thumbnail != null;
 
     /// <summary>
+    /// True while this item is covered by the rubber-band selection rectangle.
+    /// Used purely for visual feedback during drag; never touches ListBox.SelectedItems,
+    /// avoiding ChosenItem/SyncSelectionFromEditor reentrancy.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isRubberBandSelected;
+
+    /// <summary>
     /// A unique cache key for this asset's thumbnail.
     /// </summary>
     public string CacheKey { get; }
@@ -457,7 +465,6 @@ public partial class ContentBrowserViewModel : ObservableObject
     {
         SelectedItems = items;
 
-        // Update SelectedItem to the first selected item (or null)
         var first = items.Count > 0 ? items[0] : null;
         if (first != SelectedItem)
             SelectedItem = first;

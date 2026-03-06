@@ -23,19 +23,13 @@ namespace TombEditor.ToolWindows
         private readonly Editor _editor;
         private readonly ContentBrowserViewModel _viewModel;
         private OffscreenItemRenderer _renderer;
-        private Timer _thumbnailTimer;
 
-        /// <summary>
-        /// Queue of items waiting for thumbnail rendering. Processed in small batches
-        /// across multiple timer ticks to keep the UI responsive.
-        /// </summary>
+        private Timer _thumbnailTimer;
         private List<AssetItemViewModel> _thumbnailQueue;
         private int _thumbnailQueueIndex;
 
-        /// <summary>
-        /// Number of thumbnails to render per timer tick. Balances rendering speed
-        /// with UI responsiveness — each render involves a D3D11 GPU draw + readback.
-        /// </summary>
+        private bool _suppressEditorSync;
+
         private const int ThumbnailBatchSize = 10;
 
         public ContentBrowser()
@@ -334,14 +328,14 @@ namespace TombEditor.ToolWindows
                 RefreshAssets();
             }
 
-            // Sync selection when item is chosen from other tool windows
-            if (obj is Editor.ChosenItemChangedEvent itemChanged)
+            // Sync selection when item is chosen from other tool windows.
+            if (obj is Editor.ChosenItemChangedEvent itemChanged && !_suppressEditorSync)
             {
                 if (itemChanged.Current.HasValue)
                     SyncSelectionFromEditor(itemChanged.Current.Value);
             }
 
-            if (obj is Editor.ChosenImportedGeometryChangedEvent geoChanged)
+            if (obj is Editor.ChosenImportedGeometryChangedEvent geoChanged && !_suppressEditorSync)
             {
                 if (geoChanged.Current != null)
                     SyncImportedGeometrySelection(geoChanged.Current);
@@ -397,18 +391,16 @@ namespace TombEditor.ToolWindows
 
             var wadObject = item.WadObject;
 
+            _suppressEditorSync = true;
+
             if (wadObject is WadMoveable moveable)
-            {
                 _editor.ChosenItem = new ItemType(moveable.Id, _editor?.Level?.Settings);
-            }
             else if (wadObject is WadStatic staticMesh)
-            {
                 _editor.ChosenItem = new ItemType(staticMesh.Id, _editor?.Level?.Settings);
-            }
             else if (wadObject is ImportedGeometry geo)
-            {
                 _editor.ChosenImportedGeometry = geo;
-            }
+
+            _suppressEditorSync = false;
         }
 
         /// <summary>
@@ -424,7 +416,10 @@ namespace TombEditor.ToolWindows
                 else if (vm.WadObject is WadStatic staticMesh)
                     itemTypes.Add(new ItemType(staticMesh.Id, _editor?.Level?.Settings));
             }
+
+            _suppressEditorSync = true;
             _editor.ChosenItems = itemTypes;
+            _suppressEditorSync = false;
 
             // Scroll to make the first selected item visible
             if (items.Count > 0)
