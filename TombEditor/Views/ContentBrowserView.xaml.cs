@@ -217,6 +217,10 @@ public partial class ContentBrowserView : UserControl
                  !Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
         {
             // Click on empty space → start rubber-band selection.
+            // Clear any stale visual flags from a previously-canceled drag.
+            foreach (var item in _rubberBandSelected)
+                item.IsRubberBandSelected = false;
+
             // Cache all item bounds now (one TransformToVisual call per item, not per frame).
             _rubberBandOrigin = e.GetPosition(RubberBandCanvas);
             _rubberBandSelected.Clear();
@@ -240,11 +244,46 @@ public partial class ContentBrowserView : UserControl
     {
         if (_isRubberBanding)
         {
-            // Selection was already updated live in PreviewMouseMove; just clean up.
+            bool wasClicked = SelectionRect.Visibility == Visibility.Collapsed;
+
+            // Clear IsRubberBandSelected visual flags from all in-progress items.
+            foreach (var item in _rubberBandSelected)
+                item.IsRubberBandSelected = false;
+
             _isRubberBanding = false;
             SelectionRect.Visibility = Visibility.Collapsed;
             _rubberBandItemBounds = null;
-            _rubberBandSelected.Clear();
+
+            if (DataContext is ContentBrowserViewModel vm)
+            {
+                if (wasClicked)
+                {
+                    // Empty-space click with no drag: deselect all.
+                    _rubberBandSelected.Clear();
+                    _suppressSelectionChanged = true;
+                    AssetListBox.UnselectAll();
+                    _suppressSelectionChanged = false;
+                    vm.UpdateSelectedItems(Array.Empty<AssetItemViewModel>());
+                }
+                else
+                {
+                    // Commit the rubber-band set to the ListBox in one atomic batch,
+                    // suppressing SelectionChanged so UpdateSelectedItems is called exactly once.
+                    var selected = _rubberBandSelected.ToList();
+                    _rubberBandSelected.Clear();
+                    _suppressSelectionChanged = true;
+                    AssetListBox.UnselectAll();
+                    foreach (var item in selected)
+                        AssetListBox.SelectedItems.Add(item);
+                    _suppressSelectionChanged = false;
+                    vm.UpdateSelectedItems(selected);
+                }
+            }
+            else
+            {
+                _rubberBandSelected.Clear();
+            }
+
             e.Handled = true;
             return;
         }
@@ -266,6 +305,10 @@ public partial class ContentBrowserView : UserControl
     {
         if (_isRubberBanding)
         {
+            // Cancel rubber-band: clear visual flags and state.
+            foreach (var item in _rubberBandSelected)
+                item.IsRubberBandSelected = false;
+
             _isRubberBanding = false;
             SelectionRect.Visibility = Visibility.Collapsed;
             _rubberBandItemBounds = null;
@@ -305,11 +348,11 @@ public partial class ContentBrowserView : UserControl
             if ((w > 1 || h > 1) && _rubberBandItemBounds != null)
             {
                 var rubberRect = new Rect(x, y, w, h);
-                bool changed = false;
 
-                _suppressSelectionChanged = true;
-
-                // Add newly covered items
+                // Update IsRubberBandSelected on each item for live visual feedback.
+                // Never modifies AssetListBox.SelectedItems during the drag — this avoids
+                // the SelectedItem binding side-effect and the ChosenItem/SyncSelectionFromEditor
+                // feedback loop. The real selection is committed atomically in PreviewMouseLeftButtonUp.
                 foreach (var (item, bounds) in _rubberBandItemBounds)
                 {
                     bool intersects = rubberRect.IntersectsWith(bounds);
@@ -318,21 +361,14 @@ public partial class ContentBrowserView : UserControl
                     if (intersects && !wasSelected)
                     {
                         _rubberBandSelected.Add(item);
-                        AssetListBox.SelectedItems.Add(item);
-                        changed = true;
+                        item.IsRubberBandSelected = true;
                     }
                     else if (!intersects && wasSelected)
                     {
                         _rubberBandSelected.Remove(item);
-                        AssetListBox.SelectedItems.Remove(item);
-                        changed = true;
+                        item.IsRubberBandSelected = false;
                     }
                 }
-
-                _suppressSelectionChanged = false;
-
-                if (changed && DataContext is ContentBrowserViewModel vm2)
-                    vm2.UpdateSelectedItems(_rubberBandSelected.ToList());
             }
 
             e.Handled = true;
@@ -551,6 +587,32 @@ public partial class ContentBrowserView : UserControl
         {
             vm.AddWadCommand.Execute(null);
         }
+    }
+
+    /// <summary>
+    /// Raised when one or more files are dropped onto the Content Browser from Windows Explorer.
+    /// The WinForms host subscribes to this to call EditorActions.
+    /// </summary>
+    public event EventHandler<string[]>? FilesDropped;
+
+    private void ContentBrowser_DragEnter(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            e.Effects = DragDropEffects.Copy;
+        else
+            e.Effects = DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void ContentBrowser_Drop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (files != null && files.Length > 0)
+                FilesDropped?.Invoke(this, files);
+        }
+        e.Handled = true;
     }
 }
 

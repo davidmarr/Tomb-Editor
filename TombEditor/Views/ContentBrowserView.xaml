@@ -208,6 +208,10 @@
 					<Setter TargetName="TileBorder" Property="Background" Value="{DynamicResource Brush_Selection}" />
 					<Setter TargetName="TileBorder" Property="BorderBrush" Value="{DynamicResource Brush_Highlight}" />
 				</DataTrigger>
+					<DataTrigger Binding="{Binding IsRubberBandSelected}" Value="True">
+						<Setter TargetName="TileBorder" Property="Background" Value="{DynamicResource Brush_Selection}" />
+						<Setter TargetName="TileBorder" Property="BorderBrush" Value="{DynamicResource Brush_Highlight}" />
+					</DataTrigger>
 			</DataTemplate.Triggers>
 		</DataTemplate>
 
@@ -226,7 +230,11 @@
 		</Style>
 	</UserControl.Resources>
 
-	<Grid>
+	<Grid
+		AllowDrop="True"
+		DragEnter="ContentBrowser_DragEnter"
+		DragOver="ContentBrowser_DragEnter"
+		Drop="ContentBrowser_Drop">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto" />
 			<RowDefinition Height="*" />
@@ -366,7 +374,7 @@
 			PreviewMouseMove="AssetListBox_PreviewMouseMove"
 			PreviewMouseWheel="AssetListBox_PreviewMouseWheel"
 			ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-			SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+			SelectedItem="{Binding SelectedItem, Mode=OneWay}"
 			SelectionMode="Extended"
 			SelectionChanged="AssetListBox_SelectionChanged"
 			VirtualizingPanel.IsVirtualizing="False">

@@ -5,8 +5,9 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows.Forms;
 using TombLib.Controls;
-using TombLib.Forms;
+using TombLib.GeometryIO;
 using TombLib.LevelData;
+using TombLib.Utils;
 using TombLib.Wad;
 using TombEditor.ViewModels;
 
@@ -22,19 +23,13 @@ namespace TombEditor.ToolWindows
         private readonly Editor _editor;
         private readonly ContentBrowserViewModel _viewModel;
         private OffscreenItemRenderer _renderer;
-        private Timer _thumbnailTimer;
 
-        /// <summary>
-        /// Queue of items waiting for thumbnail rendering. Processed in small batches
-        /// across multiple timer ticks to keep the UI responsive.
-        /// </summary>
+        private Timer _thumbnailTimer;
         private List<AssetItemViewModel> _thumbnailQueue;
         private int _thumbnailQueueIndex;
 
-        /// <summary>
-        /// Number of thumbnails to render per timer tick. Balances rendering speed
-        /// with UI responsiveness — each render involves a D3D11 GPU draw + readback.
-        /// </summary>
+        private bool _suppressEditorSync;
+
         private const int ThumbnailBatchSize = 10;
 
         public ContentBrowser()
@@ -47,8 +42,6 @@ namespace TombEditor.ToolWindows
             // Set the WPF view's DataContext
             contentBrowserView.DataContext = _viewModel;
 
-            // Subscribe to ViewModel events
-            _viewModel.SelectedItemChanged += ViewModel_SelectedItemChanged;
             _viewModel.SelectedItemsChanged += ViewModel_SelectedItemsChanged;
             _viewModel.DragDropRequested += ViewModel_DragDropRequested;
             _viewModel.ThumbnailRenderRequested += ViewModel_ThumbnailRenderRequested;
@@ -64,8 +57,9 @@ namespace TombEditor.ToolWindows
             _thumbnailTimer = new Timer { Interval = 50 };
             _thumbnailTimer.Tick += ThumbnailTimer_Tick;
 
-            // Enable drag-drop on this WinForms control
-            AllowDrop = false; // We are a drag source, not a target
+            // Accept file drops from Windows Explorer (WAD files and 3D geometry files)
+            AllowDrop = true;
+            contentBrowserView.FilesDropped += ContentBrowserView_FilesDropped;
 
             // Subscribe to editor events
             _editor.EditorEventRaised += EditorEventRaised;
@@ -76,7 +70,6 @@ namespace TombEditor.ToolWindows
             if (disposing)
             {
                 _editor.EditorEventRaised -= EditorEventRaised;
-                _viewModel.SelectedItemChanged -= ViewModel_SelectedItemChanged;
                 _viewModel.SelectedItemsChanged -= ViewModel_SelectedItemsChanged;
                 _viewModel.DragDropRequested -= ViewModel_DragDropRequested;
                 _viewModel.ThumbnailRenderRequested -= ViewModel_ThumbnailRenderRequested;
@@ -84,6 +77,8 @@ namespace TombEditor.ToolWindows
                 _viewModel.AddItemRequested -= ViewModel_AddItemRequested;
                 _viewModel.AddWadRequested -= ViewModel_AddWadRequested;
                 _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+
+                contentBrowserView.FilesDropped -= ContentBrowserView_FilesDropped;
 
                 _thumbnailTimer?.Stop();
                 _thumbnailTimer?.Dispose();
@@ -178,6 +173,29 @@ namespace TombEditor.ToolWindows
         private void ViewModel_AddWadRequested(object sender, EventArgs e)
         {
             EditorActions.AddWad(this, null);
+        }
+
+        /// <summary>
+        /// Handles files dropped from Windows Explorer onto the Content Browser.
+        /// Accepts WAD files (loaded as object archives) and 3D geometry files
+        /// (added as imported geometry), matching what ItemBrowser and
+        /// ImportedGeometryBrowser support via the global drag-drop handler.
+        /// </summary>
+        private void ContentBrowserView_FilesDropped(object sender, string[] files)
+        {
+            if (files == null || files.Length == 0)
+                return;
+
+            var wadFiles = files
+                .Where(f => Wad2.FileExtensions.Matches(f))
+                .Select(f => _editor.Level.Settings.MakeRelative(f, VariableType.LevelDirectory))
+                .ToList();
+
+            if (wadFiles.Count > 0)
+                EditorActions.AddWad(this, wadFiles);
+
+            foreach (var file in files.Where(f => BaseGeometryImporter.FileExtensions.Matches(f)))
+                EditorActions.AddImportedGeometry(this, _editor.Level.Settings.MakeRelative(file, VariableType.LevelDirectory));
         }
 
         /// <summary>
@@ -307,14 +325,14 @@ namespace TombEditor.ToolWindows
                 RefreshAssets();
             }
 
-            // Sync selection when item is chosen from other tool windows
-            if (obj is Editor.ChosenItemChangedEvent itemChanged)
+            // Sync selection when item is chosen from other tool windows.
+            if (obj is Editor.ChosenItemChangedEvent itemChanged && !_suppressEditorSync)
             {
                 if (itemChanged.Current.HasValue)
                     SyncSelectionFromEditor(itemChanged.Current.Value);
             }
 
-            if (obj is Editor.ChosenImportedGeometryChangedEvent geoChanged)
+            if (obj is Editor.ChosenImportedGeometryChangedEvent geoChanged && !_suppressEditorSync)
             {
                 if (geoChanged.Current != null)
                     SyncImportedGeometrySelection(geoChanged.Current);
@@ -360,48 +378,54 @@ namespace TombEditor.ToolWindows
         }
 
         /// <summary>
-        /// Updates the Editor's ChosenItem/ChosenImportedGeometry when the user
-        /// selects an asset in the Content Browser.
-        /// </summary>
-        private void ViewModel_SelectedItemChanged(object sender, AssetItemViewModel item)
-        {
-            if (item == null)
-                return;
-
-            var wadObject = item.WadObject;
-
-            if (wadObject is WadMoveable moveable)
-            {
-                _editor.ChosenItem = new ItemType(moveable.Id, _editor?.Level?.Settings);
-            }
-            else if (wadObject is WadStatic staticMesh)
-            {
-                _editor.ChosenItem = new ItemType(staticMesh.Id, _editor?.Level?.Settings);
-            }
-            else if (wadObject is ImportedGeometry geo)
-            {
-                _editor.ChosenImportedGeometry = geo;
-            }
-        }
-
-        /// <summary>
-        /// Updates the Editor's ChosenItems when multi-selection changes.
+        /// Updates the Editor's ChosenItems / ChosenImportedGeometry for every selection change
+        /// (single item or multi-selection). This is the single authoritative path —
+        /// the legacy SelectedItemChanged event is no longer subscribed.
+        /// <para>
+        /// Differentiation rules:
+        /// <list type="bullet">
+        ///   <item>One or more moveables/statics → set ChosenItems, clear ChosenImportedGeometry.</item>
+        ///   <item>Exactly one ImportedGeometry → set ChosenImportedGeometry, clear ChosenItems.</item>
+        ///   <item>Empty → no-op; ChosenItem/ChosenImportedGeometry keep their last value so that
+        ///         the item browser never shows an empty selection after a deselect in ContentBrowser.</item>
+        /// </list>
+        /// Mixed selections (geo + moveables) populate ChosenItems from the moveable/static subset
+        /// and clear ChosenImportedGeometry, matching the behaviour of the placement tools.
+        /// </para>
         /// </summary>
         private void ViewModel_SelectedItemsChanged(object sender, IReadOnlyList<AssetItemViewModel> items)
         {
+            // When the user clears the ContentBrowser selection, leave ChosenItem/ChosenImportedGeometry
+            // unchanged so the legacy item browser and imported geometry browser still show the last
+            // chosen item. The ContentBrowser itself shows no visual selection (empty), which is the
+            // intended UX: the user deliberately deselected everything here.
+            if (items.Count == 0)
+                return;
+
             var itemTypes = new List<ItemType>();
+            ImportedGeometry singleGeo = null;
+
             foreach (var vm in items)
             {
                 if (vm.WadObject is WadMoveable moveable)
                     itemTypes.Add(new ItemType(moveable.Id, _editor?.Level?.Settings));
                 else if (vm.WadObject is WadStatic staticMesh)
                     itemTypes.Add(new ItemType(staticMesh.Id, _editor?.Level?.Settings));
+                else if (vm.WadObject is ImportedGeometry geo && items.Count == 1)
+                    singleGeo = geo;
             }
-            _editor.ChosenItems = itemTypes;
 
-            // Scroll to make the first selected item visible
-            if (items.Count > 0)
-                contentBrowserView.ScrollToItem(items[0]);
+            _suppressEditorSync = true;
+            
+            // HACK: Preserve existing singular selections to maintain legacy workflow.
+            if (itemTypes.Count > 0)
+                _editor.ChosenItems = itemTypes;
+            if (singleGeo != null)
+                _editor.ChosenImportedGeometry = singleGeo;
+
+            _suppressEditorSync = false;
+
+            contentBrowserView.ScrollToItem(items[0]);
         }
 
         /// <summary>
@@ -435,8 +459,7 @@ namespace TombEditor.ToolWindows
 
         private void SelectWadObject(IWadObject wadObject)
         {
-            // Temporarily detach event to avoid feedback loop
-            _viewModel.SelectedItemChanged -= ViewModel_SelectedItemChanged;
+            // Temporarily detach event to avoid feedback loop.
             _viewModel.SelectedItemsChanged -= ViewModel_SelectedItemsChanged;
 
             var item = _viewModel.AllItems
@@ -445,7 +468,6 @@ namespace TombEditor.ToolWindows
             contentBrowserView.SetSelectionSilently(item);
             contentBrowserView.ScrollToItem(item);
 
-            _viewModel.SelectedItemChanged += ViewModel_SelectedItemChanged;
             _viewModel.SelectedItemsChanged += ViewModel_SelectedItemsChanged;
         }
     }
