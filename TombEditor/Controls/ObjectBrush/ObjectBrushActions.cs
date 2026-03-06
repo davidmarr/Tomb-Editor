@@ -9,43 +9,40 @@ namespace TombEditor.Controls.ObjectBrush
 {
     public static class ObjectBrushActions
     {
-        public struct BrushPaintResult
-        {
-            public List<UndoRedoInstance> UndoInstances;
-            public List<PositionBasedObjectInstance> PlacedObjects;
-            public Vector3 WorldPosition;
-        }
-
         private static int _pencilItemIndex;
 
-        private static List<UndoRedoInstance> ExecuteBrushAction(Editor editor, Room selectedRoom, float centerWorldX, float centerWorldZ,
-            RectangleInt2? sectorConstraint, List<PositionBasedObjectInstance> placedTracker,
-            HashSet<ObjectInstance> processedObjects = null, bool skipOverlapCheck = false)
-        {
-            var undoInstances = new List<UndoRedoInstance>();
+        // Stroke-session state: lives from BeginBrushStroke to EndBrushStroke.
+        private static readonly List<UndoRedoInstance> _strokeUndoList = new List<UndoRedoInstance>();
+        private static readonly List<PositionBasedObjectInstance> _strokePlacedObjects = new List<PositionBasedObjectInstance>();
+        private static readonly HashSet<ObjectInstance> _strokeProcessedObjects = new HashSet<ObjectInstance>();
 
+        private static void ExecuteBrushAction(Editor editor, Room selectedRoom, float centerWorldX, float centerWorldZ)
+        {
             if (editor.ChosenItems.Count == 0)
-                return undoInstances;
+                return;
+
+            var sectorConstraint = editor.SelectedSectors.Valid && !editor.SelectedSectors.Empty
+                ? (RectangleInt2?)editor.SelectedSectors.Area : null;
 
             switch (editor.Tool.Tool)
             {
                 case EditorToolType.Brush:
                     var placed = ObjectBrushHelper.PlaceObjectsWithBrush(editor, selectedRoom, centerWorldX, centerWorldZ, editor.ChosenItems, sectorConstraint);
-                    undoInstances.AddRange(placed.Select(o => new AddRemoveObjectUndoInstance(editor.UndoManager, o, true)));
-                    placedTracker?.AddRange(placed);
+                    _strokeUndoList.AddRange(placed.Select(o => new AddRemoveObjectUndoInstance(editor.UndoManager, o, true)));
+                    _strokePlacedObjects.AddRange(placed);
                     break;
 
                 case EditorToolType.Eraser:
                     var removed = ObjectBrushHelper.EraseObjectsWithBrush(editor, selectedRoom, centerWorldX, centerWorldZ, editor.ChosenItems, sectorConstraint);
-                    undoInstances.AddRange(removed.Select(r => new AddRemoveObjectUndoInstance(editor.UndoManager, r.Obj, false, r.Room)));
+                    _strokeUndoList.AddRange(removed.Select(r => new AddRemoveObjectUndoInstance(editor.UndoManager, r.Obj, false, r.Room)));
                     break;
 
                 case EditorToolType.Selection:
-                    ObjectBrushHelper.SelectObjectsWithBrush(editor, selectedRoom, centerWorldX, centerWorldZ, editor.ChosenItems, sectorConstraint, processedObjects);
+                    ObjectBrushHelper.SelectObjectsWithBrush(editor, selectedRoom, centerWorldX, centerWorldZ, editor.ChosenItems, sectorConstraint, _strokeProcessedObjects);
                     break;
 
                 case EditorToolType.Deselect:
-                    ObjectBrushHelper.SelectObjectsWithBrush(editor, selectedRoom, centerWorldX, centerWorldZ, editor.ChosenItems, sectorConstraint, processedObjects, deselect: true);
+                    ObjectBrushHelper.SelectObjectsWithBrush(editor, selectedRoom, centerWorldX, centerWorldZ, editor.ChosenItems, sectorConstraint, _strokeProcessedObjects, deselect: true);
                     break;
 
                 case EditorToolType.Pencil:
@@ -53,51 +50,39 @@ namespace TombEditor.Controls.ObjectBrush
                     var pencilPlaced = ObjectBrushHelper.PlaceObjectWithPencil(editor, selectedRoom, centerWorldX, centerWorldZ, editor.ChosenItems, ref _pencilItemIndex, sectorConstraint,
                         skipOverlapCheck: editor.Tool.Tool == EditorToolType.Line);
 
-                    undoInstances.AddRange(pencilPlaced.Select(o => new AddRemoveObjectUndoInstance(editor.UndoManager, o, true)));
-                    placedTracker?.AddRange(pencilPlaced);
+                    _strokeUndoList.AddRange(pencilPlaced.Select(o => new AddRemoveObjectUndoInstance(editor.UndoManager, o, true)));
+                    _strokePlacedObjects.AddRange(pencilPlaced);
                     break;
             }
-
-            return undoInstances;
         }
 
-        public static BrushPaintResult BeginBrushStroke(Editor editor, Room selectedRoom, VectorInt2 sectorPos,
-            Vector3? cursorWorldPos = null, HashSet<ObjectInstance> processedObjects = null)
+        public static Vector3 BeginBrushStroke(Editor editor, Room selectedRoom, VectorInt2 sectorPos, Vector3? cursorWorldPos = null)
         {
             _pencilItemIndex = 0;
+            _strokeUndoList.Clear();
+            _strokePlacedObjects.Clear();
+            _strokeProcessedObjects.Clear();
 
-            // Use actual cursor position when available for sub-sector precision.
-            float centerWorldX = cursorWorldPos.HasValue
-                ? cursorWorldPos.Value.X - selectedRoom.WorldPos.X
-                : (sectorPos.X + 0.5f) * Level.SectorSizeUnit;
-            float centerWorldZ = cursorWorldPos.HasValue
-                ? cursorWorldPos.Value.Z - selectedRoom.WorldPos.Z
-                : (sectorPos.Y + 0.5f) * Level.SectorSizeUnit;
+            float centerWorldX = cursorWorldPos.HasValue ? cursorWorldPos.Value.X - selectedRoom.WorldPos.X : (sectorPos.X + 0.5f) * Level.SectorSizeUnit;
+            float centerWorldZ = cursorWorldPos.HasValue ? cursorWorldPos.Value.Z - selectedRoom.WorldPos.Z : (sectorPos.Y + 0.5f) * Level.SectorSizeUnit;
 
-            var worldPosition = cursorWorldPos ?? new Vector3(centerWorldX + selectedRoom.WorldPos.X, 0, centerWorldZ + selectedRoom.WorldPos.Z);
-            var sectorConstraint = editor.SelectedSectors.Valid && !editor.SelectedSectors.Empty ? (RectangleInt2?)editor.SelectedSectors.Area : null;
+            ExecuteBrushAction(editor, selectedRoom, centerWorldX, centerWorldZ);
 
-            var placedObjects = new List<PositionBasedObjectInstance>();
-            var undoInstances = ExecuteBrushAction(editor, selectedRoom, centerWorldX, centerWorldZ, sectorConstraint, placedObjects, processedObjects);
-
-            return new BrushPaintResult { UndoInstances = undoInstances, PlacedObjects = placedObjects, WorldPosition = worldPosition };
+            return cursorWorldPos ?? new Vector3(centerWorldX + selectedRoom.WorldPos.X, 0, centerWorldZ + selectedRoom.WorldPos.Z);
         }
 
-        public static BrushPaintResult? ContinueBrushStroke(Editor editor, Room pickedRoom, Room selectedRoom,
-            VectorInt2 sectorPos, Vector3? lastWorldPosition, float quantizationDistance,
-            Vector3? cursorWorldPos = null, HashSet<ObjectInstance> processedObjects = null, bool skipOverlapCheck = false)
+        public static Vector3? ContinueBrushStroke(Editor editor, Room pickedRoom, Room selectedRoom,
+            VectorInt2 sectorPos, Vector3? lastWorldPosition, float quantizationDistance, Vector3? cursorWorldPos = null)
         {
             var room = pickedRoom == selectedRoom ? selectedRoom : pickedRoom;
 
-            // Use actual cursor position for distance tracking when available (sub-sector precision).
-            // Fall back to sector-center-snapped position otherwise.
             float worldX = (sectorPos.X + 0.5f) * Level.SectorSizeUnit + room.WorldPos.X;
             float worldZ = (sectorPos.Y + 0.5f) * Level.SectorSizeUnit + room.WorldPos.Z;
             var trackingPos = cursorWorldPos ?? new Vector3(worldX, 0, worldZ);
 
             // Quantize movement - only paint if moved far enough.
             bool shouldPaint = !lastWorldPosition.HasValue;
-            if (!shouldPaint && lastWorldPosition.HasValue)
+            if (!shouldPaint)
             {
                 float dx = trackingPos.X - lastWorldPosition.Value.X;
                 float dz = trackingPos.Z - lastWorldPosition.Value.Z;
@@ -129,35 +114,30 @@ namespace TombEditor.Controls.ObjectBrush
                 }
             }
 
-            var sectorConstraint = editor.SelectedSectors.Valid && !editor.SelectedSectors.Empty ? (RectangleInt2?)editor.SelectedSectors.Area : null;
-
-            var placedObjects = new List<PositionBasedObjectInstance>();
-            var undoInstances = ExecuteBrushAction(editor, selectedRoom, centerWorldX, centerWorldZ, sectorConstraint, placedObjects, processedObjects, skipOverlapCheck);
+            ExecuteBrushAction(editor, selectedRoom, centerWorldX, centerWorldZ);
 
             UpdateBrushCursor(editor, room, sectorPos,
                 cursorWorldPos.HasValue ? cursorWorldPos.Value.X : (float?)null,
                 cursorWorldPos.HasValue ? cursorWorldPos.Value.Z : (float?)null);
 
-            return new BrushPaintResult { UndoInstances = undoInstances, PlacedObjects = placedObjects, WorldPosition = trackingPos };
+            return trackingPos;
         }
 
-        public static BrushPaintResult ExecuteFill(Editor editor, Room selectedRoom)
+        public static void ExecuteFill(Editor editor, Room selectedRoom)
         {
-            var undoInstances = new List<UndoRedoInstance>();
-            var placedObjects = new List<PositionBasedObjectInstance>();
-
             if (editor.ChosenItems.Count == 0)
-                return new BrushPaintResult { UndoInstances = undoInstances, PlacedObjects = placedObjects, WorldPosition = Vector3.Zero };
+                return;
 
             var sectorConstraint = editor.SelectedSectors.Valid && !editor.SelectedSectors.Empty
                 ? (RectangleInt2?)editor.SelectedSectors.Area
                 : (RectangleInt2?)new RectangleInt2(1, 1, selectedRoom.NumXSectors - 2, selectedRoom.NumZSectors - 2);
 
             var placed = ObjectBrushHelper.FillAreaWithObjects(editor, selectedRoom, editor.ChosenItems, sectorConstraint.Value);
-            undoInstances.AddRange(placed.Select(o => new AddRemoveObjectUndoInstance(editor.UndoManager, o, true)));
-            placedObjects.AddRange(placed);
+            if (placed.Count == 0)
+                return;
 
-            return new BrushPaintResult { UndoInstances = undoInstances, PlacedObjects = placedObjects, WorldPosition = Vector3.Zero };
+            EditorActions.AllocateScriptIdsForObjects(placed);
+            editor.UndoManager.Push(placed.Select(o => (UndoRedoInstance)new AddRemoveObjectUndoInstance(editor.UndoManager, o, true)).ToList());
         }
 
         public static void UpdateBrushCursor(Editor editor, Room room, VectorInt2 sectorPos,
@@ -173,18 +153,15 @@ namespace TombEditor.Controls.ObjectBrush
             editor.UpdateObjectBrushCursor(new Vector3(cursorX, yPos, cursorZ), room);
         }
 
-        public static void EndBrushStroke(Editor editor, List<UndoRedoInstance> strokeUndoList, List<PositionBasedObjectInstance> placedObjects)
+        public static void EndBrushStroke(Editor editor)
         {
-            // Allocate script IDs for all placed objects now that the stroke is finished.
-            EditorActions.AllocateScriptIdsForObjects(placedObjects);
+            EditorActions.AllocateScriptIdsForObjects(_strokePlacedObjects);
 
-            if (strokeUndoList.Count > 0)
-            {
-                editor.UndoManager.Push(strokeUndoList.ToList());
-                strokeUndoList.Clear();
-            }
+            if (_strokeUndoList.Count > 0)
+                editor.UndoManager.Push(_strokeUndoList.ToList());
 
-            placedObjects.Clear();
+            _strokeUndoList.Clear();
+            _strokePlacedObjects.Clear();
         }
     }
 }

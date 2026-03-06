@@ -15,20 +15,16 @@ namespace TombEditor.Controls.Panel3D
         private bool _objectBrushEngaged = false;
         private Vector3? _lastBrushWorldPosition;
         private float? _lastMouseDirectionAngle;
-        private readonly List<UndoRedoInstance> _brushStrokeUndoList = new List<UndoRedoInstance>();
-        private readonly List<PositionBasedObjectInstance> _brushStrokePlacedObjects = new List<PositionBasedObjectInstance>();
-        private readonly HashSet<ObjectInstance> _brushStrokeProcessedObjects = new HashSet<ObjectInstance>();
 
         private void HandleBrushMouseUp()
         {
             if (_objectBrushEngaged)
-                ObjectBrush.ObjectBrushActions.EndBrushStroke(_editor, _brushStrokeUndoList, _brushStrokePlacedObjects);
+                ObjectBrush.ObjectBrushActions.EndBrushStroke(_editor);
 
             _objectBrushEngaged = false;
             _lastBrushWorldPosition = null;
             _lastMouseDirectionAngle = null;
             ObjectBrush.ObjectBrushHelper.SetMouseDirectionAngle(null);
-            _brushStrokeProcessedObjects.Clear();
         }
 
         // Returns true if the scroll event was consumed by the brush handler.
@@ -81,20 +77,12 @@ namespace TombEditor.Controls.Panel3D
             if (_editor.Tool.Tool == EditorToolType.Fill)
             {
                 // Fill executes immediately without brush engagement.
-                var fillResult = ObjectBrush.ObjectBrushActions.ExecuteFill(_editor, _editor.SelectedRoom);
-                if (fillResult.UndoInstances.Count > 0)
-                {
-                    EditorActions.AllocateScriptIdsForObjects(fillResult.PlacedObjects);
-                    _editor.UndoManager.Push(fillResult.UndoInstances);
-                }
+                ObjectBrush.ObjectBrushActions.ExecuteFill(_editor, _editor.SelectedRoom);
                 Invalidate();
             }
             else
             {
                 _objectBrushEngaged = true;
-                _brushStrokeUndoList.Clear();
-                _brushStrokePlacedObjects.Clear();
-                _brushStrokeProcessedObjects.Clear();
 
                 // Compute actual cursor position from ray for sub-sector precision.
                 var ray = GetRay(location.X, location.Y);
@@ -103,11 +91,7 @@ namespace TombEditor.Controls.Panel3D
                     0,
                     ray.Position.Z + ray.Direction.Z * newSectorPicking.Distance);
 
-                var result = ObjectBrush.ObjectBrushActions.BeginBrushStroke(_editor, _editor.SelectedRoom, pos,
-                    cursorWorldPos, _brushStrokeProcessedObjects);
-                _lastBrushWorldPosition = result.WorldPosition;
-                _brushStrokeUndoList.AddRange(result.UndoInstances);
-                _brushStrokePlacedObjects.AddRange(result.PlacedObjects);
+                _lastBrushWorldPosition = ObjectBrush.ObjectBrushActions.BeginBrushStroke(_editor, _editor.SelectedRoom, pos, cursorWorldPos);
                 Invalidate();
             }
         }
@@ -164,12 +148,10 @@ namespace TombEditor.Controls.Panel3D
 
                 var result = ObjectBrush.ObjectBrushActions.ContinueBrushStroke(
                     _editor, room, _editor.SelectedRoom, constrainedPos,
-                    null, spacing, snappedPos, _brushStrokeProcessedObjects, skipOverlapCheck: true);
+                    null, spacing, snappedPos);
 
                 if (result.HasValue)
                 {
-                    _brushStrokeUndoList.AddRange(result.Value.UndoInstances);
-                    _brushStrokePlacedObjects.AddRange(result.Value.PlacedObjects);
                     _lastBrushWorldPosition = snappedPos;
                     Invalidate();
                 }
@@ -196,21 +178,18 @@ namespace TombEditor.Controls.Panel3D
                 }
                 ObjectBrush.ObjectBrushHelper.SetMouseDirectionAngle(_lastMouseDirectionAngle);
 
-                var result = ObjectBrush.ObjectBrushActions.ContinueBrushStroke(
+                var newPos = ObjectBrush.ObjectBrushActions.ContinueBrushStroke(
                     _editor,
                     brushPicking.Room,
                     _editor.SelectedRoom,
                     brushPicking.Pos,
                     _lastBrushWorldPosition,
                     quantizationDistance,
-                    cursorWorldPos,
-                    _brushStrokeProcessedObjects);
+                    cursorWorldPos);
 
-                if (result.HasValue)
+                if (newPos.HasValue)
                 {
-                    _brushStrokeUndoList.AddRange(result.Value.UndoInstances);
-                    _brushStrokePlacedObjects.AddRange(result.Value.PlacedObjects);
-                    _lastBrushWorldPosition = result.Value.WorldPosition;
+                    _lastBrushWorldPosition = newPos.Value;
                     Invalidate();
                 }
             }
