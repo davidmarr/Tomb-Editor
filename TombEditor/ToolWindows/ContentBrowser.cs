@@ -34,7 +34,7 @@ namespace TombEditor.ToolWindows
             _editor = Editor.Instance;
             _viewModel = new ContentBrowserViewModel();
 
-            // Set the WPF view's DataContext
+            // Set the WPF view's DataContext.
             contentBrowserView.DataContext = _viewModel;
 
             _viewModel.SelectedItemsChanged += ViewModel_SelectedItemsChanged;
@@ -45,18 +45,18 @@ namespace TombEditor.ToolWindows
             _viewModel.AddWadRequested += ViewModel_AddWadRequested;
             _viewModel.PropertyChanged += ViewModel_PropertyChanged;
 
-            // Load saved tile width from configuration
+            // Load saved tile width from configuration.
             _viewModel.TileWidth = _editor.Configuration.ContentBrowser_TileWidth;
 
-            // Timer for batched/deferred thumbnail rendering (50ms between batches)
+            // Timer for batched/deferred thumbnail rendering (50ms between batches).
             _thumbnailTimer = new Timer { Interval = 50 };
             _thumbnailTimer.Tick += ThumbnailTimer_Tick;
 
-            // Accept file drops from Windows Explorer (WAD files and 3D geometry files)
+            // Accept file drops from Windows Explorer (WAD files and 3D geometry files).
             AllowDrop = true;
             contentBrowserView.FilesDropped += ContentBrowserView_FilesDropped;
 
-            // Subscribe to editor events
+            // Subscribe to editor events.
             _editor.EditorEventRaised += EditorEventRaised;
         }
 
@@ -89,7 +89,7 @@ namespace TombEditor.ToolWindows
             base.Dispose(disposing);
         }
 
-        // Delegates drag-drop to WinForms host. Single item passes IWadObject directly;
+        // Delegates drag-drop to WinForms host. Single item passes IWadObject directly.
         // multiple items are wrapped in an IWadObject[] array.
         private void ViewModel_DragDropRequested(object sender, IReadOnlyList<AssetItemViewModel> items)
         {
@@ -156,7 +156,7 @@ namespace TombEditor.ToolWindows
             EditorActions.AddWad(this, null);
         }
 
-        // Handles files dropped from Windows Explorer: WAD files are loaded as object archives,
+        // Handles files dropped from Windows Explorer: WAD files are loaded as object archives.
         // 3D geometry files are added as imported geometry.
         private void ContentBrowserView_FilesDropped(object sender, string[] files)
         {
@@ -260,17 +260,17 @@ namespace TombEditor.ToolWindows
 
         private void EditorEventRaised(IEditorEvent obj)
         {
-            // Refresh asset list when wads, geometries, or game version change
+            // Refresh asset list when wads, geometries, or game version change.
             if (obj is Editor.LoadedWadsChangedEvent ||
                 obj is Editor.LoadedImportedGeometriesChangedEvent ||
                 obj is Editor.GameVersionChangedEvent ||
                 obj is Editor.LevelChangedEvent)
             {
-                // Invalidate thumbnail cache when wads change since meshes may differ
+                // Invalidate thumbnail cache when wads change since meshes may differ.
                 if (obj is Editor.LoadedWadsChangedEvent ||
                     obj is Editor.LoadedImportedGeometriesChangedEvent)
                 {
-                    // Stop any in-progress rendering
+                    // Stop any in-progress rendering.
                     _thumbnailTimer?.Stop();
                     _thumbnailQueue = null;
                     _thumbnailQueueIndex = 0;
@@ -316,7 +316,7 @@ namespace TombEditor.ToolWindows
                     contentBrowserView.RestoreLastAnimation();
             }
 
-            // Activate default control
+            // Activate default control.
             if (obj is Editor.DefaultControlActivationEvent activationEvent)
             {
                 if (DockPanel != null && activationEvent.ContainerName == GetType().Name)
@@ -339,9 +339,8 @@ namespace TombEditor.ToolWindows
 
         private void ViewModel_SelectedItemsChanged(object sender, IReadOnlyList<AssetItemViewModel> items)
         {
-            // When the user clears the ContentBrowser selection, leave ChosenItem/ChosenImportedGeometry
-            // unchanged so the legacy item browser and imported geometry browser still show the last
-            // chosen item.
+            // When the user clears the ContentBrowser selection, leave ChosenItem/ChosenImportedGeometry unchanged.
+            // so the legacy item browser and imported geometry browser still show the last chosen item.
 
             if (items.Count == 0)
                 return;
