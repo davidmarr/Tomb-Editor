@@ -4,7 +4,7 @@
 - Description: A level editor suite for a family of block-based, room-based and portal-based 3D games (classic Tomb Raider).
 
 - Files use Windows line endings. Do not use Unicode symbols, only standard ASCII symbols.
-- `using` directives are grouped and sorted with `System.*` namespaces first, followed by third‑party and local namespaces.  There is a blank line between the two groups.
+- `using` directives are grouped and sorted with `DarkUI` namespaces references first, then `System` namespaces, followed by third-party and local namespaces.
 - Namespace declarations and type definitions put the opening brace on a new line.
 - Prefer to group all feature-related functionality within a self-contained module or modules. Avoid generating large code chunks over 10-15 lines in existing modules and offload it to helper functions instead.
 
@@ -14,7 +14,8 @@
 
 - **Braces**:
   - Always use braces for multi-statement blocks.
-  - Do not use braces for single-statement blocks.
+  - Do not use braces for single-statement blocks, unless they are within multiple `else if` conditions where surrounding statements are multi-line.
+  
   - Opening curly brace `{` for structures, classes and methods should be on the next line, not on the same line:
 
     ```csharp
@@ -39,7 +40,18 @@
   - A single space follows keyword `if`/`for`/`while` before the opening parenthesis.
   - Expressions may be broken into multiple lines and aligned with the previous line's indentation level to improve readability.
   - However, chained LINQ method calls, lambdas or function/method arguments should not be broken into multiple lines, unless they reach more than 150 symbols in length.
-  - Do not collapse early exits or single-statement conditions into one line (for example, avoid this: `if (condition) return;`).
+  
+  - Do not collapse early exits or single-statement conditions into a single line: 
+  
+    Bad example:
+      ```csharp
+	  if (condition) return;
+	  ```
+	 Do this instead:
+      ```csharp
+	  if (condition)
+	      return;
+	  ```
 
 ## Naming
 
@@ -67,7 +79,7 @@
 
 - When comments appear they are single-line `//`. Block comments (`/* ... */`) are rare.
 - Comments are sparse. Code relies on meaningful names rather than inline documentation.
-- Do not use `<summary>` in front of functions of methods.
+- Do not use `<summary>` if surrounding code and/or module isn't already using it. Only add `<summary>` for non-private methods with high complexity.
 - If module or function implements complex functionality, a brief description (2-3 lines) may be added in front of it, separated by a blank line from the function body.
 - All descriptive comments should end with a full stop (`.`).
 
