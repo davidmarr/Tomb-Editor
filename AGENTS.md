@@ -45,13 +45,13 @@
   
     Bad example:
       ```csharp
-	  if (condition) return;
-	  ```
-	 Do this instead:
+      if (condition) return;
+      ```
+    Do this instead:
       ```csharp
-	  if (condition)
-	      return;
-	  ```
+      if (condition)
+          return;
+      ```
 
 ## Naming
 
