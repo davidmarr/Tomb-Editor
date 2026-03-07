@@ -13,174 +13,174 @@ namespace TombEditor.ViewModels;
 /// </summary>
 public partial class ObjectBrushToolboxViewModel : ObservableObject
 {
-    private readonly Editor _editor;
-    private bool _isLoadingSettings;
+	private readonly Editor _editor;
+	private bool _isLoadingSettings;
 
-    public ObjectBrushToolboxViewModel()
-    {
-        _editor = Editor.Instance;
-        _editor.EditorEventRaised += OnEditorEventRaised;
-        LoadSettings();
-    }
+	public ObjectBrushToolboxViewModel()
+	{
+		_editor = Editor.Instance;
+		_editor.EditorEventRaised += OnEditorEventRaised;
+		LoadSettings();
+	}
 
-    public void Cleanup()
-    {
-        _editor.EditorEventRaised -= OnEditorEventRaised;
-    }
+	public void Cleanup()
+	{
+		_editor.EditorEventRaised -= OnEditorEventRaised;
+	}
 
-    #region Settings Properties
+	#region Settings Properties
 
-    // Brush radius in sectors (displayed in UI). Stored in config as world units.
-    [ObservableProperty] private double _radius = 0.5;
-    [ObservableProperty] private double _density = 1.0;
-    [ObservableProperty] private double _rotation;
-    [ObservableProperty] private bool _isPerpendicular;
-    [ObservableProperty] private bool _isRandomRotation;
-    [ObservableProperty] private bool _isFollowMouseDirection;
-    [ObservableProperty] private bool _isRandomScale;
-    [ObservableProperty] private double _scaleMin = 0.8;
-    [ObservableProperty] private double _scaleMax = 1.2;
-    [ObservableProperty] private bool _isFitToGround;
-    [ObservableProperty] private bool _isPlaceInAdjacentRooms;
+	// Brush radius in sectors (displayed in UI). Stored in config as world units.
+	[ObservableProperty] private double _radius = 0.5;
+	[ObservableProperty] private double _density = 1.0;
+	[ObservableProperty] private double _rotation;
+	[ObservableProperty] private bool _isPerpendicular;
+	[ObservableProperty] private bool _isRandomRotation;
+	[ObservableProperty] private bool _isFollowMouseDirection;
+	[ObservableProperty] private bool _isRandomScale;
+	[ObservableProperty] private double _scaleMin = 0.8;
+	[ObservableProperty] private double _scaleMax = 1.2;
+	[ObservableProperty] private bool _isFitToGround;
+	[ObservableProperty] private bool _isPlaceInAdjacentRooms;
 
-    #endregion
+	#endregion Settings Properties
 
-    #region Enabled States
+	#region Enabled States
 
-    [ObservableProperty] private bool _isRadiusEnabled = true;
-    [ObservableProperty] private bool _isDensityEnabled;
-    [ObservableProperty] private bool _isRotationEnabled;
-    [ObservableProperty] private bool _isPerpendicularEnabled;
-    [ObservableProperty] private bool _isRandomRotationEnabled;
-    [ObservableProperty] private bool _isFollowMouseDirectionEnabled;
-    [ObservableProperty] private bool _isRandomScaleEnabled;
-    [ObservableProperty] private bool _isScaleMinEnabled;
-    [ObservableProperty] private bool _isScaleMaxEnabled;
-    [ObservableProperty] private bool _isFitToGroundEnabled;
-    [ObservableProperty] private bool _isAdjacentRoomsEnabled;
+	[ObservableProperty] private bool _isRadiusEnabled = true;
+	[ObservableProperty] private bool _isDensityEnabled;
+	[ObservableProperty] private bool _isRotationEnabled;
+	[ObservableProperty] private bool _isPerpendicularEnabled;
+	[ObservableProperty] private bool _isRandomRotationEnabled;
+	[ObservableProperty] private bool _isFollowMouseDirectionEnabled;
+	[ObservableProperty] private bool _isRandomScaleEnabled;
+	[ObservableProperty] private bool _isScaleMinEnabled;
+	[ObservableProperty] private bool _isScaleMaxEnabled;
+	[ObservableProperty] private bool _isFitToGroundEnabled;
+	[ObservableProperty] private bool _isAdjacentRoomsEnabled;
 
-    #endregion
+	#endregion Enabled States
 
-    #region Property Change Handlers
+	#region Property Change Handlers
 
-    partial void OnRadiusChanged(double value) => SaveSettingsIfNotLoading();
-    partial void OnDensityChanged(double value) => SaveSettingsIfNotLoading();
-    partial void OnRotationChanged(double value) => SaveSettingsIfNotLoading();
-    partial void OnIsPerpendicularChanged(bool value) => SaveSettingsIfNotLoading();
-    partial void OnScaleMinChanged(double value) => SaveSettingsIfNotLoading();
-    partial void OnScaleMaxChanged(double value) => SaveSettingsIfNotLoading();
-    partial void OnIsFitToGroundChanged(bool value) => SaveSettingsIfNotLoading();
-    partial void OnIsPlaceInAdjacentRoomsChanged(bool value) => SaveSettingsIfNotLoading();
+	partial void OnRadiusChanged(double value) => SaveSettingsIfNotLoading();
+	partial void OnDensityChanged(double value) => SaveSettingsIfNotLoading();
+	partial void OnRotationChanged(double value) => SaveSettingsIfNotLoading();
+	partial void OnIsPerpendicularChanged(bool value) => SaveSettingsIfNotLoading();
+	partial void OnScaleMinChanged(double value) => SaveSettingsIfNotLoading();
+	partial void OnScaleMaxChanged(double value) => SaveSettingsIfNotLoading();
+	partial void OnIsFitToGroundChanged(bool value) => SaveSettingsIfNotLoading();
+	partial void OnIsPlaceInAdjacentRoomsChanged(bool value) => SaveSettingsIfNotLoading();
 
-    partial void OnIsRandomRotationChanged(bool value)
-    {
-        SaveSettingsIfNotLoading();
-        UpdateControlsForTool();
-    }
+	partial void OnIsRandomRotationChanged(bool value)
+	{
+		SaveSettingsIfNotLoading();
+		UpdateControlsForTool();
+	}
 
-    partial void OnIsFollowMouseDirectionChanged(bool value)
-    {
-        SaveSettingsIfNotLoading();
-        UpdateControlsForTool();
-    }
+	partial void OnIsFollowMouseDirectionChanged(bool value)
+	{
+		SaveSettingsIfNotLoading();
+		UpdateControlsForTool();
+	}
 
-    partial void OnIsRandomScaleChanged(bool value)
-    {
-        SaveSettingsIfNotLoading();
-        UpdateControlsForTool();
-    }
+	partial void OnIsRandomScaleChanged(bool value)
+	{
+		SaveSettingsIfNotLoading();
+		UpdateControlsForTool();
+	}
 
-    #endregion
+	#endregion Property Change Handlers
 
-    private void SaveSettingsIfNotLoading()
-    {
-        if (_isLoadingSettings)
-            return;
+	private void SaveSettingsIfNotLoading()
+	{
+		if (_isLoadingSettings)
+			return;
 
-        SaveSettings();
-    }
+		SaveSettings();
+	}
 
-    private void LoadSettings()
-    {
-        _isLoadingSettings = true;
+	private void LoadSettings()
+	{
+		_isLoadingSettings = true;
 
-        var config = _editor.Configuration;
+		var config = _editor.Configuration;
 
-        Radius = Math.Clamp(config.ObjectBrush_Radius / Level.SectorSizeUnit, 0.1, 25.0);
-        Density = Math.Clamp(config.ObjectBrush_Density, 0.01, 5.0);
-        Rotation = Math.Clamp(config.ObjectBrush_Rotation, 0.0, 360.0);
-        IsPerpendicular = config.ObjectBrush_Perpendicular;
-        IsRandomRotation = config.ObjectBrush_RandomizeRotation;
-        IsFollowMouseDirection = config.ObjectBrush_FollowMouseDirection;
-        IsRandomScale = config.ObjectBrush_RandomizeScale;
-        ScaleMin = Math.Clamp(config.ObjectBrush_ScaleMin, 0.1, 10.0);
-        ScaleMax = Math.Clamp(config.ObjectBrush_ScaleMax, 0.1, 10.0);
-        IsFitToGround = config.ObjectBrush_FitToGround;
-        IsPlaceInAdjacentRooms = config.ObjectBrush_PlaceInAdjacentRooms;
+		Radius = Math.Clamp(config.ObjectBrush_Radius / Level.SectorSizeUnit, 0.1, 25.0);
+		Density = Math.Clamp(config.ObjectBrush_Density, 0.01, 5.0);
+		Rotation = Math.Clamp(config.ObjectBrush_Rotation, 0.0, 360.0);
+		IsPerpendicular = config.ObjectBrush_Perpendicular;
+		IsRandomRotation = config.ObjectBrush_RandomizeRotation;
+		IsFollowMouseDirection = config.ObjectBrush_FollowMouseDirection;
+		IsRandomScale = config.ObjectBrush_RandomizeScale;
+		ScaleMin = Math.Clamp(config.ObjectBrush_ScaleMin, 0.1, 10.0);
+		ScaleMax = Math.Clamp(config.ObjectBrush_ScaleMax, 0.1, 10.0);
+		IsFitToGround = config.ObjectBrush_FitToGround;
+		IsPlaceInAdjacentRooms = config.ObjectBrush_PlaceInAdjacentRooms;
 
-        _isLoadingSettings = false;
+		_isLoadingSettings = false;
 
-        UpdateControlsForTool();
-    }
+		UpdateControlsForTool();
+	}
 
-    private void SaveSettings()
-    {
-        var config = _editor.Configuration;
+	private void SaveSettings()
+	{
+		var config = _editor.Configuration;
 
-        config.ObjectBrush_Radius = (float)Radius * Level.SectorSizeUnit;
-        config.ObjectBrush_Density = (float)Density;
-        config.ObjectBrush_Rotation = (float)Rotation;
-        config.ObjectBrush_Perpendicular = IsPerpendicular;
-        config.ObjectBrush_RandomizeRotation = IsRandomRotation;
-        config.ObjectBrush_FollowMouseDirection = IsFollowMouseDirection;
-        config.ObjectBrush_RandomizeScale = IsRandomScale;
-        config.ObjectBrush_ScaleMin = (float)ScaleMin;
-        config.ObjectBrush_ScaleMax = (float)ScaleMax;
-        config.ObjectBrush_FitToGround = IsFitToGround;
-        config.ObjectBrush_PlaceInAdjacentRooms = IsPlaceInAdjacentRooms;
+		config.ObjectBrush_Radius = (float)Radius * Level.SectorSizeUnit;
+		config.ObjectBrush_Density = (float)Density;
+		config.ObjectBrush_Rotation = (float)Rotation;
+		config.ObjectBrush_Perpendicular = IsPerpendicular;
+		config.ObjectBrush_RandomizeRotation = IsRandomRotation;
+		config.ObjectBrush_FollowMouseDirection = IsFollowMouseDirection;
+		config.ObjectBrush_RandomizeScale = IsRandomScale;
+		config.ObjectBrush_ScaleMin = (float)ScaleMin;
+		config.ObjectBrush_ScaleMax = (float)ScaleMax;
+		config.ObjectBrush_FitToGround = IsFitToGround;
+		config.ObjectBrush_PlaceInAdjacentRooms = IsPlaceInAdjacentRooms;
 
-        _editor.ObjectBrushSettingsChange();
-    }
+		_editor.ObjectBrushSettingsChange();
+	}
 
-    private void UpdateControlsForTool()
-    {
-        if (_editor.Mode != EditorMode.ObjectPlacement)
-            return;
+	private void UpdateControlsForTool()
+	{
+		if (_editor.Mode != EditorMode.ObjectPlacement)
+			return;
 
-        var tool = _editor.Tool.Tool;
-        bool isBrush = tool == EditorToolType.Brush;
-        bool isPencil = tool == EditorToolType.Pencil;
-        bool isLine = tool == EditorToolType.Line;
-        bool isEraser = tool == EditorToolType.Eraser;
-        bool isFill = tool == EditorToolType.Fill;
+		var tool = _editor.Tool.Tool;
+		bool isBrush = tool == EditorToolType.Brush;
+		bool isPencil = tool == EditorToolType.Pencil;
+		bool isLine = tool == EditorToolType.Line;
+		bool isEraser = tool == EditorToolType.Eraser;
+		bool isFill = tool == EditorToolType.Fill;
 
-        IsRadiusEnabled = true;
-        IsDensityEnabled = isBrush || isEraser || isFill;
-        IsAdjacentRoomsEnabled = isBrush || isEraser || isPencil || isLine;
+		IsRadiusEnabled = true;
+		IsDensityEnabled = isBrush || isEraser || isFill;
+		IsAdjacentRoomsEnabled = isBrush || isEraser || isPencil || isLine;
 
-        bool allowRotation = isBrush || isPencil || isLine;
+		bool allowRotation = isBrush || isPencil || isLine;
 
-        IsPerpendicularEnabled = allowRotation;
-        IsRandomRotationEnabled = isBrush || isPencil;
-        IsFollowMouseDirectionEnabled = isBrush || isPencil;
-        IsRotationEnabled = isLine || (allowRotation && !IsRandomRotation && !IsFollowMouseDirection);
+		IsPerpendicularEnabled = allowRotation;
+		IsRandomRotationEnabled = isBrush || isPencil;
+		IsFollowMouseDirectionEnabled = isBrush || isPencil;
+		IsRotationEnabled = isLine || (allowRotation && !IsRandomRotation && !IsFollowMouseDirection);
 
-        bool allowScale = isBrush || isPencil || isLine;
+		bool allowScale = isBrush || isPencil || isLine;
 
-        IsFitToGroundEnabled = allowScale;
-        IsRandomScaleEnabled = allowScale;
-        IsScaleMinEnabled = allowScale && IsRandomScale;
-        IsScaleMaxEnabled = allowScale && IsRandomScale;
-    }
+		IsFitToGroundEnabled = allowScale;
+		IsRandomScaleEnabled = allowScale;
+		IsScaleMinEnabled = allowScale && IsRandomScale;
+		IsScaleMaxEnabled = allowScale && IsRandomScale;
+	}
 
-    private void OnEditorEventRaised(IEditorEvent obj)
-    {
-        if (obj is Editor.ConfigurationChangedEvent ||
-            obj is Editor.ObjectBrushSettingsChangedEvent)
-            LoadSettings();
+	private void OnEditorEventRaised(IEditorEvent obj)
+	{
+		if (obj is Editor.ConfigurationChangedEvent ||
+			obj is Editor.ObjectBrushSettingsChangedEvent)
+			LoadSettings();
 
-        if (obj is Editor.ModeChangedEvent ||
-            obj is Editor.ToolChangedEvent)
-            UpdateControlsForTool();
-    }
+		if (obj is Editor.ModeChangedEvent ||
+			obj is Editor.ToolChangedEvent)
+			UpdateControlsForTool();
+	}
 }

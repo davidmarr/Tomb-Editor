@@ -16,251 +16,256 @@ namespace TombEditor.ViewModels;
 /// </summary>
 public partial class ToolBoxViewModel : ObservableObject
 {
-    private readonly Editor _editor;
-    private readonly ILocalizationService _localizationService;
+	private readonly Editor _editor;
+	private readonly ILocalizationService _localizationService;
 
-    private const string GridPaintIconBase = "/TombEditor;component/Resources/icons_toolbox/toolbox_GridPaint";
+	private const string GridPaintIconBase = "/TombEditor;component/Resources/icons_toolbox/toolbox_GridPaint";
 
-    public ToolBoxViewModel(ILocalizationService? localizationService = null)
-    {
-        _editor = Editor.Instance;
-        _localizationService = ServiceLocator.ResolveService(localizationService)
-            .WithKeysFor(this);
+	public ToolBoxViewModel(ILocalizationService? localizationService = null)
+	{
+		_editor = Editor.Instance;
 
-        _editor.EditorEventRaised += OnEditorEventRaised;
-        Refresh();
-    }
+		_localizationService = ServiceLocator.ResolveService(localizationService)
+			.WithKeysFor(this);
 
-    public void Cleanup()
-    {
-        _editor.EditorEventRaised -= OnEditorEventRaised;
-    }
+		_editor.EditorEventRaised += OnEditorEventRaised;
+		Refresh();
+	}
 
-    #region Tool Checked States
+	public void Cleanup()
+	{
+		_editor.EditorEventRaised -= OnEditorEventRaised;
+	}
 
-    [ObservableProperty] private bool _isSelectionChecked;
-    [ObservableProperty] private bool _isBrushChecked;
-    [ObservableProperty] private bool _isPencilChecked;
-    [ObservableProperty] private bool _isLineChecked;
-    [ObservableProperty] private bool _isDeselectChecked;
-    [ObservableProperty] private bool _isFillChecked;
-    [ObservableProperty] private bool _isGroupChecked;
-    [ObservableProperty] private bool _isGridPaintChecked;
-    [ObservableProperty] private bool _isShovelChecked;
-    [ObservableProperty] private bool _isFlattenChecked;
-    [ObservableProperty] private bool _isSmoothChecked;
-    [ObservableProperty] private bool _isDragChecked;
-    [ObservableProperty] private bool _isRampChecked;
-    [ObservableProperty] private bool _isQuarterPipeChecked;
-    [ObservableProperty] private bool _isHalfPipeChecked;
-    [ObservableProperty] private bool _isBowlChecked;
-    [ObservableProperty] private bool _isPyramidChecked;
-    [ObservableProperty] private bool _isTerrainChecked;
-    [ObservableProperty] private bool _isPortalDiggerChecked;
-    [ObservableProperty] private bool _isObjectEraserChecked;
+	#region Tool Checked States
 
-    // Special checked states (not derived from current tool type).
-    [ObservableProperty] private bool _isUVFixerChecked;
-    [ObservableProperty] private bool _isBrushShapeCircleChecked;
-    [ObservableProperty] private bool _isBrushShapeSquareChecked;
-    [ObservableProperty] private bool _isTextureEraserChecked;
-    [ObservableProperty] private bool _isTextureInvisibleChecked;
-    [ObservableProperty] private bool _isShowTexturesChecked;
+	[ObservableProperty] private bool _isSelectionChecked;
+	[ObservableProperty] private bool _isBrushChecked;
+	[ObservableProperty] private bool _isPencilChecked;
+	[ObservableProperty] private bool _isLineChecked;
+	[ObservableProperty] private bool _isDeselectChecked;
+	[ObservableProperty] private bool _isFillChecked;
+	[ObservableProperty] private bool _isGroupChecked;
+	[ObservableProperty] private bool _isGridPaintChecked;
+	[ObservableProperty] private bool _isShovelChecked;
+	[ObservableProperty] private bool _isFlattenChecked;
+	[ObservableProperty] private bool _isSmoothChecked;
+	[ObservableProperty] private bool _isDragChecked;
+	[ObservableProperty] private bool _isRampChecked;
+	[ObservableProperty] private bool _isQuarterPipeChecked;
+	[ObservableProperty] private bool _isHalfPipeChecked;
+	[ObservableProperty] private bool _isBowlChecked;
+	[ObservableProperty] private bool _isPyramidChecked;
+	[ObservableProperty] private bool _isTerrainChecked;
+	[ObservableProperty] private bool _isPortalDiggerChecked;
+	[ObservableProperty] private bool _isObjectEraserChecked;
 
-    #endregion
+	// Special checked states (not derived from current tool type).
+	[ObservableProperty] private bool _isUVFixerChecked;
+	[ObservableProperty] private bool _isBrushShapeCircleChecked;
+	[ObservableProperty] private bool _isBrushShapeSquareChecked;
+	[ObservableProperty] private bool _isTextureEraserChecked;
+	[ObservableProperty] private bool _isTextureInvisibleChecked;
+	[ObservableProperty] private bool _isShowTexturesChecked;
 
-    #region Grid Size
+	#endregion Tool Checked States
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(GridPaintTooltip))]
-    [NotifyPropertyChangedFor(nameof(GridPaintIconSource))]
-    private PaintGridSize _gridSize = PaintGridSize.Grid2x2;
+	#region Grid Size
 
-    public string GridPaintTooltip => GridSize switch
-    {
-        PaintGridSize.Grid2x2 => _localizationService.Format("GridPaint", "2x2"),
-        PaintGridSize.Grid3x3 => _localizationService.Format("GridPaint", "3x3"),
-        PaintGridSize.Grid4x4 => _localizationService.Format("GridPaint", "4x4"),
-        _ => _localizationService["GridPaint"]
-    };
+	[ObservableProperty]
+	[NotifyPropertyChangedFor(nameof(GridPaintTooltip))]
+	[NotifyPropertyChangedFor(nameof(GridPaintIconSource))]
+	private PaintGridSize _gridSize = PaintGridSize.Grid2x2;
 
-    public string GridPaintIconSource => GridSize switch
-    {
-        PaintGridSize.Grid2x2 => $"{GridPaintIconBase}2x2-16.png",
-        PaintGridSize.Grid3x3 => $"{GridPaintIconBase}3x3-16.png",
-        PaintGridSize.Grid4x4 => $"{GridPaintIconBase}4x4-16.png",
-        _ => $"{GridPaintIconBase}2x2-16.png"
-    };
+	public string GridPaintTooltip => GridSize switch
+	{
+		PaintGridSize.Grid2x2 => _localizationService.Format("GridPaint", "2x2"),
+		PaintGridSize.Grid3x3 => _localizationService.Format("GridPaint", "3x3"),
+		PaintGridSize.Grid4x4 => _localizationService.Format("GridPaint", "4x4"),
+		_ => _localizationService["GridPaint"]
+	};
 
-    #endregion
+	public string GridPaintIconSource => GridSize switch
+	{
+		PaintGridSize.Grid2x2 => $"{GridPaintIconBase}2x2-16.png",
+		PaintGridSize.Grid3x3 => $"{GridPaintIconBase}3x3-16.png",
+		PaintGridSize.Grid4x4 => $"{GridPaintIconBase}4x4-16.png",
+		_ => $"{GridPaintIconBase}2x2-16.png"
+	};
 
-    #region Mode Visibility
+	#endregion Grid Size
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsGeometryToolsVisible))]
-    [NotifyPropertyChangedFor(nameof(IsFaceEditToolsVisible))]
-    [NotifyPropertyChangedFor(nameof(IsObjectPlacementToolsVisible))]
-    [NotifyPropertyChangedFor(nameof(IsFillVisible))]
-    [NotifyPropertyChangedFor(nameof(IsSeparator2Visible))]
-    [NotifyPropertyChangedFor(nameof(IsToolboxVisible))]
-    private EditorMode _currentMode;
+	#region Mode Visibility
 
-    public bool IsGeometryToolsVisible => CurrentMode == EditorMode.Geometry;
+	[ObservableProperty]
+	[NotifyPropertyChangedFor(nameof(IsGeometryToolsVisible))]
+	[NotifyPropertyChangedFor(nameof(IsFaceEditToolsVisible))]
+	[NotifyPropertyChangedFor(nameof(IsObjectPlacementToolsVisible))]
+	[NotifyPropertyChangedFor(nameof(IsFillVisible))]
+	[NotifyPropertyChangedFor(nameof(IsSeparator2Visible))]
+	[NotifyPropertyChangedFor(nameof(IsToolboxVisible))]
+	private EditorMode _currentMode;
 
-    public bool IsFaceEditToolsVisible =>
-        CurrentMode == EditorMode.FaceEdit || CurrentMode == EditorMode.Lighting;
+	public bool IsGeometryToolsVisible => CurrentMode == EditorMode.Geometry;
 
-    public bool IsObjectPlacementToolsVisible => CurrentMode == EditorMode.ObjectPlacement;
+	public bool IsFaceEditToolsVisible => CurrentMode
+		is EditorMode.FaceEdit
+		or EditorMode.Lighting;
 
-    public bool IsFillVisible => IsFaceEditToolsVisible || IsObjectPlacementToolsVisible;
+	public bool IsObjectPlacementToolsVisible => CurrentMode == EditorMode.ObjectPlacement;
 
-    public bool IsSeparator2Visible => !IsObjectPlacementToolsVisible;
+	public bool IsFillVisible => IsFaceEditToolsVisible || IsObjectPlacementToolsVisible;
 
-    public bool IsToolboxVisible =>
-        CurrentMode == EditorMode.FaceEdit || CurrentMode == EditorMode.Lighting ||
-        CurrentMode == EditorMode.Geometry || CurrentMode == EditorMode.ObjectPlacement;
+	public bool IsSeparator2Visible => !IsObjectPlacementToolsVisible;
 
-    #endregion
+	public bool IsToolboxVisible => CurrentMode
+		is EditorMode.FaceEdit
+		or EditorMode.Lighting
+		or EditorMode.Geometry
+		or EditorMode.ObjectPlacement;
 
-    #region Commands
+	#endregion Mode Visibility
 
-    [RelayCommand]
-    private void SwitchTool(string toolName)
-    {
-        if (Enum.TryParse<EditorToolType>(toolName, out var toolType))
-            _editor.Tool = CreateEditorTool(toolType);
-    }
+	#region Commands
 
-    [RelayCommand]
-    private void SwitchToGridPaint()
-    {
-        _editor.Tool = CreateEditorTool(EditorToolType.GridPaint);
-    }
+	[RelayCommand]
+	private void SwitchTool(string toolName)
+	{
+		if (Enum.TryParse<EditorToolType>(toolName, out var toolType))
+			_editor.Tool = CreateEditorTool(toolType);
+	}
 
-    [RelayCommand]
-    private void SetBrushShapeCircle()
-    {
-        _editor.Configuration.ObjectBrush_Shape = ObjectBrushShape.Circle;
-        _editor.ObjectBrushSettingsChange();
-    }
+	[RelayCommand]
+	private void SwitchToGridPaint()
+	{
+		_editor.Tool = CreateEditorTool(EditorToolType.GridPaint);
+	}
 
-    [RelayCommand]
-    private void SetBrushShapeSquare()
-    {
-        _editor.Configuration.ObjectBrush_Shape = ObjectBrushShape.Square;
-        _editor.ObjectBrushSettingsChange();
-    }
+	[RelayCommand]
+	private void SetBrushShapeCircle()
+	{
+		_editor.Configuration.ObjectBrush_Shape = ObjectBrushShape.Circle;
+		_editor.ObjectBrushSettingsChange();
+	}
 
-    [RelayCommand]
-    private void ToggleShowTextures()
-    {
-        _editor.Configuration.ObjectBrush_ShowTextures = !_editor.Configuration.ObjectBrush_ShowTextures;
-        _editor.ObjectBrushSettingsChange();
-    }
+	[RelayCommand]
+	private void SetBrushShapeSquare()
+	{
+		_editor.Configuration.ObjectBrush_Shape = ObjectBrushShape.Square;
+		_editor.ObjectBrushSettingsChange();
+	}
 
-    [RelayCommand]
-    private void SetTextureEraser()
-    {
-        _editor.SelectedTexture = TextureArea.None;
-    }
+	[RelayCommand]
+	private void ToggleShowTextures()
+	{
+		_editor.Configuration.ObjectBrush_ShowTextures = !_editor.Configuration.ObjectBrush_ShowTextures;
+		_editor.ObjectBrushSettingsChange();
+	}
 
-    [RelayCommand]
-    private void SetTextureInvisible()
-    {
-        _editor.SelectedTexture = TextureArea.Invisible;
-    }
+	[RelayCommand]
+	private void SetTextureEraser()
+	{
+		_editor.SelectedTexture = TextureArea.None;
+	}
 
-    [RelayCommand]
-    private void ToggleUVFixer()
-    {
-        _editor.Tool = CreateEditorTool(uvFixer: !_editor.Tool.TextureUVFixer);
-    }
+	[RelayCommand]
+	private void SetTextureInvisible()
+	{
+		_editor.SelectedTexture = TextureArea.Invisible;
+	}
 
-    private EditorTool CreateEditorTool(EditorToolType? tool = null, bool? uvFixer = null)
-    {
-        var current = _editor.Tool;
-        return new EditorTool
-        {
-            Tool = tool ?? current.Tool,
-            TextureUVFixer = uvFixer ?? current.TextureUVFixer,
-            GridSize = current.GridSize
-        };
-    }
+	[RelayCommand]
+	private void ToggleUVFixer()
+	{
+		_editor.Tool = CreateEditorTool(uvFixer: !_editor.Tool.TextureUVFixer);
+	}
 
-    #endregion
+	private EditorTool CreateEditorTool(EditorToolType? tool = null, bool? uvFixer = null)
+	{
+		var current = _editor.Tool;
 
-    #region State Updates
+		return new EditorTool
+		{
+			Tool = tool ?? current.Tool,
+			TextureUVFixer = uvFixer ?? current.TextureUVFixer,
+			GridSize = current.GridSize
+		};
+	}
 
-    private void Refresh()
-    {
-        UpdateToolCheckedState();
-        UpdateBrushSettings();
-        UpdateTextureState();
-        UpdateModeVisibility();
-    }
+	#endregion Commands
 
-    private void UpdateToolCheckedState()
-    {
-        var tool = _editor.Tool;
+	#region State Updates
 
-        IsSelectionChecked = tool.Tool == EditorToolType.Selection;
-        IsBrushChecked = tool.Tool == EditorToolType.Brush;
-        IsPencilChecked = tool.Tool == EditorToolType.Pencil;
-        IsLineChecked = tool.Tool == EditorToolType.Line;
-        IsDeselectChecked = tool.Tool == EditorToolType.Deselect;
-        IsFillChecked = tool.Tool == EditorToolType.Fill;
-        IsGroupChecked = tool.Tool == EditorToolType.Group;
-        IsGridPaintChecked = tool.Tool == EditorToolType.GridPaint;
-        IsShovelChecked = tool.Tool == EditorToolType.Shovel;
-        IsFlattenChecked = tool.Tool == EditorToolType.Flatten;
-        IsSmoothChecked = tool.Tool == EditorToolType.Smooth;
-        IsDragChecked = tool.Tool == EditorToolType.Drag;
-        IsRampChecked = tool.Tool == EditorToolType.Ramp;
-        IsQuarterPipeChecked = tool.Tool == EditorToolType.QuarterPipe;
-        IsHalfPipeChecked = tool.Tool == EditorToolType.HalfPipe;
-        IsBowlChecked = tool.Tool == EditorToolType.Bowl;
-        IsPyramidChecked = tool.Tool == EditorToolType.Pyramid;
-        IsTerrainChecked = tool.Tool == EditorToolType.Terrain;
-        IsPortalDiggerChecked = tool.Tool == EditorToolType.PortalDigger;
-        IsObjectEraserChecked = tool.Tool == EditorToolType.Eraser;
-        IsUVFixerChecked = tool.TextureUVFixer;
-        GridSize = tool.GridSize;
-    }
+	private void Refresh()
+	{
+		UpdateToolCheckedState();
+		UpdateBrushSettings();
+		UpdateTextureState();
+		UpdateModeVisibility();
+	}
 
-    private void UpdateBrushSettings()
-    {
-        IsBrushShapeCircleChecked = _editor.Configuration.ObjectBrush_Shape == ObjectBrushShape.Circle;
-        IsBrushShapeSquareChecked = _editor.Configuration.ObjectBrush_Shape == ObjectBrushShape.Square;
-        IsShowTexturesChecked = _editor.Configuration.ObjectBrush_ShowTextures;
-    }
+	private void UpdateToolCheckedState()
+	{
+		var tool = _editor.Tool;
 
-    private void UpdateTextureState()
-    {
-        IsTextureEraserChecked = _editor.SelectedTexture.Texture == null;
-        IsTextureInvisibleChecked = _editor.SelectedTexture.Texture is TextureInvisible;
-    }
+		IsSelectionChecked = tool.Tool == EditorToolType.Selection;
+		IsBrushChecked = tool.Tool == EditorToolType.Brush;
+		IsPencilChecked = tool.Tool == EditorToolType.Pencil;
+		IsLineChecked = tool.Tool == EditorToolType.Line;
+		IsDeselectChecked = tool.Tool == EditorToolType.Deselect;
+		IsFillChecked = tool.Tool == EditorToolType.Fill;
+		IsGroupChecked = tool.Tool == EditorToolType.Group;
+		IsGridPaintChecked = tool.Tool == EditorToolType.GridPaint;
+		IsShovelChecked = tool.Tool == EditorToolType.Shovel;
+		IsFlattenChecked = tool.Tool == EditorToolType.Flatten;
+		IsSmoothChecked = tool.Tool == EditorToolType.Smooth;
+		IsDragChecked = tool.Tool == EditorToolType.Drag;
+		IsRampChecked = tool.Tool == EditorToolType.Ramp;
+		IsQuarterPipeChecked = tool.Tool == EditorToolType.QuarterPipe;
+		IsHalfPipeChecked = tool.Tool == EditorToolType.HalfPipe;
+		IsBowlChecked = tool.Tool == EditorToolType.Bowl;
+		IsPyramidChecked = tool.Tool == EditorToolType.Pyramid;
+		IsTerrainChecked = tool.Tool == EditorToolType.Terrain;
+		IsPortalDiggerChecked = tool.Tool == EditorToolType.PortalDigger;
+		IsObjectEraserChecked = tool.Tool == EditorToolType.Eraser;
+		IsUVFixerChecked = tool.TextureUVFixer;
+		GridSize = tool.GridSize;
+	}
 
-    private void UpdateModeVisibility()
-    {
-        CurrentMode = _editor.Mode;
-    }
+	private void UpdateBrushSettings()
+	{
+		IsBrushShapeCircleChecked = _editor.Configuration.ObjectBrush_Shape == ObjectBrushShape.Circle;
+		IsBrushShapeSquareChecked = _editor.Configuration.ObjectBrush_Shape == ObjectBrushShape.Square;
+		IsShowTexturesChecked = _editor.Configuration.ObjectBrush_ShowTextures;
+	}
 
-    private void OnEditorEventRaised(IEditorEvent obj)
-    {
-        if (obj is Editor.ToolChangedEvent || obj is Editor.InitEvent)
-            UpdateToolCheckedState();
+	private void UpdateTextureState()
+	{
+		IsTextureEraserChecked = _editor.SelectedTexture.Texture is null;
+		IsTextureInvisibleChecked = _editor.SelectedTexture.Texture is TextureInvisible;
+	}
 
-        if (obj is Editor.ObjectBrushSettingsChangedEvent ||
-            obj is Editor.ConfigurationChangedEvent ||
-            obj is Editor.InitEvent)
-            UpdateBrushSettings();
+	private void UpdateModeVisibility()
+	{
+		CurrentMode = _editor.Mode;
+	}
 
-        if (obj is Editor.SelectedTexturesChangedEvent || obj is Editor.InitEvent)
-            UpdateTextureState();
+	private void OnEditorEventRaised(IEditorEvent obj)
+	{
+		if (obj is Editor.ToolChangedEvent or Editor.InitEvent)
+			UpdateToolCheckedState();
 
-        if (obj is Editor.ModeChangedEvent || obj is Editor.InitEvent)
-            UpdateModeVisibility();
-    }
+		if (obj is Editor.ObjectBrushSettingsChangedEvent or
+			Editor.ConfigurationChangedEvent or
+			Editor.InitEvent)
+			UpdateBrushSettings();
 
-    #endregion
+		if (obj is Editor.SelectedTexturesChangedEvent or Editor.InitEvent)
+			UpdateTextureState();
+
+		if (obj is Editor.ModeChangedEvent or Editor.InitEvent)
+			UpdateModeVisibility();
+	}
+
+	#endregion State Updates
 }
