@@ -158,12 +158,11 @@ namespace TombEditor
             public IReadOnlyList<ItemType> Current { get; internal set; }
         }
 
-        // ChosenItemChangedEvent mirrors SelectedRoomChangedEvent:
-        // raised when _chosenItems[0] changes (or selection becomes empty/non-empty).
         public class ChosenItemChangedEvent : ChosenItemsChangedEvent
         {
             public new ItemType? Previous => base.Previous?.Count > 0 ? base.Previous[0] : null;
             public new ItemType? Current  => base.Current?.Count  > 0 ? base.Current[0]  : null;
+
             internal ChosenItemChangedEvent(IReadOnlyList<ItemType> previous, IReadOnlyList<ItemType> current)
             {
                 base.Previous = previous;
@@ -174,16 +173,17 @@ namespace TombEditor
         private ItemType[] _chosenItems = Array.Empty<ItemType>();
         public IReadOnlyList<ItemType> ChosenItems
         {
-            get { return _chosenItems; }
+            get => _chosenItems;
             set
             {
                 var arr = value?.ToArray() ?? Array.Empty<ItemType>();
                 if (_chosenItems.SequenceEqual(arr))
                     return;
+
                 var previous = _chosenItems;
                 _chosenItems = arr;
-                // When [0] changes (or emptiness toggles), also raise ChosenItemChangedEvent
-                // so all existing listeners on ChosenItemChangedEvent keep working.
+
+                // When [0] changes, raise singular ChosenItemChangedEvent.
                 bool firstChanged = (previous.Length == 0) != (arr.Length == 0) ||
                                     (previous.Length > 0 && arr.Length > 0 && previous[0] != arr[0]);
                 if (firstChanged)
@@ -193,7 +193,7 @@ namespace TombEditor
             }
         }
 
-        // ChosenItem mirrors SelectedRoom: single-item view of ChosenItems.
+        // Single-item view of a first entry of ChosenItems.
         public ItemType? ChosenItem
         {
             get { return _chosenItems.Length > 0 ? _chosenItems[0] : null; }
