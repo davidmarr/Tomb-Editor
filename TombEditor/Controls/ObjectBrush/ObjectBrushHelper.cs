@@ -297,14 +297,14 @@ namespace TombEditor.Controls.ObjectBrush
 
         private struct PlacementContext
         {
-            public Dictionary<ItemType, BoundingBox?> BboxCache;
+            public Dictionary<ItemType, BoundingBox?> BoundsCache;
             public Dictionary<Room, List<Vector2>> PosCache;
         }
 
         // Main object placement operation.
 
         public static List<PositionBasedObjectInstance> PlaceObjectsWithBrush(Editor editor, Room room, float x, float z,
-            IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint = null)
+           IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint = null)
         {
             var shape = editor.Configuration.ObjectBrush_Shape;
             float radius = editor.Configuration.ObjectBrush_Radius;
@@ -318,13 +318,13 @@ namespace TombEditor.Controls.ObjectBrush
             float minDistSq = minDistWorld * minDistWorld;
 
             var rooms = GetBrushRooms(room, editor.Configuration.ObjectBrush_PlaceInAdjacentRooms);
+            int targetCount = GetTargetObjectCount(radius, density, shape);
 
-            // Build per-call context: bbox cache (shared across rooms) + position cache (per room).
-            // Pre-populate PosCache with existing matching objects so distance checks don't scan room.Objects.
-            var ctx = new PlacementContext
+            // Build per-call context: bounds cache (shared across rooms) + position cache (per room).
+            var context = new PlacementContext
             {
-                BboxCache = new Dictionary<ItemType, BoundingBox?>(),
-                PosCache  = new Dictionary<Room, List<Vector2>>()
+                BoundsCache = new Dictionary<ItemType, BoundingBox?>(),
+                PosCache = new Dictionary<Room, List<Vector2>>()
             };
 
             foreach (var r in rooms)
@@ -332,12 +332,10 @@ namespace TombEditor.Controls.ObjectBrush
                 var posList = new List<Vector2>();
 
                 foreach (var obj in r.Objects)
-                {
                     if (obj is ItemInstance item && chosenItems.Contains(item.ItemType))
                         posList.Add(new Vector2(item.Position.X, item.Position.Z));
-                }
 
-                ctx.PosCache[r] = posList;
+                context.PosCache[r] = posList;
             }
 
             foreach (var targetRoom in rooms)
@@ -346,27 +344,26 @@ namespace TombEditor.Controls.ObjectBrush
                 float localCenterX = x + offset.X;
                 float localCenterZ = z + offset.Z;
 
-                int existingCount = CountMatchingObjectsInArea(ctx.PosCache[targetRoom], localCenterX, localCenterZ, radius, shape);
-                int targetCount = GetTargetObjectCount(radius, density, shape);
-
+                int existingCount = CountMatchingObjectsInArea(context.PosCache[targetRoom], localCenterX, localCenterZ, radius, shape);
                 if (existingCount >= targetCount)
                     continue;
 
                 int toPlace = targetCount - existingCount;
+
                 var candidates = GenerateCandidatePositions(localCenterX, localCenterZ, radius, density, shape);
                 ShuffleList(candidates);
 
                 int placed = 0;
+
                 foreach (var candidate in candidates)
                 {
                     if (placed >= toPlace)
                         break;
 
-                    // Pick random item type per placement
                     var chosenItem = chosenItems[_rng.Next(chosenItems.Count)];
 
                     if (!TryPlaceObject(editor, editor.Level, targetRoom, candidate, chosenItem,
-                        minDistSq, ref ctx, sectorConstraint, out var instance))
+                        minDistSq, ref context, sectorConstraint, out var instance))
                         continue;
 
                     placedObjects.Add(instance);
@@ -431,14 +428,13 @@ namespace TombEditor.Controls.ObjectBrush
                 return false;
 
             bool randomRot = config.ObjectBrush_RandomizeRotation && editor.Tool.Tool != EditorToolType.Line;
-            bool followDir = config.ObjectBrush_FollowMouseDirection && _mouseDirectionAngle.HasValue;
+            bool followDir = config.ObjectBrush_FollowMouseDirection;
             bool randomScale = config.ObjectBrush_RandomizeScale;
 
             float rotY;
             if (followDir)
             {
-                rotY = _mouseDirectionAngle.Value;
-
+                rotY = _mouseDirectionAngle ?? config.ObjectBrush_Rotation;
                 if (randomRot)
                     rotY += (float)((_rng.NextDouble() - 0.5f) * 45.0f);
 
@@ -447,10 +443,9 @@ namespace TombEditor.Controls.ObjectBrush
             else if (randomRot)
             {
                 rotY = (float)(_rng.NextDouble() * 360.0f);
-            }	
+            }
             else
             {
-
                 rotY = config.ObjectBrush_Rotation;
             }
 
@@ -463,10 +458,10 @@ namespace TombEditor.Controls.ObjectBrush
                 scale = config.ObjectBrush_ScaleMin + (float)_rng.NextDouble() * (config.ObjectBrush_ScaleMax - config.ObjectBrush_ScaleMin);
 
             // Determine Y position in the placement room (use cached bounds to avoid repeated wad look-ups).
-            if (!ctx.BboxCache.TryGetValue(chosenItem, out var bbox))
+            if (!ctx.BoundsCache.TryGetValue(chosenItem, out var bbox))
             {
                 bbox = GetItemBoundingBox(level, chosenItem);
-                ctx.BboxCache[chosenItem] = bbox;
+                ctx.BoundsCache[chosenItem] = bbox;
             }
 
             float yPos;
@@ -776,7 +771,7 @@ namespace TombEditor.Controls.ObjectBrush
 
                 var ctx = new PlacementContext
                 {
-                    BboxCache = bboxCache,
+                    BoundsCache = bboxCache,
                     PosCache = new Dictionary<Room, List<Vector2>>()
                 };
 
@@ -822,7 +817,7 @@ namespace TombEditor.Controls.ObjectBrush
 
             var ctx = new PlacementContext
             {
-                BboxCache = new Dictionary<ItemType, BoundingBox?>(),
+                BoundsCache = new Dictionary<ItemType, BoundingBox?>(),
                 PosCache = new Dictionary<Room, List<Vector2>>()
             };
 

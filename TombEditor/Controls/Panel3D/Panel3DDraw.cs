@@ -1902,33 +1902,37 @@ namespace TombEditor.Controls.Panel3D
             var brushColor = Vector4.One;
             float brushRotation = 0.0f;
 
-            if (_editor.Mode == EditorMode.ObjectPlacement && _editor.Tool.Tool != EditorToolType.Fill &&
-                _editor.ObjectBrushCursorPosition.HasValue && _editor.ObjectBrushCursorRoom != null)
+            if (_editor.Mode == EditorMode.ObjectPlacement && _editor.ObjectBrushCursorPosition.HasValue && _editor.ObjectBrushCursorRoom != null)
             {
                 var cursorPos = _editor.ObjectBrushCursorPosition.Value;
-                float radius = _editor.Configuration.ObjectBrush_Radius;
-                brushShape = _editor.Configuration.ObjectBrush_Shape == ObjectBrushShape.Circle ? 1 : 2;
-                brushCenter = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, radius);
                 var selColor = _editor.Configuration.UI_ColorScheme.ColorSelection;
                 brushColor = new Vector4(selColor.X, selColor.Y, selColor.Z, 1.0f);
+                brushRotation = -1.0f; // Default: no rotation indicator.
 
-                if (_editor.Tool.Tool == EditorToolType.Selection || _editor.Tool.Tool == EditorToolType.Deselect ||
-                    _editor.Tool.Tool == EditorToolType.Eraser ||
-                    (_editor.Configuration.ObjectBrush_RandomizeRotation && !_editor.Configuration.ObjectBrush_FollowMouseDirection && _editor.Tool.Tool != EditorToolType.Line))
+                if (_editor.Tool.Tool == EditorToolType.Fill)
                 {
-                    brushRotation = -1.0f; // Negative signals no indicator.
-                }
-                else if (_editor.Configuration.ObjectBrush_FollowMouseDirection && _lastMouseDirectionAngle.HasValue && _editor.Tool.Tool != EditorToolType.Line)
-                {
-                    brushRotation = _lastMouseDirectionAngle.Value;
+                    brushShape = 1; // Always circle.
+                    brushCenter = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, Level.SectorSizeUnit * 0.2f);
                 }
                 else
                 {
-                    brushRotation = _editor.Configuration.ObjectBrush_Rotation;
+                    float radius = _editor.Configuration.ObjectBrush_Radius;
+                    brushShape = _editor.Configuration.ObjectBrush_Shape == ObjectBrushShape.Circle ? 1 : 2;
+                    brushCenter = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, radius);
+
+                    if (_editor.Tool.Tool != EditorToolType.Selection && _editor.Tool.Tool != EditorToolType.Deselect &&
+                        _editor.Tool.Tool != EditorToolType.Eraser &&
+                        !(_editor.Configuration.ObjectBrush_RandomizeRotation && !_editor.Configuration.ObjectBrush_FollowMouseDirection && _editor.Tool.Tool != EditorToolType.Line))
+                    {
+                        if (_editor.Configuration.ObjectBrush_FollowMouseDirection && _lastMouseDirectionAngle.HasValue && _editor.Tool.Tool != EditorToolType.Line)
+                            brushRotation = _lastMouseDirectionAngle.Value;
+                        else
+                            brushRotation = _editor.Configuration.ObjectBrush_Rotation;
+                    }
                 }
             }
 
-            // In ObjectPlacement (brush) mode, use only the brush-specific ShowTextures flag;
+            // In ObjectPlacement (brush) mode, use only the brush-specific ShowTextures flag,
             // the global white-lighting override is ignored so it doesn't bleed into brush mode.
             bool brushHidesTextures = _editor.Mode == EditorMode.ObjectPlacement && !_editor.Configuration.ObjectBrush_ShowTextures;
             bool whiteTextureOnly = _editor.Mode == EditorMode.ObjectPlacement ? brushHidesTextures : ShowLightingWhiteTextureOnly;

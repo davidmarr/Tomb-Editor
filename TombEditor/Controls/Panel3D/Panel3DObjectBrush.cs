@@ -1,11 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
 using System.Windows.Forms;
 using TombLib;
 using TombLib.LevelData;
-using TombLib.Utils;
 
 namespace TombEditor.Controls.Panel3D
 {
@@ -172,8 +170,16 @@ namespace TombEditor.Controls.Panel3D
                     float dz = cursorWorldPos.Z - _lastBrushWorldPosition.Value.Z;
                     if (dx * dx + dz * dz > 0.01f)
                     {
-                        float angle = (float)(Math.Atan2(dx, dz) * (180.0 / Math.PI));
-                        _lastMouseDirectionAngle = ((angle % 360.0f) + 360.0f) % 360.0f;
+                        float angle = (float)(Math.Atan2(dx, dz) * (180.0f / Math.PI));
+                        angle = ((angle % 360.0f) + 360.0f) % 360.0f;
+
+                        if (_lastMouseDirectionAngle.HasValue)
+                        {
+                            float diff = ((angle - _lastMouseDirectionAngle.Value + 540.0f) % 360.0f) - 180.0f;
+                            _lastMouseDirectionAngle = ((_lastMouseDirectionAngle.Value + diff * 0.35f) % 360.0f + 360.0f) % 360.0f;
+                        }
+                        else
+                            _lastMouseDirectionAngle = angle;
                     }
                 }
                 ObjectBrush.ObjectBrushHelper.SetMouseDirectionAngle(_lastMouseDirectionAngle);
