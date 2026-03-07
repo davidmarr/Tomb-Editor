@@ -213,6 +213,45 @@ namespace TombEditor.Controls.ObjectBrush
                 return Math.Abs(dx) <= radius && Math.Abs(dz) <= radius;
         }
 
+        // Checks if an object's oriented bounding box (OBB) intersects the brush area.
+        // Falls back to center-point test when no bounding box is available.
+        private static bool DoesBoundingBoxIntersectBrush(float objX, float objZ, float rotY, float scale,
+            BoundingBox? bbox, float centerX, float centerZ, float radius, ObjectBrushShape shape)
+        {
+            if (bbox == null || scale <= 0)
+                return IsInBrushArea(objX, objZ, centerX, centerZ, radius, shape);
+
+            var bb = bbox.Value;
+
+            float cx = (bb.Minimum.X + bb.Maximum.X) * 0.5f * scale;
+            float cz = (bb.Minimum.Z + bb.Maximum.Z) * 0.5f * scale;
+            float hw = (bb.Maximum.X - bb.Minimum.X) * 0.5f * scale;
+            float hd = (bb.Maximum.Z - bb.Minimum.Z) * 0.5f * scale;
+
+            float r = rotY * (float)(Math.PI / 180.0);
+            float c = (float)Math.Cos(r), s = (float)Math.Sin(r);
+
+            float ocx = objX + cx * c + cz * s;
+            float ocz = objZ - cx * s + cz * c;
+
+            float dx = centerX - ocx, dz = centerZ - ocz;
+            float lx = dx * c - dz * s, lz = dx * s + dz * c;
+
+            if (shape == ObjectBrushShape.Circle)
+            {
+                float nx = Math.Max(-hw, Math.Min(hw, lx));
+                float nz = Math.Max(-hd, Math.Min(hd, lz));
+                float dx2 = lx - nx, dz2 = lz - nz;
+                return dx2 * dx2 + dz2 * dz2 <= radius * radius;
+            }
+
+            float aw = hw * Math.Abs(c) + hd * Math.Abs(s);
+            float ad = hw * Math.Abs(s) + hd * Math.Abs(c);
+
+            return ocx - aw <= centerX + radius && ocx + aw >= centerX - radius &&
+                   ocz - ad <= centerZ + radius && ocz + ad >= centerZ - radius;
+        }
+
         private static int CountMatchingObjectsInArea(List<Vector2> positions, float centerWorldX, float centerWorldZ, float radius, ObjectBrushShape shape)
         {
             int count = 0;
@@ -522,8 +561,7 @@ namespace TombEditor.Controls.ObjectBrush
                 float localCenterX = centerWorldX + offset.X;
                 float localCenterZ = centerWorldZ + offset.Z;
 
-                var toRemove = CollectObjectsInBrushArea(targetRoom, localCenterX, localCenterZ,
-                    radius, shape, chosenItems, sectorConstraint);
+                var toRemove = CollectObjectsInBrushArea(targetRoom, localCenterX, localCenterZ, radius, shape, chosenItems, sectorConstraint);
 
                 // Shuffle so removal is spatially random rather than biased by iteration order
                 ShuffleList(toRemove);
@@ -567,7 +605,11 @@ namespace TombEditor.Controls.ObjectBrush
                         continue;
                 }
 
-                if (IsInBrushArea(obj.Position.X, obj.Position.Z, centerWorldX, centerWorldZ, radius, shape))
+                float rotY  = (obj as IRotateableY)?.RotationY ?? 0.0f;
+                float scale = (obj as IScaleable)?.Scale ?? 1.0f;
+                var   bbox  = GetItemBoundingBox(room.Level, item.ItemType);
+
+                if (DoesBoundingBoxIntersectBrush(obj.Position.X, obj.Position.Z, rotY, scale, bbox, centerWorldX, centerWorldZ, radius, shape))
                     result.Add(obj);
             }
             return result;
@@ -696,6 +738,7 @@ namespace TombEditor.Controls.ObjectBrush
             float extent = editor.Configuration.ObjectBrush_Perpendicular
                 ? (bbox.Value.Maximum.X - bbox.Value.Minimum.X) * scale
                 : (bbox.Value.Maximum.Z - bbox.Value.Minimum.Z) * scale;
+
             float radius = editor.Configuration.ObjectBrush_Radius;
             return extent > 0.0f ? Math.Max(extent, radius) : radius;
         }

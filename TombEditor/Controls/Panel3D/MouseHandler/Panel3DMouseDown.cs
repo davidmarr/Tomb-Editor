@@ -16,7 +16,8 @@ namespace TombEditor.Controls.Panel3D
         private void OnMouseButtonDownLeft(Point location)
         {
             // Do picking on the scene
-            PickingResult newPicking = DoPicking(GetRay(location.X, location.Y), _editor.Configuration.Rendering3D_SelectObjectsInAnyRoom);
+            bool skipObjectPicking = _editor.Mode == EditorMode.ObjectPlacement && !ModifierKeys.HasFlag(Keys.Alt);
+            var newPicking = DoPicking(GetRay(location.X, location.Y), _editor.Configuration.Rendering3D_SelectObjectsInAnyRoom, skipObjectPicking);
 
             if (newPicking is PickingResultSector)
             {
@@ -245,10 +246,6 @@ namespace TombEditor.Controls.Panel3D
             }
             else if (newPicking is PickingResultObject)
             {
-                // If brush is active in ObjectPlacement mode and Ctrl isn't held, click-through objects without selecting them.
-                if (_editor.Mode == EditorMode.ObjectPlacement && !ModifierKeys.HasFlag(Keys.Control))
-                    return;
-
                 var obj = ((PickingResultObject)newPicking).ObjectInstance;
 
                 if (obj.Room != _editor.SelectedRoom && _editor.Configuration.Rendering3D_AutoswitchCurrentRoom)

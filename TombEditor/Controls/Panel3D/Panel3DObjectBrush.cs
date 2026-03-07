@@ -97,6 +97,8 @@ namespace TombEditor.Controls.Panel3D
         // Returns true if the brush consumed the mouse move event (redraw needed).
         private bool HandleBrushMouseMove(Point location)
         {
+            const float EraserQuantizationDistance = Level.SectorSizeUnit * 0.15f;
+
             if (!_objectBrushEngaged || _editor.Mode != EditorMode.ObjectPlacement)
                 return false;
 
@@ -104,7 +106,8 @@ namespace TombEditor.Controls.Panel3D
             if (brushPicking == null || !brushPicking.BelongsToFloor)
                 return true;
 
-            float quantizationDistance = _editor.Configuration.ObjectBrush_Radius;
+            // Eraser fires on fixed step; other tools quantize to avoid over-painting.
+            float quantizationDistance = _editor.Tool.Tool == EditorToolType.Eraser ? EraserQuantizationDistance : _editor.Configuration.ObjectBrush_Radius;
 
             // For Line tool, constrain movement to the rotation direction.
             // Use bounding box extent along the rotation axis for seamless spacing.
