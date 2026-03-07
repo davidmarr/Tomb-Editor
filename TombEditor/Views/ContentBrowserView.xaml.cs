@@ -78,7 +78,7 @@ public partial class ContentBrowserView : UserControl
 			// Find the tile visual under the cursor and animate it.
 			if (e.OriginalSource is DependencyObject source)
 			{
-				var container = source.FindVisualAncestor<ListBoxItem>();
+				var container = source.FindVisualAncestorOrSelf<ListBoxItem>();
 
 				if (container is not null)
 					PlayAddItemAnimation(container);
@@ -165,7 +165,7 @@ public partial class ContentBrowserView : UserControl
 		{
 			if (DataContext is ContentBrowserViewModel vm && e.OriginalSource is DependencyObject source)
 			{
-				var container = source.FindVisualAncestor<ListBoxItem>();
+				var container = source.FindVisualAncestorOrSelf<ListBoxItem>();
 
 				if (container?.DataContext is AssetItemViewModel item)
 				{
@@ -179,7 +179,7 @@ public partial class ContentBrowserView : UserControl
 		_dragStartPoint = e.GetPosition(null);
 		_isDragging = false;
 
-		var hitContainer = (e.OriginalSource as DependencyObject)?.FindVisualAncestor<ListBoxItem>();
+		var hitContainer = (e.OriginalSource as DependencyObject)?.FindVisualAncestorOrSelf<ListBoxItem>();
 
 		if (hitContainer?.DataContext is AssetItemViewModel hitItem &&
 			AssetListBox.SelectedItems.Contains(hitItem) &&

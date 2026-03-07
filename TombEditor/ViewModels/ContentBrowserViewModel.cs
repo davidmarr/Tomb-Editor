@@ -332,8 +332,6 @@ public partial class ContentBrowserViewModel : ObservableObject
 	partial void OnSearchTextChanged(string value)
 	{
 		FilteredItems.Refresh();
-		OnPropertyChanged(nameof(ItemCount));
-		OnPropertyChanged(nameof(FormattedItemCount));
 	}
 
 	partial void OnSelectedFilterChanged(FilterOption? value)
@@ -346,8 +344,6 @@ public partial class ContentBrowserViewModel : ObservableObject
 		}
 
 		FilteredItems.Refresh();
-		OnPropertyChanged(nameof(ItemCount));
-		OnPropertyChanged(nameof(FormattedItemCount));
 	}
 
 	partial void OnSelectedItemChanged(AssetItemViewModel? value)
@@ -413,21 +409,10 @@ public partial class ContentBrowserViewModel : ObservableObject
 	private TRVersion.Game _gameVersion;
 
 	private bool _hideInternalObjects;
-	private bool _hasLoadedWads;
 
 	// Whether any WADs are loaded in the level.
-	public bool HasLoadedWads
-	{
-		get => _hasLoadedWads;
-		private set
-		{
-			if (_hasLoadedWads != value)
-			{
-				_hasLoadedWads = value;
-				OnPropertyChanged(nameof(HasLoadedWads));
-			}
-		}
-	}
+	[ObservableProperty]
+	private bool _hasLoadedWads;
 
 	/// <summary>
 	/// Refreshes all assets from the current level settings.
@@ -581,8 +566,6 @@ public partial class ContentBrowserViewModel : ObservableObject
 		SelectedFilter = FilterOptions.FirstOrDefault(f => f.DisplayName == previousFilterName && !f.IsSplitter) ?? _allFilter;
 
 		FilteredItems.Refresh();
-		OnPropertyChanged(nameof(ItemCount));
-		OnPropertyChanged(nameof(FormattedItemCount));
 
 		// Try to restore previous selection.
 		if (previousSelection is not null)

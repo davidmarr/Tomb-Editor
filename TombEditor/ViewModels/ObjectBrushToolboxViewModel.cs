@@ -175,12 +175,12 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 
 	private void OnEditorEventRaised(IEditorEvent obj)
 	{
-		if (obj is Editor.ConfigurationChangedEvent ||
-			obj is Editor.ObjectBrushSettingsChangedEvent)
+		if (obj is Editor.ConfigurationChangedEvent or
+			Editor.ObjectBrushSettingsChangedEvent)
 			LoadSettings();
 
-		if (obj is Editor.ModeChangedEvent ||
-			obj is Editor.ToolChangedEvent)
+		if (obj is Editor.ModeChangedEvent or
+			Editor.ToolChangedEvent)
 			UpdateControlsForTool();
 	}
 }
