@@ -7,10 +7,8 @@
         protected override void Dispose(bool disposing)
         {
             if (disposing)
-            {
-                _toolBoxView?.Cleanup();
                 components?.Dispose();
-            }
+
             base.Dispose(disposing);
         }
 

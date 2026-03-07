@@ -7,10 +7,8 @@ namespace TombEditor.Controls.ObjectBrush
         protected override void Dispose(bool disposing)
         {
             if (disposing)
-            {
-                _toolboxView?.Cleanup();
                 components?.Dispose();
-            }
+
             base.Dispose(disposing);
         }
 

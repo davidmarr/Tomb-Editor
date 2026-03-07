@@ -6,6 +6,9 @@
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:darkUI="clr-namespace:DarkUI.WPF;assembly=DarkUI.WPF"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	xmlns:tombLib="clr-namespace:TombLib.WPF;assembly=TombLib.WPF"
+	xmlns:viewModels="clr-namespace:TombEditor.ViewModels"
+	d:DataContext="{d:DesignInstance Type=viewModels:ObjectBrushToolboxViewModel}"
 	d:DesignHeight="84"
 	d:DesignWidth="430"
 	Background="{DynamicResource Brush_Background}"
@@ -31,51 +34,52 @@
 				Margin="0,0,4,0"
 				Padding="0"
 				VerticalAlignment="Center"
-				Content="Radius:" />
+				Content="{tombLib:Localize Radius}" />
 			<controls:NumericUpDown
-				x:Name="nudRadius"
 				Width="56"
 				FormatString="F1"
 				Increment="0.1"
+				IsEnabled="{Binding IsRadiusEnabled}"
 				Maximum="25"
 				Minimum="0.1"
 				TextAlignment="Left"
-				Value="0.5" />
+				Value="{Binding Radius, Mode=TwoWay}" />
 			<Label
 				MinWidth="54"
 				Margin="12,0,4,0"
 				Padding="0"
 				VerticalAlignment="Center"
-				Content="Density:" />
+				Content="{tombLib:Localize Density}" />
 			<controls:NumericUpDown
-				x:Name="nudDensity"
 				Width="56"
 				FormatString="F2"
 				Increment="0.05"
+				IsEnabled="{Binding IsDensityEnabled}"
 				Maximum="5"
 				Minimum="0.01"
 				TextAlignment="Left"
-				Value="1.0" />
+				Value="{Binding Density, Mode=TwoWay}" />
 			<Label
 				MinWidth="54"
 				Margin="12,0,4,0"
 				Padding="0"
 				VerticalAlignment="Center"
-				Content="Rotation:" />
+				Content="{tombLib:Localize Rotation}" />
 			<controls:NumericUpDown
-				x:Name="nudRotation"
 				Width="56"
 				FormatString="F1"
 				Increment="5"
+				IsEnabled="{Binding IsRotationEnabled}"
 				Maximum="360"
 				Minimum="0"
 				TextAlignment="Left"
-				Value="0" />
+				Value="{Binding Rotation, Mode=TwoWay}" />
 			<CheckBox
-				x:Name="chkPerpendicular"
 				Margin="8,0,0,0"
 				VerticalAlignment="Center"
-				Content="Flip" />
+				Content="{tombLib:Localize Flip}"
+				IsChecked="{Binding IsPerpendicular, Mode=TwoWay}"
+				IsEnabled="{Binding IsPerpendicularEnabled}" />
 		</StackPanel>
 
 		<!--  Row 1: Random rotation | Follow mouse direction | Random scale + NUDs  -->
@@ -87,45 +91,48 @@
 
 			<StackPanel Grid.Column="0" Orientation="Horizontal">
 				<CheckBox
-					x:Name="chkRandomRotation"
 					VerticalAlignment="Center"
-					Content="Random rotation" />
+					Content="{tombLib:Localize RandomRotation}"
+					IsChecked="{Binding IsRandomRotation, Mode=TwoWay}"
+					IsEnabled="{Binding IsRandomRotationEnabled}" />
 				<CheckBox
-					x:Name="chkFollowMouseDirection"
 					Margin="8,0,0,0"
 					VerticalAlignment="Center"
-					Content="Follow mouse direction" />
+					Content="{tombLib:Localize FollowMouseDirection}"
+					IsChecked="{Binding IsFollowMouseDirection, Mode=TwoWay}"
+					IsEnabled="{Binding IsFollowMouseDirectionEnabled}" />
 			</StackPanel>
 
 			<StackPanel Grid.Column="1" Orientation="Horizontal">
 				<CheckBox
-					x:Name="chkRandomScale"
 					Margin="8,0,0,0"
 					VerticalAlignment="Center"
-					Content="Random scale:" />
+					Content="{tombLib:Localize RandomScale}"
+					IsChecked="{Binding IsRandomScale, Mode=TwoWay}"
+					IsEnabled="{Binding IsRandomScaleEnabled}" />
 				<controls:NumericUpDown
-					x:Name="nudScaleMin"
 					Width="56"
 					Margin="4,0,0,0"
 					FormatString="F2"
 					Increment="0.05"
+					IsEnabled="{Binding IsScaleMinEnabled}"
 					Maximum="10"
 					Minimum="0.1"
 					TextAlignment="Left"
-					Value="0.8" />
+					Value="{Binding ScaleMin, Mode=TwoWay}" />
 				<Label
 					Padding="2,0"
 					VerticalAlignment="Center"
 					Content="-" />
 				<controls:NumericUpDown
-					x:Name="nudScaleMax"
 					Width="56"
 					FormatString="F2"
 					Increment="0.05"
+					IsEnabled="{Binding IsScaleMaxEnabled}"
 					Maximum="10"
 					Minimum="0.1"
 					TextAlignment="Left"
-					Value="1.2" />
+					Value="{Binding ScaleMax, Mode=TwoWay}" />
 			</StackPanel>
 		</Grid>
 
@@ -137,16 +144,18 @@
 			</Grid.ColumnDefinitions>
 
 			<CheckBox
-				x:Name="chkFitToGround"
 				Grid.Column="0"
 				VerticalAlignment="Center"
-				Content="Fit to floor" />
+				Content="{tombLib:Localize FitToFloor}"
+				IsChecked="{Binding IsFitToGround, Mode=TwoWay}"
+				IsEnabled="{Binding IsFitToGroundEnabled}" />
 			<CheckBox
-				x:Name="chkAdjacentRooms"
 				Grid.Column="1"
 				Margin="8,0,0,0"
 				VerticalAlignment="Center"
-				Content="Place in adjacent rooms" />
+				Content="{tombLib:Localize PlaceInAdjacentRooms}"
+				IsChecked="{Binding IsPlaceInAdjacentRooms, Mode=TwoWay}"
+				IsEnabled="{Binding IsAdjacentRoomsEnabled}" />
 		</Grid>
 	</Grid>
 </UserControl>
