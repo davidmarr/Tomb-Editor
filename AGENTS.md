@@ -98,6 +98,7 @@
 
 ## User Interface Implementation
 
+- For WinForms-based workflows, maintain the existing Visual Studio module pair for each control or unit: `.cs` and `.Designer.cs`.
 - For existing WinForms-based `DarkUI` controls and containers, prefer to use existing WinForms-based `DarkUI` controls.
 - For new controls and containers with complex logic, or where WinForms may not perform fast enough, prefer `DarkUI.WPF` framework. Use `GeometryIOSettingsWindow` as a reference.
 - Use `CommunityToolkit` functionality where possible.
