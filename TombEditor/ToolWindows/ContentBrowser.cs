@@ -223,7 +223,6 @@ public partial class ContentBrowser : DarkToolWindow
 		{
 			_renderer ??= new OffscreenItemRenderer();
 
-			int thumbPixelSize = Math.Max(64, (int)(_viewModel.ThumbSize * 2));
 			int end = Math.Min(_thumbnailQueueIndex + ThumbnailBatchSize, _thumbnailQueue.Count);
 
 			for (int i = _thumbnailQueueIndex; i < end; i++)
