@@ -515,7 +515,7 @@ public partial class ContentBrowserView : UserControl
 			{
 				const double step = 8;
 				double newWidth = vm.TileWidth + (e.Delta > 0 ? step : -step);
-				vm.TileWidth = Math.Clamp(newWidth, ContentBrowserViewModel.MinTileWidth, ContentBrowserViewModel.MaxTileWidth);
+				vm.TileWidth = Math.Clamp(newWidth, vm.MinTileWidth, vm.MaxTileWidth);
 			}
 
 			e.Handled = true;

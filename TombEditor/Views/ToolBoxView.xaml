@@ -15,8 +15,17 @@
 	Foreground="{DynamicResource Brush_Text}"
 	SnapsToDevicePixels="{x:Static darkUI:Defaults.SnapsToDevicePixels}"
 	UseLayoutRounding="{x:Static darkUI:Defaults.UseLayoutRounding}"
-	Visibility="{Binding IsToolboxVisible, Converter={StaticResource BoolToVisConverter}}"
 	mc:Ignorable="d">
+
+	<UserControl.Style>
+		<Style TargetType="UserControl">
+			<Style.Triggers>
+				<DataTrigger Binding="{Binding IsToolboxVisible}" Value="False">
+					<Setter Property="Visibility" Value="Collapsed" />
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+	</UserControl.Style>
 
 	<UserControl.Resources>
 		<BooleanToVisibilityConverter x:Key="BoolToVisConverter" />

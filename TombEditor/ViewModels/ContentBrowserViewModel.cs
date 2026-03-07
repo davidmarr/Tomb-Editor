@@ -285,10 +285,10 @@ public partial class ContentBrowserViewModel : ObservableObject
 	public double ThumbSize => TileWidth * 0.78;
 
 	// Minimum tile width.
-	public const double MinTileWidth = 60;
+	public double MinTileWidth { get; } = 60;
 
 	// Maximum tile width.
-	public const double MaxTileWidth = 180;
+	public double MaxTileWidth { get; } = 180;
 
 	// Number of items currently visible after filtering.
 	public int ItemCount => AllItems.Count(item => FilterPredicate(item));
