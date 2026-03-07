@@ -374,7 +374,6 @@
 						IsSnapToTickEnabled="True"
 						Maximum="{Binding MaxTileWidth}"
 						Minimum="{Binding MinTileWidth}"
-						Style="{StaticResource DarkSliderStyle}"
 						TickFrequency="4"
 						Value="{Binding TileWidth}" />
 				</StackPanel>
