@@ -278,7 +278,7 @@ namespace TombEditor.ViewModels
         public double TileHeight => TileWidth + 4;
 
         // Computed thumbnail square size based on tile width.
-        public double ThumbSize => TileWidth * 0.73;
+        public double ThumbSize => TileWidth * 0.78;
 
         // Minimum tile width.
         public double MinTileWidth => 60;

@@ -246,8 +246,7 @@ namespace TombLib.Controls
             }
             else
             {
-                WadObjectRenderHelper.RenderObject(CurrentObject, _wadRenderer, _legacyDevice,
-                    viewProjection, Camera.GetPosition(), DrawTransparency);
+                WadObjectRenderHelper.RenderObject(CurrentObject, _wadRenderer, _legacyDevice, viewProjection, Camera.GetPosition(), DrawTransparency);
             }
         }
 

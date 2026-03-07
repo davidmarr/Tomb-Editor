@@ -218,8 +218,6 @@ namespace TombEditor.ToolWindows
                 if (_renderer == null)
                     _renderer = new OffscreenItemRenderer();
 
-                _renderer.ClearColor = _editor.Configuration.UI_ColorScheme.Color3DBackground;
-
                 int thumbPixelSize = Math.Max(64, (int)(_viewModel.ThumbSize * 2));
                 int end = Math.Min(_thumbnailQueueIndex + ThumbnailBatchSize, _thumbnailQueue.Count);
 
@@ -235,7 +233,7 @@ namespace TombEditor.ToolWindows
                         // Apply Lara skin substitution for moveables (shared with ItemBrowser).
                         var renderObject = WadObjectRenderHelper.GetRenderObject(item.WadObject, _editor.Level.Settings);
 
-                        var image = _renderer.RenderThumbnail(renderObject, thumbPixelSize);
+                        var image = _renderer.RenderThumbnail(renderObject, _editor.Level.Settings.GameVersion, _editor.Configuration.UI_ColorScheme.Color3DBackground);
                         var bitmapSource = AssetItemViewModel.ImageCToBitmapSource(image);
                         _viewModel.SetThumbnail(item, bitmapSource);
                     }
