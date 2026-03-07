@@ -80,6 +80,11 @@ namespace TombLib.Controls
                 if (moveable.Meshes.Count == 0 || (moveable.Meshes.Count == 1 && moveable.Meshes[0] == null))
                     return null;
             }
+            else if (wadObject is WadStatic staticObj)
+            {
+                if (staticObj.Mesh == null || staticObj.Mesh.VertexPositions.Count == 0)
+                    return null;
+            }
             else if (!(wadObject is WadStatic) && !(wadObject is ImportedGeometry))
             {
                 return null;
