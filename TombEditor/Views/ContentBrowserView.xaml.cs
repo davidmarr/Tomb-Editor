@@ -407,21 +407,20 @@ public partial class ContentBrowserView : UserControl
 			return;
 		}
 
-		if (AssetListBox.Items.Count == 0)
+		int itemCount = AssetListBox.Items.Count;
+
+		if (itemCount == 0)
 			return;
 
-		var items = AssetListBox.Items.OfType<AssetItemViewModel>().ToList();
+		int currentIndex = AssetListBox.SelectedItem is AssetItemViewModel sel
+			? AssetListBox.Items.IndexOf(sel) : -1;
 
-		if (items.Count == 0)
-			return;
-
-		int currentIndex = AssetListBox.SelectedItem is AssetItemViewModel sel ? items.IndexOf(sel) : -1;
 		int newIndex;
 
 		switch (e.Key)
 		{
 			case Key.Right:
-				newIndex = Math.Min(currentIndex + 1, items.Count - 1);
+				newIndex = Math.Min(currentIndex + 1, itemCount - 1);
 				e.Handled = true;
 				break;
 
@@ -433,7 +432,7 @@ public partial class ContentBrowserView : UserControl
 			case Key.Down:
 				{
 					int columns = EstimateColumnsInRow();
-					newIndex = Math.Min(currentIndex + columns, items.Count - 1);
+					newIndex = Math.Min(currentIndex + columns, itemCount - 1);
 					e.Handled = true;
 				}
 
@@ -454,7 +453,7 @@ public partial class ContentBrowserView : UserControl
 				break;
 
 			case Key.End:
-				newIndex = items.Count - 1;
+				newIndex = itemCount - 1;
 				e.Handled = true;
 				break;
 
@@ -462,7 +461,7 @@ public partial class ContentBrowserView : UserControl
 				{
 					int columns = EstimateColumnsInRow();
 					int pageItems = columns * 4;
-					newIndex = Math.Min(currentIndex + pageItems, items.Count - 1);
+					newIndex = Math.Min(currentIndex + pageItems, itemCount - 1);
 					e.Handled = true;
 				}
 
@@ -482,9 +481,9 @@ public partial class ContentBrowserView : UserControl
 				return;
 		}
 
-		if (newIndex >= 0 && newIndex < items.Count && newIndex != currentIndex)
+		if (newIndex >= 0 && newIndex < itemCount && newIndex != currentIndex)
 		{
-			AssetListBox.SelectedItem = items[newIndex];
+			AssetListBox.SelectedItem = AssetListBox.Items[newIndex];
 			AssetListBox.ScrollIntoView(AssetListBox.SelectedItem);
 		}
 	}

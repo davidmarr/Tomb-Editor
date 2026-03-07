@@ -249,14 +249,10 @@ public partial class ContentBrowserViewModel : ObservableObject
 
 	// Search text for filtering assets by name.
 	[ObservableProperty]
-	[NotifyPropertyChangedFor(nameof(ItemCount))]
-	[NotifyPropertyChangedFor(nameof(FormattedItemCount))]
 	private string _searchText = string.Empty;
 
 	// Currently selected filter option (type or category).
 	[ObservableProperty]
-	[NotifyPropertyChangedFor(nameof(ItemCount))]
-	[NotifyPropertyChangedFor(nameof(FormattedItemCount))]
 	private FilterOption? _selectedFilter;
 
 	// Currently selected asset item.
@@ -285,8 +281,10 @@ public partial class ContentBrowserViewModel : ObservableObject
 	// Maximum tile width.
 	public double MaxTileWidth { get; } = 180;
 
-	// Number of items currently visible after filtering.
-	public int ItemCount => AllItems.Count(item => FilterPredicate(item));
+	// Cached count of items currently visible after filtering.
+	[ObservableProperty]
+	[NotifyPropertyChangedFor(nameof(FormattedItemCount))]
+	private int _itemCount;
 
 	// Formatted item count string for display.
 	public string FormattedItemCount => _localizationService.Format("ItemCount", ItemCount);
@@ -296,6 +294,9 @@ public partial class ContentBrowserViewModel : ObservableObject
 
 	// The default "All" filter option.
 	private readonly FilterOption _allFilter;
+
+	// Cached lowered search text to avoid per-item allocation in FilterPredicate.
+	private string _searchTextLower = string.Empty;
 
 	public ContentBrowserViewModel(ILocalizationService? localizationService = null)
 	{
@@ -329,9 +330,17 @@ public partial class ContentBrowserViewModel : ObservableObject
 		}
 	}
 
-	partial void OnSearchTextChanged(string value)
+	// Refreshes the filtered view and updates the cached item count.
+	private void RefreshFilteredItems()
 	{
 		FilteredItems.Refresh();
+		ItemCount = FilteredItems.Cast<object>().Count();
+	}
+
+	partial void OnSearchTextChanged(string value)
+	{
+		_searchTextLower = value.ToLowerInvariant();
+		RefreshFilteredItems();
 	}
 
 	partial void OnSelectedFilterChanged(FilterOption? value)
@@ -343,7 +352,7 @@ public partial class ContentBrowserViewModel : ObservableObject
 			return;
 		}
 
-		FilteredItems.Refresh();
+		RefreshFilteredItems();
 	}
 
 	partial void OnSelectedItemChanged(AssetItemViewModel? value)
@@ -523,6 +532,8 @@ public partial class ContentBrowserViewModel : ObservableObject
 		Task.WaitAll(moveableTask, staticTask);
 
 		// Batch-populate the ObservableCollection (must happen on UI thread).
+		// Detach filter during bulk insert to avoid per-item filtering overhead.
+		FilteredItems.Filter = null;
 		AllItems.Clear();
 
 		foreach (var item in moveableItems)
@@ -531,6 +542,8 @@ public partial class ContentBrowserViewModel : ObservableObject
 			AllItems.Add(item);
 		foreach (var item in geoItems)
 			AllItems.Add(item);
+
+		FilteredItems.Filter = FilterPredicate;
 
 		// Track whether any WADs are loaded.
 		HasLoadedWads = AllItems.Count > 0;
@@ -565,7 +578,7 @@ public partial class ContentBrowserViewModel : ObservableObject
 		// Restore previous filter selection or default to All.
 		SelectedFilter = FilterOptions.FirstOrDefault(f => f.DisplayName == previousFilterName && !f.IsSplitter) ?? _allFilter;
 
-		FilteredItems.Refresh();
+		RefreshFilteredItems();
 
 		// Try to restore previous selection.
 		if (previousSelection is not null)
@@ -718,10 +731,10 @@ public partial class ContentBrowserViewModel : ObservableObject
 				return true;
 
 			// Fuzzy match using Levenshtein distance (for queries with 3+ chars)
-			if (SearchText.Length >= 3)
+			if (_searchTextLower.Length >= 3)
 			{
 				int distance = Levenshtein.DistanceSubstring(
-					item.Name.ToLowerInvariant(), SearchText.ToLowerInvariant(), out int endIndex);
+					item.Name.ToLowerInvariant(), _searchTextLower, out _);
 
 				if (distance < 2)
 					return true;

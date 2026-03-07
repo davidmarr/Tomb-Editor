@@ -30,7 +30,6 @@
 
 	<UserControl.Resources>
 		<BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
-		<converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisConverter" />
 
 		<Style
 			x:Key="ToolToggleButton"

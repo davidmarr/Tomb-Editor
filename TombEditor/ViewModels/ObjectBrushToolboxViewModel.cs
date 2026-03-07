@@ -15,6 +15,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 {
 	private readonly Editor _editor;
 	private bool _isLoadingSettings;
+	private bool _isSavingSettings;
 
 	public ObjectBrushToolboxViewModel()
 	{
@@ -125,6 +126,8 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 
 	private void SaveSettings()
 	{
+		_isSavingSettings = true;
+
 		var config = _editor.Configuration;
 
 		config.ObjectBrush_Radius = (float)Radius * Level.SectorSizeUnit;
@@ -140,6 +143,8 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 		config.ObjectBrush_PlaceInAdjacentRooms = IsPlaceInAdjacentRooms;
 
 		_editor.ObjectBrushSettingsChange();
+
+		_isSavingSettings = false;
 	}
 
 	private void UpdateControlsForTool()
@@ -175,7 +180,8 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 
 	private void OnEditorEventRaised(IEditorEvent obj)
 	{
-		if (obj is Editor.ConfigurationChangedEvent or
+		if (!_isSavingSettings &&
+			obj is Editor.ConfigurationChangedEvent or
 			Editor.ObjectBrushSettingsChangedEvent)
 			LoadSettings();
 

@@ -1,4 +1,5 @@
 using DarkUI.Docking;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -15,6 +16,8 @@ namespace TombEditor.ToolWindows;
 
 public partial class ContentBrowser : DarkToolWindow
 {
+	private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
 	private readonly Editor _editor;
 	private readonly ContentBrowserViewModel _viewModel;
 	private OffscreenItemRenderer _renderer;
@@ -24,6 +27,8 @@ public partial class ContentBrowser : DarkToolWindow
 	private int _thumbnailQueueIndex;
 
 	private bool _suppressEditorSync;
+
+	private bool _refreshPending;
 
 	private const int ThumbnailBatchSize = 10;
 
@@ -238,17 +243,19 @@ public partial class ContentBrowser : DarkToolWindow
 					var bitmapSource = AssetItemViewModel.ImageCToBitmapSource(image);
 					_viewModel.SetThumbnail(item, bitmapSource);
 				}
-				catch
+				catch (Exception ex)
 				{
-					// Silently skip items that fail to render (e.g. missing meshes).
+					logger.Warn(ex, "Failed to render thumbnail for {0}.", item.Name);
 				}
 			}
 
 			_thumbnailQueueIndex = end;
 		}
-		catch
+		catch (Exception ex)
 		{
 			// If renderer creation fails, stop rendering.
+			logger.Error(ex, "Thumbnail renderer failed.");
+
 			_thumbnailTimer?.Stop();
 			_thumbnailQueue = null;
 			_thumbnailQueueIndex = 0;
@@ -259,6 +266,8 @@ public partial class ContentBrowser : DarkToolWindow
 
 	private void EditorEventRaised(IEditorEvent obj)
 	{
+		_refreshPending = false;
+
 		// Refresh asset list when wads, geometries, or game version change.
 		if (obj is Editor.LoadedWadsChangedEvent or
 			Editor.LoadedImportedGeometriesChangedEvent or
@@ -279,14 +288,12 @@ public partial class ContentBrowser : DarkToolWindow
 				_renderer = null;
 			}
 
-			RefreshAssets();
+			_refreshPending = true;
 		}
 
 		// Also refresh on configuration change (game version display may change).
 		if (obj is Editor.ConfigurationChangedEvent)
-		{
-			RefreshAssets();
-		}
+			_refreshPending = true;
 
 		// Sync selection when item is chosen from other tool windows.
 		if (obj is Editor.ChosenItemChangedEvent itemChanged && !_suppressEditorSync)
@@ -324,6 +331,10 @@ public partial class ContentBrowser : DarkToolWindow
 
 		// Initial load.
 		if (obj is Editor.InitEvent)
+			_refreshPending = true;
+
+		// Coalesce multiple refresh triggers into a single call.
+		if (_refreshPending)
 			RefreshAssets();
 	}
 

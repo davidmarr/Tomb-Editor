@@ -66,6 +66,7 @@ public partial class ToolBoxView : UserControl
 	/// </summary>
 	public void Cleanup()
 	{
+		_contextMenuTimer?.Stop();
 		_viewModel?.Cleanup();
 	}
 
