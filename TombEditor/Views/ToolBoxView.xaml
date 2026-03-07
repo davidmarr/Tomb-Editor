@@ -14,55 +14,199 @@
 	mc:Ignorable="d">
 
 	<UserControl.Resources>
-		<Style x:Key="ToolToggleButton" TargetType="ToggleButton" BasedOn="{StaticResource {x:Static ToolBar.ToggleButtonStyleKey}}">
+		<Style
+			x:Key="ToolToggleButton"
+			BasedOn="{StaticResource {x:Static ToolBar.ToggleButtonStyleKey}}"
+			TargetType="ToggleButton">
 			<Setter Property="Width" Value="26" />
 			<Setter Property="Height" Value="22" />
-			<Setter Property="Margin" Value="1" />
-			<Setter Property="Padding" Value="3" />
+			<Setter Property="Margin" Value="{x:Static darkUI:Defaults.BorderThickness}" />
+			<Setter Property="Padding" Value="{x:Static darkUI:Defaults.InputControl_DefaultPadding}" />
 		</Style>
 
 		<Style x:Key="ToolSeparator" TargetType="Border">
 			<Setter Property="Background" Value="{DynamicResource Brush_Border}" />
-			<Setter Property="Margin" Value="2" />
+			<Setter Property="Margin" Value="{x:Static darkUI:Defaults.TinyThickness}" />
 		</Style>
 	</UserControl.Resources>
 
-	<WrapPanel x:Name="toolPanel" Orientation="Vertical" Margin="0,2,0,2">
-		<!-- Brush shape controls (Object Placement only) -->
-		<ToggleButton x:Name="toolBrushShapeCircle" Style="{StaticResource ToolToggleButton}" ToolTip="Circle Brush Shape" Click="OnBrushShapeCircleClick" />
-		<ToggleButton x:Name="toolBrushShapeSquare" Style="{StaticResource ToolToggleButton}" ToolTip="Square Brush Shape" Click="OnBrushShapeSquareClick" />
-		<Border x:Name="toolBrushShapeSeparator" Style="{StaticResource ToolSeparator}" Height="1" />
+	<WrapPanel
+		x:Name="toolPanel"
+		Margin="0,2,0,2"
+		Orientation="Vertical">
+		<!--  Brush shape controls (Object Placement only)  -->
+		<ToggleButton
+			x:Name="toolBrushShapeCircle"
+			Click="OnBrushShapeCircleClick"
+			Style="{StaticResource ToolToggleButton}"
+			ToolTip="Circle Brush Shape" />
+		<ToggleButton
+			x:Name="toolBrushShapeSquare"
+			Click="OnBrushShapeSquareClick"
+			Style="{StaticResource ToolToggleButton}"
+			ToolTip="Square Brush Shape" />
 
-		<!-- Common tools -->
-		<ToggleButton x:Name="toolSelection" Style="{StaticResource ToolToggleButton}" ToolTip="Selection" Click="OnToolClick" Tag="Selection" />
-		<ToggleButton x:Name="toolObjectDeselect" Style="{StaticResource ToolToggleButton}" ToolTip="Deselect" Click="OnToolClick" Tag="Deselect" />
-		<ToggleButton x:Name="toolBrush" Style="{StaticResource ToolToggleButton}" ToolTip="Brush" Click="OnToolClick" Tag="Brush" />
-		<ToggleButton x:Name="toolShovel" Style="{StaticResource ToolToggleButton}" ToolTip="Shovel" Click="OnToolClick" Tag="Shovel" />
-		<ToggleButton x:Name="toolPencil" Style="{StaticResource ToolToggleButton}" ToolTip="Pencil" Click="OnToolClick" Tag="Pencil" />
-		<ToggleButton x:Name="toolLine" Style="{StaticResource ToolToggleButton}" ToolTip="Line" Click="OnToolClick" Tag="Line" />
-		<ToggleButton x:Name="toolFlatten" Style="{StaticResource ToolToggleButton}" ToolTip="Bulldozer" Click="OnToolClick" Tag="Flatten" />
-		<ToggleButton x:Name="toolSmooth" Style="{StaticResource ToolToggleButton}" ToolTip="Smooth" Click="OnToolClick" Tag="Smooth" />
-		<ToggleButton x:Name="toolFill" Style="{StaticResource ToolToggleButton}" ToolTip="Fill" Click="OnToolClick" Tag="Fill" />
-		<ToggleButton x:Name="toolGridPaint" Style="{StaticResource ToolToggleButton}" ToolTip="Grid Paint (2x2)" PreviewMouseDown="OnGridPaintMouseDown" PreviewMouseUp="OnGridPaintMouseUp" Click="OnGridPaintClick" />
-		<ToggleButton x:Name="toolGroup" Style="{StaticResource ToolToggleButton}" ToolTip="Group Texturing" Click="OnToolClick" Tag="Group" />
-		<ToggleButton x:Name="toolObjectEraser" Style="{StaticResource ToolToggleButton}" ToolTip="Eraser" Click="OnToolClick" Tag="Eraser" />
-		<Border x:Name="toolSeparator1" Style="{StaticResource ToolSeparator}" Height="1" />
+		<Border
+			x:Name="toolBrushShapeSeparator"
+			Height="1"
+			Style="{StaticResource ToolSeparator}" />
 
-		<!-- Geometry advanced tools -->
-		<ToggleButton x:Name="toolDrag" Style="{StaticResource ToolToggleButton}" ToolTip="Drag" Click="OnToolClick" Tag="Drag" />
-		<ToggleButton x:Name="toolRamp" Style="{StaticResource ToolToggleButton}" ToolTip="Ramp" Click="OnToolClick" Tag="Ramp" />
-		<ToggleButton x:Name="toolQuarterPipe" Style="{StaticResource ToolToggleButton}" ToolTip="Quarter Pipe" Click="OnToolClick" Tag="QuarterPipe" />
-		<ToggleButton x:Name="toolHalfPipe" Style="{StaticResource ToolToggleButton}" ToolTip="Half Pipe" Click="OnToolClick" Tag="HalfPipe" />
-		<ToggleButton x:Name="toolBowl" Style="{StaticResource ToolToggleButton}" ToolTip="Bowl" Click="OnToolClick" Tag="Bowl" />
-		<ToggleButton x:Name="toolPyramid" Style="{StaticResource ToolToggleButton}" ToolTip="Pyramid" Click="OnToolClick" Tag="Pyramid" />
-		<ToggleButton x:Name="toolTerrain" Style="{StaticResource ToolToggleButton}" ToolTip="Terrain" Click="OnToolClick" Tag="Terrain" />
+		<!--  Common tools  -->
+		<ToggleButton
+			x:Name="toolSelection"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Selection"
+			ToolTip="Selection" />
+		<ToggleButton
+			x:Name="toolObjectDeselect"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Deselect"
+			ToolTip="Deselect" />
+		<ToggleButton
+			x:Name="toolBrush"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Brush"
+			ToolTip="Brush" />
+		<ToggleButton
+			x:Name="toolShovel"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Shovel"
+			ToolTip="Shovel" />
+		<ToggleButton
+			x:Name="toolPencil"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Pencil"
+			ToolTip="Pencil" />
+		<ToggleButton
+			x:Name="toolLine"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Line"
+			ToolTip="Line" />
+		<ToggleButton
+			x:Name="toolFlatten"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Flatten"
+			ToolTip="Bulldozer" />
+		<ToggleButton
+			x:Name="toolSmooth"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Smooth"
+			ToolTip="Smooth" />
+		<ToggleButton
+			x:Name="toolFill"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Fill"
+			ToolTip="Fill" />
+		<ToggleButton
+			x:Name="toolGridPaint"
+			Click="OnGridPaintClick"
+			PreviewMouseDown="OnGridPaintMouseDown"
+			PreviewMouseUp="OnGridPaintMouseUp"
+			Style="{StaticResource ToolToggleButton}"
+			ToolTip="Grid Paint (2x2)" />
+		<ToggleButton
+			x:Name="toolGroup"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Group"
+			ToolTip="Group Texturing" />
+		<ToggleButton
+			x:Name="toolObjectEraser"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Eraser"
+			ToolTip="Eraser" />
 
-		<!-- Face edit tools -->
-		<ToggleButton x:Name="toolEraser" Style="{StaticResource ToolToggleButton}" ToolTip="Eraser" Click="OnTextureEraserClick" />
-		<ToggleButton x:Name="toolInvisibility" Style="{StaticResource ToolToggleButton}" ToolTip="Invisibility" Click="OnInvisibilityClick" />
-		<Border x:Name="toolSeparator2" Style="{StaticResource ToolSeparator}" Height="1" />
-		<ToggleButton x:Name="toolPortalDigger" Style="{StaticResource ToolToggleButton}" ToolTip="Portal Digger" Click="OnToolClick" Tag="PortalDigger" />
-		<ToggleButton x:Name="toolUVFixer" Style="{StaticResource ToolToggleButton}" ToolTip="Fix texture coordinates" Click="OnUVFixerClick" />
-		<ToggleButton x:Name="toolShowTextures" Style="{StaticResource ToolToggleButton}" ToolTip="Show Textures" Click="OnShowTexturesClick" />
+		<Border
+			x:Name="toolSeparator1"
+			Height="1"
+			Style="{StaticResource ToolSeparator}" />
+
+		<!--  Geometry advanced tools  -->
+		<ToggleButton
+			x:Name="toolDrag"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Drag"
+			ToolTip="Drag" />
+		<ToggleButton
+			x:Name="toolRamp"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Ramp"
+			ToolTip="Ramp" />
+		<ToggleButton
+			x:Name="toolQuarterPipe"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="QuarterPipe"
+			ToolTip="Quarter Pipe" />
+		<ToggleButton
+			x:Name="toolHalfPipe"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="HalfPipe"
+			ToolTip="Half Pipe" />
+		<ToggleButton
+			x:Name="toolBowl"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Bowl"
+			ToolTip="Bowl" />
+		<ToggleButton
+			x:Name="toolPyramid"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Pyramid"
+			ToolTip="Pyramid" />
+		<ToggleButton
+			x:Name="toolTerrain"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="Terrain"
+			ToolTip="Terrain" />
+
+		<!--  Face edit tools  -->
+		<ToggleButton
+			x:Name="toolEraser"
+			Click="OnTextureEraserClick"
+			Style="{StaticResource ToolToggleButton}"
+			ToolTip="Eraser" />
+		<ToggleButton
+			x:Name="toolInvisibility"
+			Click="OnInvisibilityClick"
+			Style="{StaticResource ToolToggleButton}"
+			ToolTip="Invisibility" />
+
+		<Border
+			x:Name="toolSeparator2"
+			Height="1"
+			Style="{StaticResource ToolSeparator}" />
+
+		<ToggleButton
+			x:Name="toolPortalDigger"
+			Click="OnToolClick"
+			Style="{StaticResource ToolToggleButton}"
+			Tag="PortalDigger"
+			ToolTip="Portal Digger" />
+		<ToggleButton
+			x:Name="toolUVFixer"
+			Click="OnUVFixerClick"
+			Style="{StaticResource ToolToggleButton}"
+			ToolTip="Fix texture coordinates" />
+		<ToggleButton
+			x:Name="toolShowTextures"
+			Click="OnShowTexturesClick"
+			Style="{StaticResource ToolToggleButton}"
+			ToolTip="Show Textures" />
 	</WrapPanel>
 </UserControl>
