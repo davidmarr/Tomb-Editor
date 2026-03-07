@@ -1642,7 +1642,7 @@ namespace TombEditor.Controls.Panel3D
             }
 
             // Reset state.
-            ObjectBrushHelper.ApplyBrushToModelEffect(_editor, skinnedModelEffect, null, false);
+            ObjectBrushHelper.ApplyBrushToModelEffect(_editor, skinnedModelEffect, null, true);
             skinnedModelEffect.Techniques[0].Passes[0].Apply();
         }
 
@@ -1863,7 +1863,7 @@ namespace TombEditor.Controls.Panel3D
             }
 
             // Reset state.
-            ObjectBrushHelper.ApplyBrushToModelEffect(_editor, staticMeshEffect, null, false);
+            ObjectBrushHelper.ApplyBrushToModelEffect(_editor, staticMeshEffect, null, true);
             staticMeshEffect.Techniques[0].Passes[0].Apply();
         }
 
