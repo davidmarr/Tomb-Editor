@@ -3,6 +3,7 @@
 	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 	xmlns:controls="clr-namespace:DarkUI.WPF.CustomControls;assembly=DarkUI.WPF"
+	xmlns:converters="clr-namespace:DarkUI.WPF.Converters;assembly=DarkUI.WPF"
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:darkUI="clr-namespace:DarkUI.WPF;assembly=DarkUI.WPF"
 	xmlns:local="clr-namespace:TombEditor.Views"
@@ -18,81 +19,7 @@
 
 	<UserControl.Resources>
 		<BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
-
-		<!--  Empty state visibility converter: shows when ItemCount is 0  -->
-		<local:EmptyStateVisibilityConverter x:Key="EmptyStateConverter" />
-
-		<!--  Inverted boolean to visibility (visible when false)  -->
-		<Style x:Key="HideWhenTrueStyle" TargetType="FrameworkElement">
-			<Setter Property="Visibility" Value="Visible" />
-			<Style.Triggers>
-				<DataTrigger Binding="{Binding HasThumbnail}" Value="True">
-					<Setter Property="Visibility" Value="Collapsed" />
-				</DataTrigger>
-			</Style.Triggers>
-		</Style>
-
-		<!--  Slider styles matching DarkUI.WPF  -->
-		<Style x:Key="SliderRepeatButtonStyle" TargetType="RepeatButton">
-			<Setter Property="OverridesDefaultStyle" Value="True" />
-			<Setter Property="IsTabStop" Value="False" />
-			<Setter Property="Focusable" Value="False" />
-			<Setter Property="Template">
-				<Setter.Value>
-					<ControlTemplate TargetType="RepeatButton">
-						<Border Background="Transparent" />
-					</ControlTemplate>
-				</Setter.Value>
-			</Setter>
-		</Style>
-
-		<Style x:Key="SliderThumbStyle" TargetType="Thumb">
-			<Setter Property="OverridesDefaultStyle" Value="True" />
-			<Setter Property="Template">
-				<Setter.Value>
-					<ControlTemplate TargetType="Thumb">
-						<Border
-							Width="10"
-							Height="16"
-							Background="{DynamicResource Brush_Background_High}"
-							BorderBrush="{DynamicResource Brush_Border}"
-							BorderThickness="1"
-							CornerRadius="2" />
-					</ControlTemplate>
-				</Setter.Value>
-			</Setter>
-		</Style>
-
-		<Style x:Key="DarkSliderStyle" TargetType="Slider">
-			<Setter Property="OverridesDefaultStyle" Value="True" />
-			<Setter Property="SnapsToDevicePixels" Value="True" />
-			<Setter Property="Template">
-				<Setter.Value>
-					<ControlTemplate TargetType="Slider">
-						<Grid VerticalAlignment="Center">
-							<Border
-								Height="4"
-								Margin="5,0"
-								Background="{DynamicResource Brush_Background_Low}"
-								BorderBrush="{DynamicResource Brush_Border}"
-								BorderThickness="1"
-								CornerRadius="2" />
-							<Track x:Name="PART_Track">
-								<Track.DecreaseRepeatButton>
-									<RepeatButton Command="Slider.DecreaseLarge" Style="{StaticResource SliderRepeatButtonStyle}" />
-								</Track.DecreaseRepeatButton>
-								<Track.Thumb>
-									<Thumb Style="{StaticResource SliderThumbStyle}" />
-								</Track.Thumb>
-								<Track.IncreaseRepeatButton>
-									<RepeatButton Command="Slider.IncreaseLarge" Style="{StaticResource SliderRepeatButtonStyle}" />
-								</Track.IncreaseRepeatButton>
-							</Track>
-						</Grid>
-					</ControlTemplate>
-				</Setter.Value>
-			</Setter>
-		</Style>
+		<converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisConverter" />
 
 		<!--  Asset tile item template  -->
 		<DataTemplate x:Key="AssetTileTemplate" DataType="{x:Type viewModels:AssetItemViewModel}">
@@ -139,9 +66,7 @@
 						HorizontalAlignment="Center">
 
 						<!--  Rendered 3D thumbnail (shown when available)  -->
-						<Border
-							CornerRadius="3"
-							Visibility="{Binding HasThumbnail, Converter={StaticResource BoolToVisConverter}}">
+						<Border CornerRadius="3" Visibility="{Binding HasThumbnail, Converter={StaticResource BoolToVisConverter}}">
 							<Border.Effect>
 								<DropShadowEffect
 									BlurRadius="4"
@@ -150,11 +75,11 @@
 									ShadowDepth="1"
 									Color="Black" />
 							</Border.Effect>
-							<Border CornerRadius="3" ClipToBounds="True">
+							<Border ClipToBounds="True" CornerRadius="3">
 								<Image
+									RenderOptions.BitmapScalingMode="HighQuality"
 									Source="{Binding Thumbnail}"
-									Stretch="Uniform"
-									RenderOptions.BitmapScalingMode="HighQuality" />
+									Stretch="Uniform" />
 							</Border>
 						</Border>
 
@@ -162,7 +87,7 @@
 						<Border
 							Background="{Binding ThumbnailBrush}"
 							CornerRadius="3"
-							Style="{StaticResource HideWhenTrueStyle}">
+							Visibility="{Binding HasThumbnail, Converter={StaticResource InverseBoolToVisConverter}}">
 							<Border.Effect>
 								<DropShadowEffect
 									BlurRadius="4"
@@ -208,10 +133,10 @@
 					<Setter TargetName="TileBorder" Property="Background" Value="{DynamicResource Brush_Selection}" />
 					<Setter TargetName="TileBorder" Property="BorderBrush" Value="{DynamicResource Brush_Highlight}" />
 				</DataTrigger>
-					<DataTrigger Binding="{Binding IsRubberBandSelected}" Value="True">
-						<Setter TargetName="TileBorder" Property="Background" Value="{DynamicResource Brush_Selection}" />
-						<Setter TargetName="TileBorder" Property="BorderBrush" Value="{DynamicResource Brush_Highlight}" />
-					</DataTrigger>
+				<DataTrigger Binding="{Binding IsRubberBandSelected}" Value="True">
+					<Setter TargetName="TileBorder" Property="Background" Value="{DynamicResource Brush_Selection}" />
+					<Setter TargetName="TileBorder" Property="BorderBrush" Value="{DynamicResource Brush_Highlight}" />
+				</DataTrigger>
 			</DataTemplate.Triggers>
 		</DataTemplate>
 
@@ -286,13 +211,13 @@
 						Margin="0,0,4,0"
 						HorizontalAlignment="Right"
 						VerticalAlignment="Center"
-						Text="✕"
-						FontSize="7"
-						TextAlignment="Center"
-						Foreground="{DynamicResource Brush_Text}"
-						Opacity="0.6"
 						Cursor="Hand"
-						MouseLeftButtonDown="ClearSearchButton_Click">
+						FontSize="7"
+						Foreground="{DynamicResource Brush_Text}"
+						MouseLeftButtonDown="ClearSearchButton_Click"
+						Opacity="0.6"
+						Text="✕"
+						TextAlignment="Center">
 						<TextBlock.Style>
 							<Style TargetType="TextBlock">
 								<Setter Property="Visibility" Value="Visible" />
@@ -375,8 +300,8 @@
 			PreviewMouseWheel="AssetListBox_PreviewMouseWheel"
 			ScrollViewer.HorizontalScrollBarVisibility="Disabled"
 			SelectedItem="{Binding SelectedItem, Mode=OneWay}"
-			SelectionMode="Extended"
 			SelectionChanged="AssetListBox_SelectionChanged"
+			SelectionMode="Extended"
 			VirtualizingPanel.IsVirtualizing="False">
 
 			<ListBox.ItemsPanel>
@@ -405,16 +330,16 @@
 			Background="Transparent"
 			IsHitTestVisible="True"
 			MouseLeftButtonDown="EmptyState_MouseLeftButtonDown"
-			Visibility="{Binding HasLoadedWads, Converter={StaticResource EmptyStateConverter}}">
+			Visibility="{Binding HasLoadedWads, Converter={StaticResource InverseBoolToVisConverter}}">
 			<TextBlock
 				HorizontalAlignment="Center"
 				VerticalAlignment="Center"
+				Cursor="Hand"
 				FontSize="11"
 				Foreground="{DynamicResource Brush_Text}"
 				Opacity="0.5"
 				Text="Click here to load new WAD file."
-				TextAlignment="Center"
-				Cursor="Hand" />
+				TextAlignment="Center" />
 		</Border>
 
 		<!--  Status bar: Tile slider + Wad source + Item count  -->
@@ -434,8 +359,8 @@
 				<StackPanel
 					Grid.Column="0"
 					Margin="0,0,6,0"
-					Orientation="Horizontal"
-					VerticalAlignment="Center">
+					VerticalAlignment="Center"
+					Orientation="Horizontal">
 					<TextBlock
 						VerticalAlignment="Center"
 						FontSize="9"
@@ -449,8 +374,8 @@
 						IsSnapToTickEnabled="True"
 						Maximum="{Binding MaxTileWidth}"
 						Minimum="{Binding MinTileWidth}"
-						TickFrequency="4"
 						Style="{StaticResource DarkSliderStyle}"
+						TickFrequency="4"
 						Value="{Binding TileWidth}" />
 				</StackPanel>
 
