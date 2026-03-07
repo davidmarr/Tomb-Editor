@@ -11,6 +11,7 @@ namespace TombEditor.Controls.ObjectBrush
                 _toolboxView?.Cleanup();
                 components?.Dispose();
             }
+
             base.Dispose(disposing);
         }
 

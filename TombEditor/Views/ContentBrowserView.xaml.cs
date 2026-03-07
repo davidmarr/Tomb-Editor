@@ -1,5 +1,6 @@
 #nullable enable
 
+using DarkUI.WPF.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -42,15 +43,6 @@ public partial class ContentBrowserView : UserControl
 	}
 
 	/// <summary>
-	/// Clears the search text when the X icon is clicked.
-	/// </summary>
-	private void ClearSearchButton_Click(object sender, MouseButtonEventArgs e)
-	{
-		if (DataContext is ContentBrowserViewModel vm)
-			vm.ClearSearchCommand.Execute(null);
-	}
-
-	/// <summary>
 	/// Handles selection changes in the ListBox.
 	/// Updates the ViewModel's SelectedItems collection for multi-selection support.
 	/// </summary>
@@ -86,7 +78,7 @@ public partial class ContentBrowserView : UserControl
 			// Find the tile visual under the cursor and animate it.
 			if (e.OriginalSource is DependencyObject source)
 			{
-				var container = FindAncestor<ListBoxItem>(source);
+				var container = source.FindVisualAncestorOrSelf<ListBoxItem>();
 
 				if (container is not null)
 					PlayAddItemAnimation(container);
@@ -151,22 +143,6 @@ public partial class ContentBrowserView : UserControl
 	}
 
 	/// <summary>
-	/// Walks the visual tree upward to find an ancestor of the given type.
-	/// </summary>
-	private static T? FindAncestor<T>(DependencyObject? obj) where T : DependencyObject
-	{
-		while (obj is not null)
-		{
-			if (obj is T target)
-				return target;
-
-			obj = VisualTreeHelper.GetParent(obj);
-		}
-
-		return null;
-	}
-
-	/// <summary>
 	/// Records the mouse position when the left button is pressed for drag-drop detection.
 	/// When Alt is held, performs a "Locate Item" operation without changing selection.
 	/// When clicking on an already-selected item with multiple items selected and no modifiers,
@@ -189,7 +165,7 @@ public partial class ContentBrowserView : UserControl
 		{
 			if (DataContext is ContentBrowserViewModel vm && e.OriginalSource is DependencyObject source)
 			{
-				var container = FindAncestor<ListBoxItem>(source);
+				var container = source.FindVisualAncestorOrSelf<ListBoxItem>();
 
 				if (container?.DataContext is AssetItemViewModel item)
 				{
@@ -203,7 +179,7 @@ public partial class ContentBrowserView : UserControl
 		_dragStartPoint = e.GetPosition(null);
 		_isDragging = false;
 
-		var hitContainer = FindAncestor<ListBoxItem>(e.OriginalSource as DependencyObject);
+		var hitContainer = (e.OriginalSource as DependencyObject)?.FindVisualAncestorOrSelf<ListBoxItem>();
 
 		if (hitContainer?.DataContext is AssetItemViewModel hitItem &&
 			AssetListBox.SelectedItems.Contains(hitItem) &&
@@ -431,21 +407,20 @@ public partial class ContentBrowserView : UserControl
 			return;
 		}
 
-		if (AssetListBox.Items.Count == 0)
+		int itemCount = AssetListBox.Items.Count;
+
+		if (itemCount == 0)
 			return;
 
-		var items = AssetListBox.Items.OfType<AssetItemViewModel>().ToList();
+		int currentIndex = AssetListBox.SelectedItem is AssetItemViewModel sel
+			? AssetListBox.Items.IndexOf(sel) : -1;
 
-		if (items.Count == 0)
-			return;
-
-		int currentIndex = AssetListBox.SelectedItem is AssetItemViewModel sel ? items.IndexOf(sel) : -1;
 		int newIndex;
 
 		switch (e.Key)
 		{
 			case Key.Right:
-				newIndex = Math.Min(currentIndex + 1, items.Count - 1);
+				newIndex = Math.Min(currentIndex + 1, itemCount - 1);
 				e.Handled = true;
 				break;
 
@@ -457,7 +432,7 @@ public partial class ContentBrowserView : UserControl
 			case Key.Down:
 				{
 					int columns = EstimateColumnsInRow();
-					newIndex = Math.Min(currentIndex + columns, items.Count - 1);
+					newIndex = Math.Min(currentIndex + columns, itemCount - 1);
 					e.Handled = true;
 				}
 
@@ -478,7 +453,7 @@ public partial class ContentBrowserView : UserControl
 				break;
 
 			case Key.End:
-				newIndex = items.Count - 1;
+				newIndex = itemCount - 1;
 				e.Handled = true;
 				break;
 
@@ -486,7 +461,7 @@ public partial class ContentBrowserView : UserControl
 				{
 					int columns = EstimateColumnsInRow();
 					int pageItems = columns * 4;
-					newIndex = Math.Min(currentIndex + pageItems, items.Count - 1);
+					newIndex = Math.Min(currentIndex + pageItems, itemCount - 1);
 					e.Handled = true;
 				}
 
@@ -506,9 +481,9 @@ public partial class ContentBrowserView : UserControl
 				return;
 		}
 
-		if (newIndex >= 0 && newIndex < items.Count && newIndex != currentIndex)
+		if (newIndex >= 0 && newIndex < itemCount && newIndex != currentIndex)
 		{
-			AssetListBox.SelectedItem = items[newIndex];
+			AssetListBox.SelectedItem = AssetListBox.Items[newIndex];
 			AssetListBox.ScrollIntoView(AssetListBox.SelectedItem);
 		}
 	}
@@ -552,20 +527,8 @@ public partial class ContentBrowserView : UserControl
 	/// </summary>
 	private static bool IsOverScrollbar(MouseEventArgs e)
 	{
-		if (e.OriginalSource is DependencyObject source)
-		{
-			var current = source;
-
-			while (current is not null)
-			{
-				if (current is ScrollBar)
-					return true;
-
-				current = VisualTreeHelper.GetParent(current);
-			}
-		}
-
-		return false;
+		return e.OriginalSource is DependencyObject source
+			&& (source is ScrollBar || source.FindVisualAncestor<ScrollBar>() is not null);
 	}
 
 	/// <summary>
@@ -597,23 +560,6 @@ public partial class ContentBrowserView : UserControl
 		container?.BringIntoView();
 	}
 
-	/// <summary>
-	/// Handles click on the empty state message to load a new WAD file.
-	/// </summary>
-	private void EmptyState_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-	{
-		e.Handled = true;
-
-		if (DataContext is ContentBrowserViewModel vm)
-			vm.AddWadCommand.Execute(null);
-	}
-
-	/// <summary>
-	/// Raised when one or more files are dropped onto the Content Browser from Windows Explorer.
-	/// The WinForms host subscribes to this to call EditorActions.
-	/// </summary>
-	public event EventHandler<string[]>? FilesDropped;
-
 	private void ContentBrowser_DragEnter(object sender, DragEventArgs e)
 	{
 		if (e.Data.GetDataPresent(DataFormats.FileDrop))
@@ -630,8 +576,8 @@ public partial class ContentBrowserView : UserControl
 		{
 			var files = e.Data.GetData(DataFormats.FileDrop) as string[];
 
-			if (files?.Length > 0)
-				FilesDropped?.Invoke(this, files);
+			if (files?.Length > 0 && DataContext is ContentBrowserViewModel vm)
+				vm.HandleFileDrop(files);
 		}
 
 		e.Handled = true;

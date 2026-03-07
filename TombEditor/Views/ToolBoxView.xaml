@@ -5,15 +5,31 @@
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:darkUI="clr-namespace:DarkUI.WPF;assembly=DarkUI.WPF"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	xmlns:tombLib="clr-namespace:TombLib.WPF;assembly=TombLib.WPF"
+	xmlns:viewModels="clr-namespace:TombEditor.ViewModels"
+	d:DataContext="{d:DesignInstance Type=viewModels:ToolBoxViewModel}"
 	d:DesignHeight="400"
 	d:DesignWidth="30"
 	Background="{DynamicResource Brush_Background}"
 	Foreground="{DynamicResource Brush_Text}"
+	RenderOptions.BitmapScalingMode="NearestNeighbor"
 	SnapsToDevicePixels="{x:Static darkUI:Defaults.SnapsToDevicePixels}"
 	UseLayoutRounding="{x:Static darkUI:Defaults.UseLayoutRounding}"
 	mc:Ignorable="d">
 
+	<UserControl.Style>
+		<Style TargetType="UserControl">
+			<Style.Triggers>
+				<DataTrigger Binding="{Binding IsToolboxVisible}" Value="False">
+					<Setter Property="Visibility" Value="Collapsed" />
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+	</UserControl.Style>
+
 	<UserControl.Resources>
+		<BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+
 		<Style
 			x:Key="ToolToggleButton"
 			BasedOn="{StaticResource {x:Static ToolBar.ToggleButtonStyleKey}}"
@@ -21,7 +37,7 @@
 			<Setter Property="Width" Value="26" />
 			<Setter Property="Height" Value="22" />
 			<Setter Property="Margin" Value="{x:Static darkUI:Defaults.BorderThickness}" />
-			<Setter Property="Padding" Value="{x:Static darkUI:Defaults.InputControl_DefaultPadding}" />
+			<Setter Property="Padding" Value="{x:Static darkUI:Defaults.BorderThickness}" />
 		</Style>
 
 		<Style x:Key="ToolSeparator" TargetType="Border">
@@ -36,177 +52,250 @@
 		Orientation="Vertical">
 		<!--  Brush shape controls (Object Placement only)  -->
 		<ToggleButton
-			x:Name="toolBrushShapeCircle"
-			Click="OnBrushShapeCircleClick"
+			Command="{Binding SetBrushShapeCircleCommand}"
+			IsChecked="{Binding IsBrushShapeCircleChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			ToolTip="Circle Brush Shape" />
+			ToolTip="{tombLib:Localize CircleBrushShape}"
+			Visibility="{Binding IsObjectPlacementToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_objects/objects_volume-sphere-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolBrushShapeSquare"
-			Click="OnBrushShapeSquareClick"
+			Command="{Binding SetBrushShapeSquareCommand}"
+			IsChecked="{Binding IsBrushShapeSquareChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			ToolTip="Square Brush Shape" />
+			ToolTip="{tombLib:Localize SquareBrushShape}"
+			Visibility="{Binding IsObjectPlacementToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_objects/objects_volume-box-16.png" />
+		</ToggleButton>
 
 		<Border
-			x:Name="toolBrushShapeSeparator"
 			Height="1"
-			Style="{StaticResource ToolSeparator}" />
+			Style="{StaticResource ToolSeparator}"
+			Visibility="{Binding IsObjectPlacementToolsVisible, Converter={StaticResource BoolToVisConverter}}" />
 
 		<!--  Common tools  -->
 		<ToggleButton
-			x:Name="toolSelection"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Selection"
+			IsChecked="{Binding IsSelectionChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Selection"
-			ToolTip="Selection" />
+			ToolTip="{tombLib:Localize Selection}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Selection-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolObjectDeselect"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Deselect"
+			IsChecked="{Binding IsDeselectChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Deselect"
-			ToolTip="Deselect" />
+			ToolTip="{tombLib:Localize Deselect}"
+			Visibility="{Binding IsObjectPlacementToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Deselection-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolBrush"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Brush"
+			IsChecked="{Binding IsBrushChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Brush"
-			ToolTip="Brush" />
+			ToolTip="{tombLib:Localize Brush}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Paint-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolShovel"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Shovel"
+			IsChecked="{Binding IsShovelChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Shovel"
-			ToolTip="Shovel" />
+			ToolTip="{tombLib:Localize Shovel}"
+			Visibility="{Binding IsGeometryToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Shovel-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolPencil"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Pencil"
+			IsChecked="{Binding IsPencilChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Pencil"
-			ToolTip="Pencil" />
+			ToolTip="{tombLib:Localize Pencil}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Pencil-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolLine"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Line"
+			IsChecked="{Binding IsLineChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Line"
-			ToolTip="Line" />
+			ToolTip="{tombLib:Localize Line}"
+			Visibility="{Binding IsObjectPlacementToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Ruler-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolFlatten"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Flatten"
+			IsChecked="{Binding IsFlattenChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Flatten"
-			ToolTip="Bulldozer" />
+			ToolTip="{tombLib:Localize Bulldozer}"
+			Visibility="{Binding IsGeometryToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Bulldozer_1-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolSmooth"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Smooth"
+			IsChecked="{Binding IsSmoothChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Smooth"
-			ToolTip="Smooth" />
+			ToolTip="{tombLib:Localize Smooth}"
+			Visibility="{Binding IsGeometryToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Smooth-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolFill"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Fill"
+			IsChecked="{Binding IsFillChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Fill"
-			ToolTip="Fill" />
+			ToolTip="{tombLib:Localize Fill}"
+			Visibility="{Binding IsFillVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Fill-16.png" />
+		</ToggleButton>
 		<ToggleButton
 			x:Name="toolGridPaint"
-			Click="OnGridPaintClick"
+			Command="{Binding SwitchToGridPaintCommand}"
+			IsChecked="{Binding IsGridPaintChecked, Mode=OneWay}"
 			PreviewMouseDown="OnGridPaintMouseDown"
 			PreviewMouseUp="OnGridPaintMouseUp"
 			Style="{StaticResource ToolToggleButton}"
-			ToolTip="Grid Paint (2x2)" />
+			ToolTip="{Binding GridPaintTooltip}"
+			Visibility="{Binding IsFaceEditToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="{Binding GridPaintIconSource}" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolGroup"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Group"
+			IsChecked="{Binding IsGroupChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Group"
-			ToolTip="Group Texturing" />
+			ToolTip="{tombLib:Localize GroupTexturing}"
+			Visibility="{Binding IsFaceEditToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_GroupTexture-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolObjectEraser"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Eraser"
+			IsChecked="{Binding IsObjectEraserChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Eraser"
-			ToolTip="Eraser" />
+			ToolTip="{tombLib:Localize Eraser}"
+			Visibility="{Binding IsObjectPlacementToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Eraser-16.png" />
+		</ToggleButton>
 
-		<Border
-			x:Name="toolSeparator1"
-			Height="1"
-			Style="{StaticResource ToolSeparator}" />
+		<Border Height="1" Style="{StaticResource ToolSeparator}" />
 
 		<!--  Geometry advanced tools  -->
 		<ToggleButton
-			x:Name="toolDrag"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Drag"
+			IsChecked="{Binding IsDragChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Drag"
-			ToolTip="Drag" />
+			ToolTip="{tombLib:Localize Drag}"
+			Visibility="{Binding IsGeometryToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Drag-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolRamp"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Ramp"
+			IsChecked="{Binding IsRampChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Ramp"
-			ToolTip="Ramp" />
+			ToolTip="{tombLib:Localize Ramp}"
+			Visibility="{Binding IsGeometryToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_GroupRamp-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolQuarterPipe"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="QuarterPipe"
+			IsChecked="{Binding IsQuarterPipeChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="QuarterPipe"
-			ToolTip="Quarter Pipe" />
+			ToolTip="{tombLib:Localize QuarterPipe}"
+			Visibility="{Binding IsGeometryToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_GroupQuaterPipe-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolHalfPipe"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="HalfPipe"
+			IsChecked="{Binding IsHalfPipeChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="HalfPipe"
-			ToolTip="Half Pipe" />
+			ToolTip="{tombLib:Localize HalfPipe}"
+			Visibility="{Binding IsGeometryToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_GroupHalfPipe-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolBowl"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Bowl"
+			IsChecked="{Binding IsBowlChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Bowl"
-			ToolTip="Bowl" />
+			ToolTip="{tombLib:Localize Bowl}"
+			Visibility="{Binding IsGeometryToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_GroupBowl-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolPyramid"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Pyramid"
+			IsChecked="{Binding IsPyramidChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Pyramid"
-			ToolTip="Pyramid" />
+			ToolTip="{tombLib:Localize Pyramid}"
+			Visibility="{Binding IsGeometryToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_GroupPyramid-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolTerrain"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="Terrain"
+			IsChecked="{Binding IsTerrainChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="Terrain"
-			ToolTip="Terrain" />
+			ToolTip="{tombLib:Localize Terrain}"
+			Visibility="{Binding IsGeometryToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_GroupTerrain-16.png" />
+		</ToggleButton>
 
 		<!--  Face edit tools  -->
 		<ToggleButton
-			x:Name="toolEraser"
-			Click="OnTextureEraserClick"
+			Command="{Binding SetTextureEraserCommand}"
+			IsChecked="{Binding IsTextureEraserChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			ToolTip="Eraser" />
+			ToolTip="{tombLib:Localize TextureEraser}"
+			Visibility="{Binding IsFaceEditToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Eraser-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolInvisibility"
-			Click="OnInvisibilityClick"
+			Command="{Binding SetTextureInvisibleCommand}"
+			IsChecked="{Binding IsTextureInvisibleChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			ToolTip="Invisibility" />
+			ToolTip="{tombLib:Localize Invisibility}"
+			Visibility="{Binding IsFaceEditToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Invisible-16.png" />
+		</ToggleButton>
 
 		<Border
-			x:Name="toolSeparator2"
 			Height="1"
-			Style="{StaticResource ToolSeparator}" />
+			Style="{StaticResource ToolSeparator}"
+			Visibility="{Binding IsSeparator2Visible, Converter={StaticResource BoolToVisConverter}}" />
 
 		<ToggleButton
-			x:Name="toolPortalDigger"
-			Click="OnToolClick"
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="PortalDigger"
+			IsChecked="{Binding IsPortalDiggerChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			Tag="PortalDigger"
-			ToolTip="Portal Digger" />
+			ToolTip="{tombLib:Localize PortalDigger}"
+			Visibility="{Binding IsGeometryToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_PortalDigger-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolUVFixer"
-			Click="OnUVFixerClick"
+			Command="{Binding ToggleUVFixerCommand}"
+			IsChecked="{Binding IsUVFixerChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			ToolTip="Fix texture coordinates" />
+			ToolTip="{tombLib:Localize FixTextureCoordinates}"
+			Visibility="{Binding IsFaceEditToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_UVFixer-16.png" />
+		</ToggleButton>
 		<ToggleButton
-			x:Name="toolShowTextures"
-			Click="OnShowTexturesClick"
+			Command="{Binding ToggleShowTexturesCommand}"
+			IsChecked="{Binding IsShowTexturesChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			ToolTip="Show Textures" />
+			ToolTip="{tombLib:Localize ShowTextures}"
+			Visibility="{Binding IsObjectPlacementToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_actions/actions_TextureMode-16.png" />
+		</ToggleButton>
 	</WrapPanel>
 </UserControl>

@@ -11,6 +11,7 @@
                 _toolBoxView?.Cleanup();
                 components?.Dispose();
             }
+
             base.Dispose(disposing);
         }
 
