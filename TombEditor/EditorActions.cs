@@ -2347,8 +2347,7 @@ namespace TombEditor
         {
             if (_editor.Level.IsTombEngine)
             {
-                var existingNames = new HashSet<string>(
-                    _editor.Level.GetAllObjects()
+                var existingNames = new HashSet<string>(_editor.Level.GetAllObjects()
                         .OfType<IHasLuaName>()
                         .Select(o => o.LuaName)
                         .Where(n => !string.IsNullOrEmpty(n)));
@@ -2365,8 +2364,7 @@ namespace TombEditor
 
         private static void AllocateScriptIdsWithCache(PositionBasedObjectInstance instance, HashSet<string> luaNameCache)
         {
-            if (instance is IHasScriptID &&
-                (_editor.Level.Settings.GameVersion == TRVersion.Game.TR4 || _editor.Level.IsNG))
+            if (instance is IHasScriptID && (_editor.Level.Settings.GameVersion == TRVersion.Game.TR4 || _editor.Level.IsNG))
             {
                 var si = instance as IHasScriptID;
                 if (si.ScriptId == null)
