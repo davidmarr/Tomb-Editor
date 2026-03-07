@@ -21,9 +21,17 @@
 			<RowDefinition Height="Auto" />
 		</Grid.RowDefinitions>
 
-		<!-- Row 0: Radius, Density, Rotation, Flip -->
-		<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,3">
-			<Label Content="Radius:" VerticalAlignment="Center" Padding="0" Margin="0,0,4,0" MinWidth="54" />
+		<!--  Row 0: Radius, Density, Rotation, Flip  -->
+		<StackPanel
+			Grid.Row="0"
+			Margin="0,0,0,3"
+			Orientation="Horizontal">
+			<Label
+				MinWidth="54"
+				Margin="0,0,4,0"
+				Padding="0"
+				VerticalAlignment="Center"
+				Content="Radius:" />
 			<controls:NumericUpDown
 				x:Name="nudRadius"
 				Width="56"
@@ -33,7 +41,12 @@
 				Minimum="0.1"
 				TextAlignment="Left"
 				Value="0.5" />
-			<Label Content="Density:" VerticalAlignment="Center" Padding="0" Margin="12,0,4,0" MinWidth="54" />
+			<Label
+				MinWidth="54"
+				Margin="12,0,4,0"
+				Padding="0"
+				VerticalAlignment="Center"
+				Content="Density:" />
 			<controls:NumericUpDown
 				x:Name="nudDensity"
 				Width="56"
@@ -43,7 +56,12 @@
 				Minimum="0.01"
 				TextAlignment="Left"
 				Value="1.0" />
-			<Label Content="Rotation:" VerticalAlignment="Center" Padding="0" Margin="12,0,4,0" MinWidth="54" />
+			<Label
+				MinWidth="54"
+				Margin="12,0,4,0"
+				Padding="0"
+				VerticalAlignment="Center"
+				Content="Rotation:" />
 			<controls:NumericUpDown
 				x:Name="nudRotation"
 				Width="56"
@@ -55,34 +73,36 @@
 				Value="0" />
 			<CheckBox
 				x:Name="chkPerpendicular"
-				Content="Flip"
 				Margin="8,0,0,0"
-				VerticalAlignment="Center" />
+				VerticalAlignment="Center"
+				Content="Flip" />
 		</StackPanel>
 
-		<!-- Row 1: Random rotation | Follow mouse direction | Random scale + NUDs -->
+		<!--  Row 1: Random rotation | Follow mouse direction | Random scale + NUDs  -->
 		<Grid Grid.Row="1" Margin="0,0,0,3">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="Auto" SharedSizeGroup="LeftCol" />
 				<ColumnDefinition Width="*" />
 			</Grid.ColumnDefinitions>
+
 			<StackPanel Grid.Column="0" Orientation="Horizontal">
 				<CheckBox
 					x:Name="chkRandomRotation"
-					Content="Random rotation"
-					VerticalAlignment="Center" />
+					VerticalAlignment="Center"
+					Content="Random rotation" />
 				<CheckBox
 					x:Name="chkFollowMouseDirection"
-					Content="Follow mouse direction"
 					Margin="8,0,0,0"
-					VerticalAlignment="Center" />
+					VerticalAlignment="Center"
+					Content="Follow mouse direction" />
 			</StackPanel>
+
 			<StackPanel Grid.Column="1" Orientation="Horizontal">
 				<CheckBox
 					x:Name="chkRandomScale"
-					Content="Random scale:"
 					Margin="8,0,0,0"
-					VerticalAlignment="Center" />
+					VerticalAlignment="Center"
+					Content="Random scale:" />
 				<controls:NumericUpDown
 					x:Name="nudScaleMin"
 					Width="56"
@@ -93,7 +113,10 @@
 					Minimum="0.1"
 					TextAlignment="Left"
 					Value="0.8" />
-				<Label Content="-" VerticalAlignment="Center" Padding="2,0" />
+				<Label
+					Padding="2,0"
+					VerticalAlignment="Center"
+					Content="-" />
 				<controls:NumericUpDown
 					x:Name="nudScaleMax"
 					Width="56"
@@ -106,23 +129,24 @@
 			</StackPanel>
 		</Grid>
 
-		<!-- Row 2: Fit to floor | Place in adjacent rooms -->
+		<!--  Row 2: Fit to floor | Place in adjacent rooms  -->
 		<Grid Grid.Row="2">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="Auto" SharedSizeGroup="LeftCol" />
 				<ColumnDefinition Width="*" />
 			</Grid.ColumnDefinitions>
+
 			<CheckBox
 				x:Name="chkFitToGround"
 				Grid.Column="0"
-				Content="Fit to floor"
-				VerticalAlignment="Center" />
+				VerticalAlignment="Center"
+				Content="Fit to floor" />
 			<CheckBox
 				x:Name="chkAdjacentRooms"
 				Grid.Column="1"
-				Content="Place in adjacent rooms"
 				Margin="8,0,0,0"
-				VerticalAlignment="Center" />
+				VerticalAlignment="Center"
+				Content="Place in adjacent rooms" />
 		</Grid>
 	</Grid>
 </UserControl>
