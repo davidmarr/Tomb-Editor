@@ -221,6 +221,7 @@
 						</Border.Style>
 
 						<TextBlock
+							VerticalAlignment="Center"
 							FontSize="7"
 							Foreground="{DynamicResource Brush_Text}"
 							Opacity="0.6"

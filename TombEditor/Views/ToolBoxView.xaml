@@ -13,6 +13,7 @@
 	d:DesignWidth="30"
 	Background="{DynamicResource Brush_Background}"
 	Foreground="{DynamicResource Brush_Text}"
+	RenderOptions.BitmapScalingMode="NearestNeighbor"
 	SnapsToDevicePixels="{x:Static darkUI:Defaults.SnapsToDevicePixels}"
 	UseLayoutRounding="{x:Static darkUI:Defaults.UseLayoutRounding}"
 	mc:Ignorable="d">
@@ -38,7 +39,7 @@
 			<Setter Property="Width" Value="26" />
 			<Setter Property="Height" Value="22" />
 			<Setter Property="Margin" Value="{x:Static darkUI:Defaults.BorderThickness}" />
-			<Setter Property="Padding" Value="{x:Static darkUI:Defaults.InputControl_DefaultPadding}" />
+			<Setter Property="Padding" Value="{x:Static darkUI:Defaults.BorderThickness}" />
 		</Style>
 
 		<Style x:Key="ToolSeparator" TargetType="Border">
@@ -183,9 +184,7 @@
 			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Eraser-16.png" />
 		</ToggleButton>
 
-		<Border
-			Height="1"
-			Style="{StaticResource ToolSeparator}" />
+		<Border Height="1" Style="{StaticResource ToolSeparator}" />
 
 		<!--  Geometry advanced tools  -->
 		<ToggleButton

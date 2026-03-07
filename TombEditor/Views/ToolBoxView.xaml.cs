@@ -31,6 +31,13 @@ public partial class ToolBoxView : UserControl
 		{
 			var viewModel = new ToolBoxViewModel();
 			DataContext = viewModel;
+
+			viewModel.PropertyChanged += (_, e) =>
+			{
+				if (e.PropertyName == nameof(ToolBoxViewModel.CurrentMode))
+					RequestHeightUpdate();
+			};
+
 			Unloaded += (_, _) => viewModel.Cleanup();
 		}
 
