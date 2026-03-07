@@ -1,9 +1,9 @@
+using SharpDX.Toolkit.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
-
 using TombLib;
 using TombLib.LevelData;
 
@@ -872,6 +872,53 @@ namespace TombEditor.Controls.ObjectBrush
 
             editor.ObjectChange(placedObjects, ObjectChangeType.Add);
             return placedObjects;
+        }
+
+        #endregion
+
+        #region Rendering
+
+        public static void ApplyBrushToModelEffect(Editor editor, Effect effect, float? angle, bool reset = false)
+        {
+            int brushShape = 0;
+            var brushCenter = Vector4.Zero;
+            var brushColor = Vector4.Zero;
+            float brushRotation = -1.0f;
+
+            if (!reset && editor.Mode == EditorMode.ObjectPlacement && editor.ObjectBrushCursorPosition.HasValue && editor.ObjectBrushCursorRoom != null)
+            {
+                var cursorPos = editor.ObjectBrushCursorPosition.Value;
+                var selColor = editor.Configuration.UI_ColorScheme.ColorSelection;
+                brushColor = new Vector4(selColor.X, selColor.Y, selColor.Z, 1.0f);
+
+                if (editor.Tool.Tool == EditorToolType.Fill)
+                {
+                    brushShape = 1;
+                    brushCenter = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, Level.SectorSizeUnit * 0.2f);
+                }
+                else
+                {
+                    float radius = editor.Configuration.ObjectBrush_Radius;
+                    brushShape = editor.Configuration.ObjectBrush_Shape == ObjectBrushShape.Circle ? 1 : 2;
+                    brushCenter = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, radius);
+
+                    if (editor.Tool.Tool != EditorToolType.Selection && editor.Tool.Tool != EditorToolType.Deselect &&
+                        editor.Tool.Tool != EditorToolType.Eraser &&
+                        !(editor.Configuration.ObjectBrush_RandomizeRotation && !editor.Configuration.ObjectBrush_FollowMouseDirection && editor.Tool.Tool != EditorToolType.Line))
+                    {
+                        if (editor.Configuration.ObjectBrush_FollowMouseDirection && angle.HasValue && editor.Tool.Tool != EditorToolType.Line)
+                            brushRotation = angle.Value;
+                        else
+                            brushRotation = editor.Configuration.ObjectBrush_Rotation;
+                    }
+                }
+            }
+
+            effect.Parameters["BrushShape"].SetValue(brushShape);
+            effect.Parameters["BrushCenter"].SetValue(brushCenter);
+            effect.Parameters["BrushColor"].SetValue(brushColor);
+            effect.Parameters["BrushRotation"].SetValue(brushRotation);
+            effect.Parameters["BrushLineWidth"].SetValue(editor.Configuration.Rendering3D_LineWidth);
         }
 
         #endregion

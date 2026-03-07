@@ -1513,6 +1513,8 @@ namespace TombEditor.Controls.Panel3D
             var camPos = Camera.GetPosition();
             var skinnedModelEffect = DeviceManager.DefaultDeviceManager.___LegacyEffects["Model"];
 
+            ObjectBrushHelper.ApplyBrushToModelEffect(_editor, skinnedModelEffect, _lastMouseDirectionAngle);
+
             skinnedModelEffect.Parameters["AlphaTest"].SetValue(HideTransparentFaces);
             skinnedModelEffect.Parameters["ColoredVertices"].SetValue(_editor.Level.IsTombEngine);
             skinnedModelEffect.Parameters["Texture"].SetResource(_wadRenderer.Texture);
@@ -1578,6 +1580,7 @@ namespace TombEditor.Controls.Panel3D
                         }
                     }
 
+                    skinnedModelEffect.Parameters["WorldMatrix"].SetValue(instance.ObjectMatrix.ToSharpDX());
                     skin.RenderSkin(_legacyDevice, skinnedModelEffect, (instance.ObjectMatrix * _viewProjection).ToSharpDX(), model);
                 }
 
@@ -1623,6 +1626,7 @@ namespace TombEditor.Controls.Panel3D
 
                         var world = model.AnimationTransforms[i] * instance.ObjectMatrix;
                         skinnedModelEffect.Parameters["ModelViewProjection"].SetValue((world * _viewProjection).ToSharpDX());
+                        skinnedModelEffect.Parameters["WorldMatrix"].SetValue(world.ToSharpDX());
                         skinnedModelEffect.Techniques[0].Passes[0].Apply();
 
                         foreach (var submesh in mesh.Submeshes)
@@ -1636,6 +1640,10 @@ namespace TombEditor.Controls.Panel3D
                     }
                 }
             }
+
+            // Reset state.
+            ObjectBrushHelper.ApplyBrushToModelEffect(_editor, skinnedModelEffect, null, false);
+            skinnedModelEffect.Techniques[0].Passes[0].Apply();
         }
 
         private void DrawImportedGeometry(List<ImportedGeometryInstance> importedGeometryToDraw, List<Text> textToDraw, bool disableSelection = false)
@@ -1768,8 +1776,9 @@ namespace TombEditor.Controls.Panel3D
                 return;
 
             var staticMeshEffect = DeviceManager.DefaultDeviceManager.___LegacyEffects["Model"];
-
             var camPos = Camera.GetPosition();
+
+            ObjectBrushHelper.ApplyBrushToModelEffect(_editor, staticMeshEffect, _lastMouseDirectionAngle);
 
             var groups = staticsToDraw.GroupBy(s => s.WadObjectId);
             foreach (var group in groups)
@@ -1819,6 +1828,7 @@ namespace TombEditor.Controls.Panel3D
                         }
 
                         staticMeshEffect.Parameters["ModelViewProjection"].SetValue((instance.ObjectMatrix * _viewProjection).ToSharpDX());
+                        staticMeshEffect.Parameters["WorldMatrix"].SetValue(instance.ObjectMatrix.ToSharpDX());
                         staticMeshEffect.Parameters["AlphaTest"].SetValue(HideTransparentFaces);
                         staticMeshEffect.Parameters["ColoredVertices"].SetValue(_editor.Level.IsTombEngine);
                         staticMeshEffect.Parameters["TextureSampler"].SetResource(BilinearFilter ? _legacyDevice.SamplerStates.AnisotropicWrap : _legacyDevice.SamplerStates.PointWrap);
@@ -1851,6 +1861,10 @@ namespace TombEditor.Controls.Panel3D
                     }
                 }
             }
+
+            // Reset state.
+            ObjectBrushHelper.ApplyBrushToModelEffect(_editor, staticMeshEffect, null, false);
+            staticMeshEffect.Techniques[0].Passes[0].Apply();
         }
 
         private void DrawScene()

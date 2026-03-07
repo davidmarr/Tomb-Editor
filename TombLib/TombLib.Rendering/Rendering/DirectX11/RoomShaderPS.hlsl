@@ -40,6 +40,8 @@ float ddAny(float value)
     return length(float2(ddx(value), ddy(value)));
 }
 
+#include "../Legacy/BrushOverlay.hlsli"
+
 float4 main(PixelInputType input) : SV_TARGET
 {
 	int drawOutline = 0;
@@ -169,54 +171,7 @@ float4 main(PixelInputType input) : SV_TARGET
 	result *= input.Overlay.w;
 
 	// Draw brush outline projected onto room geometry.
-	if (BrushShape > 0)
-	{
-		float2 delta = input.WorldPosition.xz - BrushCenter.xz;
-		float dist;
-		if (BrushShape == 1) // Circle
-			dist = length(delta);
-		else // Square
-			dist = max(abs(delta.x), abs(delta.y));
-
-		float edge = abs(dist - BrushCenter.w);
-		float lineWidth = (RoomGridLineWidth * 2048) / input.Position.w;
-		float fw = max(fwidth(dist), 0.001f);
-
-		// Semi-transparent fill using BrushColor inside the brush area.
-		float fillAlpha = step(dist, BrushCenter.w) * 0.35f;
-		result.xyz = lerp(result.xyz, BrushColor.xyz, fillAlpha);
-		result.w = max(result.w, fillAlpha);
-
-		// White contour ring.
-		float outerEdge = edge / fw;
-		float contourAlpha = saturate(1.0f - outerEdge / max(lineWidth, 0.001f));
-		result.xyz = lerp(result.xyz, float3(1, 1, 1), contourAlpha);
-		result.w = max(result.w, contourAlpha);
-
-		// Rotation indicator line drawn on top of the circle.
-		// Line extends to at least 1024 world units so it is visible even at very small radii.
-		if (BrushRotation >= 0.0f)
-		{
-			float rotRad = BrushRotation * 3.14159265f / 180.0f;
-			float2 rotDir = float2(sin(rotRad), cos(rotRad));
-
-			// Project delta onto perpendicular of rotation direction.
-			float along = dot(delta, rotDir);
-			float perp = abs(dot(delta, float2(-rotDir.y, rotDir.x)));
-
-			float perpFw = max(fwidth(perp), 0.001f);
-			float perpNorm = perp / perpFw;
-			// Clamp line extent to minimum 1024 so direction is visible at small radii.
-			float lineExtent = max(BrushCenter.w, 1024.0f);
-			float withinLine = step(0.0f, along) * step(along, lineExtent);
-
-			float lineAlpha = saturate(1.0f - perpNorm / max(lineWidth * 0.7f, 0.001f)) * withinLine;
-
-			// Line always composites on top of the circle outline.
-			result.xyz = lerp(result.xyz, float3(1, 1, 1), lineAlpha);
-			result.w = max(result.w, lineAlpha);
-		}
-	}
+	ApplyBrushOverlay(result.xyz, result.w, true, input.Position, input.WorldPosition, RoomGridLineWidth);
 
     if ((result.x + result.y + result.z + result.w) < 0.02f)
         discard;
