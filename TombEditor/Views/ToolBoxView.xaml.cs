@@ -16,6 +16,9 @@ public partial class ToolBoxView : UserControl
 	// Parent WinForms control reference for context menu hosting.
 	private System.Windows.Forms.Control _winFormsHost;
 
+	// Reference to the ViewModel for cleanup purposes.
+	private ToolBoxViewModel _viewModel;
+
 	// Fires when the preferred height of the visible content changes.
 	public event Action<int> PreferredHeightChanged;
 
@@ -29,16 +32,16 @@ public partial class ToolBoxView : UserControl
 
 		if (!DesignerProperties.GetIsInDesignMode(this))
 		{
-			var viewModel = new ToolBoxViewModel();
-			DataContext = viewModel;
+			_viewModel = new ToolBoxViewModel();
+			DataContext = _viewModel;
 
-			viewModel.PropertyChanged += (_, e) =>
+			_viewModel.PropertyChanged += (_, e) =>
 			{
 				if (e.PropertyName == nameof(ToolBoxViewModel.CurrentMode))
 					RequestHeightUpdate();
 			};
 
-			Unloaded += (_, _) => viewModel.Cleanup();
+			Unloaded += (_, _) => _viewModel.Cleanup();
 		}
 
 		IsVisibleChanged += (_, _) => RequestHeightUpdate();
@@ -55,6 +58,15 @@ public partial class ToolBoxView : UserControl
 	public void SetWinFormsHost(System.Windows.Forms.Control host)
 	{
 		_winFormsHost = host;
+	}
+
+	/// <summary>
+	/// Cleans up the ViewModel, unsubscribing from Editor events.
+	/// Safe to call multiple times.
+	/// </summary>
+	public void Cleanup()
+	{
+		_viewModel?.Cleanup();
 	}
 
 	public Orientation PanelOrientation

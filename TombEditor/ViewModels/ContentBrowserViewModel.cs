@@ -104,14 +104,8 @@ public partial class AssetItemViewModel : ObservableObject
 	// Category this asset belongs to.
 	public AssetCategory Category { get; }
 
-	// Category display name for grouping.
-	public string CategoryName => Category switch
-	{
-		AssetCategory.Moveables => "Moveables",
-		AssetCategory.Statics => "Statics",
-		AssetCategory.ImportedGeometry => "Imported Geometry",
-		_ => "Unknown"
-	};
+	// Localized category display name for grouping.
+	public string CategoryName { get; }
 
 	// Name/path of the WAD file this asset was loaded from.
 	public string WadSource { get; }
@@ -167,11 +161,12 @@ public partial class AssetItemViewModel : ObservableObject
 		ImportedGeometryBrush.Freeze();
 	}
 
-	public AssetItemViewModel(IWadObject wadObject, string name, AssetCategory category, string wadSource, bool isInMultipleWads, string catalogCategory = "")
+	public AssetItemViewModel(IWadObject wadObject, string name, AssetCategory category, string categoryName, string wadSource, bool isInMultipleWads, string catalogCategory = "")
 	{
 		WadObject = wadObject;
 		Name = name;
 		Category = category;
+		CategoryName = categoryName;
 		WadSource = wadSource;
 		IsInMultipleWads = isInMultipleWads;
 		CatalogCategory = catalogCategory;
@@ -450,6 +445,11 @@ public partial class ContentBrowserViewModel : ObservableObject
 		_gameVersion = gameVersion;
 		_hideInternalObjects = hideInternalObjects;
 
+		// Cache localized category names for use in parallel tasks.
+		string moveablesCategory = _localizationService["CategoryMoveables"];
+		string staticsCategory = _localizationService["CategoryStatics"];
+		string importedGeometryCategory = _localizationService["CategoryImportedGeometry"];
+
 		// Fetch all objects upfront (these iterate wad files).
 		var allMoveables = settings.WadGetAllMoveables();
 		var allStatics = settings.WadGetAllStatics();
@@ -473,7 +473,7 @@ public partial class ContentBrowserViewModel : ObservableObject
 				string wadSource = wad is not null ? Path.GetFileName(wad.Path) : "Unknown";
 				string catalogCategory = TrCatalog.GetMoveableCategory(gameVersion, moveable.Id.TypeId);
 
-				var item = new AssetItemViewModel(moveable, name, AssetCategory.Moveables, wadSource, multiple, catalogCategory);
+				var item = new AssetItemViewModel(moveable, name, AssetCategory.Moveables, moveablesCategory, wadSource, multiple, catalogCategory);
 
 				// Add the primary catalog category.
 				if (!string.IsNullOrEmpty(catalogCategory))
@@ -496,7 +496,7 @@ public partial class ContentBrowserViewModel : ObservableObject
 
 				string catalogCategory = TrCatalog.GetStaticCategory(gameVersion, staticMesh.Id.TypeId);
 
-				var item = new AssetItemViewModel(staticMesh, name, AssetCategory.Statics, wadSource, multiple, catalogCategory);
+				var item = new AssetItemViewModel(staticMesh, name, AssetCategory.Statics, staticsCategory, wadSource, multiple, catalogCategory);
 
 				// Add the primary catalog category.
 				if (!string.IsNullOrEmpty(catalogCategory))
@@ -531,7 +531,7 @@ public partial class ContentBrowserViewModel : ObservableObject
 			string name = string.IsNullOrEmpty(geo.Info.Name) ? Path.GetFileNameWithoutExtension(geo.Info.Path) ?? "Unnamed" : geo.Info.Name;
 			string wadSource = !string.IsNullOrEmpty(geo.Info.Path) ? Path.GetFileName(geo.Info.Path) : "Inline";
 
-			geoItems.Add(new AssetItemViewModel(geo, name, AssetCategory.ImportedGeometry, wadSource, false));
+			geoItems.Add(new AssetItemViewModel(geo, name, AssetCategory.ImportedGeometry, importedGeometryCategory, wadSource, false));
 		}
 
 		// Wait for parallel moveable and static building to complete.

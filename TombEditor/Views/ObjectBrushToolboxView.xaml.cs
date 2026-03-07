@@ -7,16 +7,27 @@ namespace TombEditor.Views
 {
     public partial class ObjectBrushToolboxView : UserControl
     {
+        private ObjectBrushToolboxViewModel _viewModel;
+
         public ObjectBrushToolboxView()
         {
             InitializeComponent();
 
             if (!DesignerProperties.GetIsInDesignMode(this))
             {
-                var viewModel = new ObjectBrushToolboxViewModel();
-                DataContext = viewModel;
-                Unloaded += (_, _) => viewModel.Cleanup();
+                _viewModel = new ObjectBrushToolboxViewModel();
+                DataContext = _viewModel;
+                Unloaded += (_, _) => _viewModel.Cleanup();
             }
+        }
+
+        /// <summary>
+        /// Cleans up the ViewModel, unsubscribing from Editor events.
+        /// Safe to call multiple times.
+        /// </summary>
+        public void Cleanup()
+        {
+            _viewModel?.Cleanup();
         }
     }
 }
