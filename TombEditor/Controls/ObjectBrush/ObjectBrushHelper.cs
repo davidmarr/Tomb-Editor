@@ -79,7 +79,6 @@ namespace TombEditor.Controls.ObjectBrush
                     return (room, localX, localZ);
 
                 var bottomRoom = sector.FloorPortal.AdjoiningRoom;
-
                 if (bottomRoom != null)
                 {
                     float bottomLocalX = localX + (room.WorldPos.X - bottomRoom.WorldPos.X);
@@ -157,6 +156,7 @@ namespace TombEditor.Controls.ObjectBrush
 
             float minFloorHeight = float.MaxValue;
 
+            // Place the object so the bottom of the bounding box rests on the lowest floor point.
             foreach (var corner in corners)
             {
                 float rx = corner.X * cosR + corner.Y * sinR;
@@ -169,9 +169,6 @@ namespace TombEditor.Controls.ObjectBrush
                 minFloorHeight = Math.Min(minFloorHeight, floorH.Value);
             }
 
-            // Place the object so the bottom of the bounding box rests on the lowest floor point.
-            // In TR coordinate space, Y increases downward: bbox.Maximum.Y is the bottom.
-            // objY + bbox.Maximum.Y * scale = minFloorHeight => objY = minFloorHeight - bbox.Maximum.Y * scale
             return minFloorHeight - bbox.Maximum.Y * scale;
         }
 
@@ -417,7 +414,7 @@ namespace TombEditor.Controls.ObjectBrush
         // Individual object placement attempt.
 
         private static bool TryPlaceObject(Editor editor, Level level, Room targetRoom,
-            Vector2 candidate, ItemType chosenItem, float minDistSq, ref PlacementContext ctx, RectangleInt2? sectorConstraint,
+            Vector2 candidate, ItemType chosenItem, float minDistSq, ref PlacementContext context, RectangleInt2? sectorConstraint,
             out PositionBasedObjectInstance instance)
         {
             instance = null;
@@ -457,10 +454,10 @@ namespace TombEditor.Controls.ObjectBrush
             }
 
             // Use cached position list instead of scanning room.Objects on every candidate
-            if (!ctx.PosCache.TryGetValue(placementRoom, out var posList))
+            if (!context.PosCache.TryGetValue(placementRoom, out var posList))
             {
                 posList = new List<Vector2>();
-                ctx.PosCache[placementRoom] = posList;
+                context.PosCache[placementRoom] = posList;
             }
 
             if (IsTooCloseInList(posList, placeX, placeZ, minDistSq))
@@ -497,10 +494,10 @@ namespace TombEditor.Controls.ObjectBrush
                 scale = config.ObjectBrush_ScaleMin + (float)_rng.NextDouble() * (config.ObjectBrush_ScaleMax - config.ObjectBrush_ScaleMin);
 
             // Determine Y position in the placement room (use cached bounds to avoid repeated wad look-ups).
-            if (!ctx.BoundsCache.TryGetValue(chosenItem, out var bbox))
+            if (!context.BoundsCache.TryGetValue(chosenItem, out var bbox))
             {
                 bbox = GetItemBoundingBox(level, chosenItem);
-                ctx.BoundsCache[chosenItem] = bbox;
+                context.BoundsCache[chosenItem] = bbox;
             }
 
             float yPos;
@@ -531,7 +528,7 @@ namespace TombEditor.Controls.ObjectBrush
             EditorActions.RebuildLightsForObject(instance);
 
             // Record newly placed position in the cache for subsequent distance checks within this stroke.
-            ctx.PosCache[placementRoom].Add(new Vector2(placeX, placeZ));
+            context.PosCache[placementRoom].Add(new Vector2(placeX, placeZ));
 
             return true;
         }
@@ -545,6 +542,7 @@ namespace TombEditor.Controls.ObjectBrush
             float radius  = editor.Configuration.ObjectBrush_Radius;
             float density = editor.Configuration.ObjectBrush_Density;
             bool adjacent = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
+            bool filterByChosen = Control.ModifierKeys.HasFlag(Keys.Shift);
 
             int targetCount = GetTargetObjectCount(radius, density * 0.3f, shape);
 
@@ -561,9 +559,9 @@ namespace TombEditor.Controls.ObjectBrush
                 float localCenterX = centerWorldX + offset.X;
                 float localCenterZ = centerWorldZ + offset.Z;
 
-                var toRemove = CollectObjectsInBrushArea(targetRoom, localCenterX, localCenterZ, radius, shape, chosenItems, sectorConstraint);
+                var toRemove = CollectObjectsInBrushArea(targetRoom, localCenterX, localCenterZ, radius, shape, filterByChosen ? chosenItems : null, sectorConstraint);
 
-                // Shuffle so removal is spatially random rather than biased by iteration order
+                // Shuffle, so removal is spatially random rather than biased by iteration order.
                 ShuffleList(toRemove);
 
                 foreach (var obj in toRemove)
@@ -594,7 +592,7 @@ namespace TombEditor.Controls.ObjectBrush
 
             foreach (var obj in room.Objects)
             {
-                if (!(obj is ItemInstance item) || !chosenItems.Contains(item.ItemType))
+                if (!(obj is ItemInstance item) || (chosenItems != null && !chosenItems.Contains(item.ItemType)))
                     continue;
 
                 if (sectorConstraint.HasValue)
@@ -812,14 +810,14 @@ namespace TombEditor.Controls.ObjectBrush
                 if (tooClose)
                     continue;
 
-                var ctx = new PlacementContext
+                var context = new PlacementContext
                 {
                     BoundsCache = bboxCache,
                     PosCache = new Dictionary<Room, List<Vector2>>()
                 };
 
                 var candidate = new Vector2(localX, localZ);
-                if (TryPlaceObject(editor, level, targetRoom, candidate, chosenItem, 0, ref ctx, sectorConstraint, out var instance))
+                if (TryPlaceObject(editor, level, targetRoom, candidate, chosenItem, 0, ref context, sectorConstraint, out var instance))
                 {
                     placedObjects.Add(instance);
                     itemIndex++;
@@ -858,7 +856,7 @@ namespace TombEditor.Controls.ObjectBrush
             float minDistWorld = cellSizeWorld * 0.5f;
             float minDistSq = minDistWorld * minDistWorld;
 
-            var ctx = new PlacementContext
+            var context = new PlacementContext
             {
                 BoundsCache = new Dictionary<ItemType, BoundingBox?>(),
                 PosCache = new Dictionary<Room, List<Vector2>>()
@@ -874,7 +872,7 @@ namespace TombEditor.Controls.ObjectBrush
                     if (obj is ItemInstance item && chosenItems.Contains(item.ItemType))
                         posList.Add(new Vector2(item.Position.X, item.Position.Z));
                 }
-                ctx.PosCache[r] = posList;
+                context.PosCache[r] = posList;
             }
 
             // Generate candidates within the area.
@@ -884,15 +882,15 @@ namespace TombEditor.Controls.ObjectBrush
             int gridMaxZ = (int)Math.Ceiling(areaMaxZ / cellSizeWorld);
 
             var candidates = new List<Vector2>();
-            for (int gx = gridMinX; gx <= gridMaxX; gx++)
+            for (int gridX = gridMinX; gridX <= gridMaxX; gridX++)
             {
-                for (int gz = gridMinZ; gz <= gridMaxZ; gz++)
+                for (int gridZ = gridMinZ; gridZ <= gridMaxZ; gridZ++)
                 {
-                    float px = (gx + (float)_rng.NextDouble()) * cellSizeWorld;
-                    float pz = (gz + (float)_rng.NextDouble()) * cellSizeWorld;
+                    float posX = (gridX + (float)_rng.NextDouble()) * cellSizeWorld;
+                    float posZ = (gridZ + (float)_rng.NextDouble()) * cellSizeWorld;
 
-                    if (px >= areaMinX && px < areaMaxX && pz >= areaMinZ && pz < areaMaxZ)
-                        candidates.Add(new Vector2(px, pz));
+                    if (posX >= areaMinX && posX < areaMaxX && posZ >= areaMinZ && posZ < areaMaxZ)
+                        candidates.Add(new Vector2(posX, posZ));
                 }
             }
 
@@ -907,7 +905,7 @@ namespace TombEditor.Controls.ObjectBrush
                     var localCandidate = new Vector2(candidate.X + offset.X, candidate.Y + offset.Z);
                     var chosenItem = chosenItems[_rng.Next(chosenItems.Count)];
 
-                    if (TryPlaceObject(editor, level, targetRoom, localCandidate, chosenItem, minDistSq, ref ctx,
+                    if (TryPlaceObject(editor, level, targetRoom, localCandidate, chosenItem, minDistSq, ref context,
                         (RectangleInt2?)area, out var instance))
                         placedObjects.Add(instance);
                 }

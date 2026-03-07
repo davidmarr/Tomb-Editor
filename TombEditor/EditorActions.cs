@@ -2335,23 +2335,12 @@ namespace TombEditor
                     AllocateScriptIds(obj);
         }
 
-        // Public wrapper for deferred script ID allocation after brush strokes.
-        public static void AllocateScriptIdsForObject(PositionBasedObjectInstance instance)
-        {
-            AllocateScriptIds(instance);
-        }
-
-        // Batch-optimized version that builds the Lua name set once for all objects.
-
-        public static void AllocateScriptIdsForObjects(IEnumerable<PositionBasedObjectInstance> instances)
+        // Batch-optimized version that allocates script IDs in bulk.
+        public static void AllocateScriptIds(IEnumerable<PositionBasedObjectInstance> instances)
         {
             if (_editor.Level.IsTombEngine)
             {
-                var existingNames = new HashSet<string>(_editor.Level.GetAllObjects()
-                        .OfType<IHasLuaName>()
-                        .Select(o => o.LuaName)
-                        .Where(n => !string.IsNullOrEmpty(n)));
-
+                var existingNames = _editor.Level.GetAllLuaNames();
                 foreach (var instance in instances)
                     AllocateScriptIdsWithCache(instance, existingNames);
             }

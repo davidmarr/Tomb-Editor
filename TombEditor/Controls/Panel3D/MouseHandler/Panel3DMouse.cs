@@ -183,10 +183,10 @@ namespace TombEditor.Controls.Panel3D
                 if (newSectorPicking.Room != _editor.SelectedRoom)
                     _editor.SelectedRoom = newSectorPicking.Room;
 
-                // Check for single IWadObject
+                // Check for a single IWadObject.
                 var obj = e.Data.GetData(e.Data.GetFormats()[0]) as IWadObject;
 
-                // Check for multiple IWadObject[] (multi-selection drag from Content Browser)
+                // Check for multiple IWadObject[] (multi-selection drag from Content Browser).
                 var objArray = e.Data.GetData(e.Data.GetFormats()[0]) as IWadObject[];
 
                 if (obj != null)

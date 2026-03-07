@@ -47,7 +47,7 @@ namespace TombEditor
 
         // Content Browser options
 
-        public double ContentBrowser_TileWidth { get; set; } = 88;
+        public float ContentBrowser_TileWidth { get; set; } = 88;
 
         // Main 3D window options
 
@@ -63,7 +63,8 @@ namespace TombEditor
         public float Rendering3D_LineWidth { get; set; } = 10.0f;
         public float Rendering3D_FieldOfView { get; set; } = 50.0f;
         public bool Rendering3D_ToolboxVisible { get; set; } = true;
-        public Point Rendering3D_ToolboxPosition { get; set; } = new Point(15, 45);
+        public Point Rendering3D_ToolboxPosition { get; set; } = new Point(15, 15);
+        public Point Rendering3D_ObjectBrushToolboxPosition { get; set; } = new Point(50, 15);
         public bool Rendering3D_DisablePickingForImportedGeometry { get; set; } = false;
         public bool Rendering3D_DisablePickingForHiddenRooms { get; set; } = false;
         public bool Rendering3D_ShowPortals { get; set; } = false;
@@ -224,7 +225,6 @@ namespace TombEditor
         public float ObjectBrush_ScaleMax { get; set; } = 1.2f;
         public bool ObjectBrush_FitToGround { get; set; } = true;
         public bool ObjectBrush_ShowTextures { get; set; } = true;
-        public Point Rendering3D_ObjectBrushToolboxPosition { get; set; } = new Point(15, 500);
 
         // Geometry IO Window
 
@@ -405,8 +405,8 @@ namespace TombEditor
                         },
                         new DockGroupState
                         {
-                            Contents = new List<string> { "Palette" },
-                            VisibleContent = "Palette",
+                            Contents = new List<string> { "ContentBrowser", "Palette" },
+                            VisibleContent = "ContentBrowser",
                             Order = 1,
                             Size = new Size(645,141)
                         }

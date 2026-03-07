@@ -46,7 +46,7 @@ namespace TombEditor.ToolWindows
             _viewModel.PropertyChanged += ViewModel_PropertyChanged;
 
             // Load saved tile width from configuration.
-            _viewModel.TileWidth = _editor.Configuration.ContentBrowser_TileWidth;
+            _viewModel.TileWidth = (double)_editor.Configuration.ContentBrowser_TileWidth;
 
             // Timer for batched/deferred thumbnail rendering (50ms between batches).
             _thumbnailTimer = new Timer { Interval = 50 };
@@ -178,7 +178,7 @@ namespace TombEditor.ToolWindows
         private void ViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(ContentBrowserViewModel.TileWidth))
-                _editor.Configuration.ContentBrowser_TileWidth = _viewModel.TileWidth;
+                _editor.Configuration.ContentBrowser_TileWidth = (float)_viewModel.TileWidth;
         }
 
         private void ViewModel_ThumbnailRenderRequested(object sender, EventArgs e)
@@ -338,7 +338,7 @@ namespace TombEditor.ToolWindows
         private void ViewModel_SelectedItemsChanged(object sender, IReadOnlyList<AssetItemViewModel> items)
         {
             // When the user clears the ContentBrowser selection, leave ChosenItem/ChosenImportedGeometry unchanged.
-            // so the legacy item browser and imported geometry browser still show the last chosen item.
+            // so the legacy item browser and imported geometry browser still shows the last chosen item.
 
             if (items.Count == 0)
                 return;

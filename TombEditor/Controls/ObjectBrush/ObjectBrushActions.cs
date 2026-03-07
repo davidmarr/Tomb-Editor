@@ -21,8 +21,7 @@ namespace TombEditor.Controls.ObjectBrush
             if (editor.ChosenItems.Count == 0)
                 return;
 
-            var sectorConstraint = editor.SelectedSectors.Valid && !editor.SelectedSectors.Empty
-                ? (RectangleInt2?)editor.SelectedSectors.Area : null;
+            var sectorConstraint = editor.SelectedSectors.Valid && !editor.SelectedSectors.Empty ? (RectangleInt2?)editor.SelectedSectors.Area : null;
 
             switch (editor.Tool.Tool)
             {
@@ -136,12 +135,11 @@ namespace TombEditor.Controls.ObjectBrush
             if (placed.Count == 0)
                 return;
 
-            EditorActions.AllocateScriptIdsForObjects(placed);
+            EditorActions.AllocateScriptIds(placed);
             editor.UndoManager.Push(placed.Select(o => (UndoRedoInstance)new AddRemoveObjectUndoInstance(editor.UndoManager, o, true)).ToList());
         }
 
-        public static void UpdateBrushCursor(Editor editor, Room room, VectorInt2 sectorPos,
-            float? worldX = null, float? worldZ = null)
+        public static void UpdateBrushCursor(Editor editor, Room room, VectorInt2 sectorPos, float? worldX = null, float? worldZ = null)
         {
             float localX = worldX.HasValue ? (worldX.Value - room.WorldPos.X) : (sectorPos.X + 0.5f) * Level.SectorSizeUnit;
             float localZ = worldZ.HasValue ? (worldZ.Value - room.WorldPos.Z) : (sectorPos.Y + 0.5f) * Level.SectorSizeUnit;
@@ -155,7 +153,7 @@ namespace TombEditor.Controls.ObjectBrush
 
         public static void EndBrushStroke(Editor editor)
         {
-            EditorActions.AllocateScriptIdsForObjects(_strokePlacedObjects);
+            EditorActions.AllocateScriptIds(_strokePlacedObjects);
 
             if (_strokeUndoList.Count > 0)
                 editor.UndoManager.Push(_strokeUndoList.ToList());

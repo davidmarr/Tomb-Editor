@@ -442,12 +442,7 @@ namespace TombLib.LevelData
 
         public void AllocateNewLuaName()
         {
-            var existingNames = new HashSet<string>(
-                Room.Level.GetAllObjects()
-                    .OfType<IHasLuaName>()
-                    .Select(o => o.LuaName)
-                    .Where(n => !string.IsNullOrEmpty(n)));
-
+            var existingNames = Room.Level.GetAllLuaNames();
             AllocateNewLuaName(existingNames);
         }
 

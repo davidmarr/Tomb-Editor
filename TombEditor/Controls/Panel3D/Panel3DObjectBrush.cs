@@ -147,9 +147,8 @@ namespace TombEditor.Controls.Panel3D
                 int sz = (int)((snappedPos.Z - room.WorldPos.Z) / Level.SectorSizeUnit);
                 var constrainedPos = new VectorInt2(sx, sz);
 
-                var result = ObjectBrush.ObjectBrushActions.ContinueBrushStroke(
-                    _editor, room, _editor.SelectedRoom, constrainedPos,
-                    null, spacing, snappedPos);
+                var result = ObjectBrush.ObjectBrushActions.ContinueBrushStroke(_editor, room, _editor.SelectedRoom,
+					constrainedPos, null, spacing, snappedPos);
 
                 if (result.HasValue)
                 {
@@ -187,14 +186,8 @@ namespace TombEditor.Controls.Panel3D
                 }
                 ObjectBrush.ObjectBrushHelper.SetMouseDirectionAngle(_lastMouseDirectionAngle);
 
-                var newPos = ObjectBrush.ObjectBrushActions.ContinueBrushStroke(
-                    _editor,
-                    brushPicking.Room,
-                    _editor.SelectedRoom,
-                    brushPicking.Pos,
-                    _lastBrushWorldPosition,
-                    quantizationDistance,
-                    cursorWorldPos);
+                var newPos = ObjectBrush.ObjectBrushActions.ContinueBrushStroke(_editor, brushPicking.Room, _editor.SelectedRoom,
+                    brushPicking.Pos, _lastBrushWorldPosition, quantizationDistance, cursorWorldPos);
 
                 if (newPos.HasValue)
                 {

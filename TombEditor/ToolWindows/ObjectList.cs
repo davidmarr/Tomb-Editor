@@ -32,7 +32,7 @@ namespace TombEditor.ToolWindows
 
         private void EditorEventRaised(IEditorEvent obj)
         {
-            // Full rebuild when the displayed room changes (infrequent).
+            // Full rebuild when the displayed room or game version changes.
             if (obj is Editor.SelectedRoomChangedEvent || obj is Editor.GameVersionChangedEvent)
             {
                 RebuildObjectList();
