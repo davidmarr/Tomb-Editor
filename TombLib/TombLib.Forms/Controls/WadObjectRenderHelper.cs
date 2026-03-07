@@ -31,7 +31,7 @@ namespace TombLib.Controls
         }
 
         /// <summary>
-        /// Computes a bounding sphere for the given WAD object, suitable for camera framing.
+        /// Computes a bounding sphere for the given wad object, suitable for camera framing.
         /// </summary>
         public static BoundingSphere ComputeBoundingSphere(IWadObject wadObject, WadRenderer wadRenderer)
         {
@@ -79,23 +79,25 @@ namespace TombLib.Controls
             {
                 if (moveable.Meshes.Count == 0 || (moveable.Meshes.Count == 1 && moveable.Meshes[0] == null))
                     return null;
-			}
-			else if (!(wadObject is WadStatic) && !(wadObject is ImportedGeometry))
-			{
-				return null;
-			}
+            }
+            else if (wadObject is WadStatic staticObj)
+            {
+                if (staticObj.Mesh == null || staticObj.Mesh.VertexPositions.Count == 0)
+                    return null;
+            }
+            else if (!(wadObject is WadStatic) && !(wadObject is ImportedGeometry))
+            {
+                return null;
+            }
 
-			var bs = ComputeBoundingSphere(wadObject, wadRenderer);
+            var bs = ComputeBoundingSphere(wadObject, wadRenderer);
             var center = bs.Center;
             var radius = bs.Radius * 1.15f;
 
             return new ArcBallCamera(center, MathC.DegToRad(35), MathC.DegToRad(35),
-				-(float)Math.PI / 2, (float)Math.PI / 2, radius * 3, 50, 1000000, fieldOfView * (float)(Math.PI / 180));
+                -(float)Math.PI / 2, (float)Math.PI / 2, radius * 3, 50, 1000000, fieldOfView * (float)(Math.PI / 180));
         }
 
-        /// <summary>
-        /// Renders any IWadObject (except WadSpriteSequence) using legacy rendering.
-        /// </summary>
         public static void RenderObject(IWadObject wadObject, WadRenderer wadRenderer,
             GraphicsDevice legacyDevice, Matrix4x4 viewProjection, Vector3 cameraPosition, bool drawTransparency)
         {
@@ -107,9 +109,6 @@ namespace TombLib.Controls
                 RenderImportedGeometry(impGeo, legacyDevice, viewProjection, cameraPosition, drawTransparency);
         }
 
-        /// <summary>
-        /// Renders a WadMoveable using legacy rendering.
-        /// </summary>
         public static void RenderMoveable(WadMoveable moveable, WadRenderer wadRenderer,
             GraphicsDevice legacyDevice, Matrix4x4 viewProjection, Vector3 cameraPosition, bool drawTransparency)
         {
@@ -169,9 +168,6 @@ namespace TombLib.Controls
             }
         }
 
-        /// <summary>
-        /// Renders a WadStatic using legacy rendering.
-        /// </summary>
         public static void RenderStatic(WadStatic staticObj, WadRenderer wadRenderer,
             GraphicsDevice legacyDevice, Matrix4x4 viewProjection, Vector3 cameraPosition, bool drawTransparency)
         {
@@ -210,9 +206,6 @@ namespace TombLib.Controls
             }
         }
 
-        /// <summary>
-        /// Renders an ImportedGeometry using legacy rendering.
-        /// </summary>
         public static void RenderImportedGeometry(ImportedGeometry geo,
             GraphicsDevice legacyDevice, Matrix4x4 viewProjection, Vector3 cameraPosition, bool drawTransparency)
         {
