@@ -1,12 +1,18 @@
-## General
+## General Project Information
 
 - Language: **C# targeting .NET 8** (desktop application).
-- Description: A level editor suite for a family of block-based, room-based and portal-based 3D games (classic Tomb Raider).
 
-- Files use Windows line endings. Do not use Unicode symbols, only standard ASCII symbols.
-- `using` directives are grouped and sorted with `DarkUI` namespaces references first, then `System` namespaces, followed by third-party and local namespaces.
-- Namespace declarations and type definitions put the opening brace on a new line.
-- Prefer to group all feature-related functionality within a self-contained module or modules. Avoid generating large code chunks over 10-15 lines in existing modules and offload it to helper functions instead.
+- This is a level editor suite for a family of 3D game engines used in the classic Tomb Raider series.
+- Level formats are grid-based, room-based, and portal-based.
+- A room is a spatial container for level geometry and game entities.
+- Rooms are connected by vertical or horizontal portals, strictly aligned with grid sectors.
+- Portals may be visual (`RoomConnectionInfo.VisualType`) or traversable (`RoomConnectionInfo.TraversableType`).
+- One grid sector consists of 1024 units, which roughly equals 2 meters in real-world coordinates.
+
+- Files must use Windows line endings. Only standard ASCII symbols are allowed; do not use Unicode symbols.
+- `using` directives are grouped and sorted as follows: `DarkUI` namespaces first, then `System` namespaces, followed by third-party and local namespaces.
+- Namespace declarations and type definitions should place the opening brace on a new line.
+- Prefer grouping all feature-related functionality within a self-contained module or modules. Avoid creating large code blocks over 10–15 lines in existing modules; instead, offload code to helper functions.
 
 ## Formatting
 
@@ -67,6 +73,7 @@
 - Fields are generally declared as `public` or `private readonly` depending on usage; expose state via properties where appropriate.
 - `var` type should be preferred where possible, when the right-hand type is evident from the initializer.
 - Explicit typing should be only used when it is required by logic or compiler, or when type name is shorter than 6 symbols (e.g. `int`, `bool`, `float`).
+- For floating-point numbers, always use `f` postfix and decimal, even if value is not fractional (e.g. `2.0f`).
 
 ## Control Flow and Syntax
 
@@ -91,12 +98,12 @@
 
 ## User Interface Implementation
 
-- For existing controls and containers based on `DarkUI` WinForms-based framework, prefer to use existing `DarkUI` controls.
+- For existing WinForms-based `DarkUI` controls and containers, prefer to use existing WinForms-based `DarkUI` controls.
 - For new controls and containers with complex logic, or where WinForms may not perform fast enough, prefer `DarkUI.WPF` framework. Use `GeometryIOSettingsWindow` as a reference.
 - Use `CommunityToolkit` functionality where possible.
 
 ## Performance
 
-- For 3D rendering controls, prefer more performant approaches and attempt to locally cache repeatedly used data within a function scope.
-- Avoid scenarios where bulk data updates may cause event floods, because the project relies heavily on event subscriptions in multiple controls and sub-controls.
-- Use `Parallel` in bulk operations where possible to maximize the performance. Avoid using it in thread-unsafe contexts and while operating on serial data sets.
+- For 3D rendering controls, prefer more performant approaches and locally cache frequently used data within the function scope whenever possible.
+- Avoid scenarios where bulk data updates may cause event floods, as the project relies heavily on event subscriptions across multiple controls and sub-controls.
+- Use `Parallel` for bulk operations to maximize performance. Avoid using it in thread-unsafe contexts or when operating on serial data sets.
