@@ -117,6 +117,9 @@ public partial class AssetItemViewModel : ObservableObject
 	// May contain multiple values for special cases like "Shatterable".
 	public string CatalogCategory { get; }
 
+	// Combined CategoryName + CatalogCategory for tooltip display.
+	public string CategoryDisplayText => string.IsNullOrEmpty(CatalogCategory) ? CategoryName : $"{CategoryName}, {CatalogCategory}";
+
 	// All effective categories including primary and any synthetic ones.
 	public List<string> EffectiveCategories { get; } = new();
 

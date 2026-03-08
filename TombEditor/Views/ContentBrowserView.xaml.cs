@@ -59,11 +59,12 @@ public partial class ContentBrowserView : UserControl
 	}
 
 	/// <summary>
-	/// Handles double-click on an asset to trigger the Add Item action.
+	/// Handles double-click on an asset to trigger the Add Item action, or loads a WAD when empty area is double-clicked.
 	/// Plays a subtle zoom+fade animation on the tile to confirm the action.
+	/// Uses PreviewMouseDoubleClick (tunneling) to catch events even in empty space.
 	/// Skipped when Ctrl is held (multi-selection mode).
 	/// </summary>
-	private void AssetListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+	private void AssetListBox_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
 	{
 		if (e.ChangedButton != MouseButton.Left)
 			return;
@@ -72,19 +73,23 @@ public partial class ContentBrowserView : UserControl
 		if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
 			return;
 
-		// Only trigger if double-click is on an actual item (not empty space).
-		if (AssetListBox.SelectedItem is AssetItemViewModel && DataContext is ContentBrowserViewModel vm)
+		if (DataContext is not ContentBrowserViewModel vm)
+			return;
+
+		var hitContainer = (e.OriginalSource as DependencyObject)?.FindVisualAncestorOrSelf<ListBoxItem>();
+
+		if (hitContainer is not null && AssetListBox.SelectedItem is AssetItemViewModel)
 		{
-			// Find the tile visual under the cursor and animate it.
-			if (e.OriginalSource is DependencyObject source)
-			{
-				var container = source.FindVisualAncestorOrSelf<ListBoxItem>();
-
-				if (container is not null)
-					PlayAddItemAnimation(container);
-			}
-
+			// Double-click on an item: place it.
+			PlayAddItemAnimation(hitContainer);
 			vm.AddItemCommand.Execute(null);
+			e.Handled = true;
+		}
+		else if (hitContainer is null)
+		{
+			// Double-click on empty area: load a new WAD file.
+			vm.AddWadCommand.Execute(null);
+			e.Handled = true;
 		}
 	}
 

@@ -44,7 +44,7 @@
 						<TextBlock
 							Foreground="{DynamicResource Brush_Text}"
 							Opacity="0.7"
-							Text="{Binding CategoryName}" />
+							Text="{Binding CategoryDisplayText}" />
 						<TextBlock
 							Foreground="{DynamicResource Brush_Text}"
 							Opacity="0.6"
@@ -294,8 +294,8 @@
 			ItemTemplate="{StaticResource AssetTileTemplate}"
 			ItemsSource="{Binding FilteredItems}"
 			KeyDown="AssetListBox_KeyDown"
-			MouseDoubleClick="AssetListBox_MouseDoubleClick"
 			MouseLeave="AssetListBox_MouseLeave"
+			PreviewMouseDoubleClick="AssetListBox_PreviewMouseDoubleClick"
 			PreviewMouseLeftButtonDown="AssetListBox_PreviewMouseLeftButtonDown"
 			PreviewMouseLeftButtonUp="AssetListBox_PreviewMouseLeftButtonUp"
 			PreviewMouseMove="AssetListBox_PreviewMouseMove"
