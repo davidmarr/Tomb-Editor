@@ -42,6 +42,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 	[ObservableProperty] private double _scaleMin = 0.8;
 	[ObservableProperty] private double _scaleMax = 1.2;
 	[ObservableProperty] private bool _isFitToGround;
+	[ObservableProperty] private bool _isAlignToGrid;
 	[ObservableProperty] private bool _isPlaceInAdjacentRooms;
 
 	#endregion Settings Properties
@@ -58,6 +59,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 	[ObservableProperty] private bool _isScaleMinEnabled;
 	[ObservableProperty] private bool _isScaleMaxEnabled;
 	[ObservableProperty] private bool _isFitToGroundEnabled;
+	[ObservableProperty] private bool _isAlignToGridEnabled;
 	[ObservableProperty] private bool _isAdjacentRoomsEnabled;
 
 	#endregion Enabled States
@@ -71,6 +73,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 	partial void OnScaleMinChanged(double value) => SaveSettingsIfNotLoading();
 	partial void OnScaleMaxChanged(double value) => SaveSettingsIfNotLoading();
 	partial void OnIsFitToGroundChanged(bool value) => SaveSettingsIfNotLoading();
+	partial void OnIsAlignToGridChanged(bool value) => SaveSettingsIfNotLoading();
 	partial void OnIsPlaceInAdjacentRoomsChanged(bool value) => SaveSettingsIfNotLoading();
 
 	partial void OnIsRandomRotationChanged(bool value)
@@ -117,6 +120,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 		ScaleMin = Math.Clamp(config.ObjectBrush_ScaleMin, 0.1, 10.0);
 		ScaleMax = Math.Clamp(config.ObjectBrush_ScaleMax, 0.1, 10.0);
 		IsFitToGround = config.ObjectBrush_FitToGround;
+		IsAlignToGrid = config.ObjectBrush_AlignToGrid;
 		IsPlaceInAdjacentRooms = config.ObjectBrush_PlaceInAdjacentRooms;
 
 		_isLoadingSettings = false;
@@ -140,6 +144,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 		config.ObjectBrush_ScaleMin = (float)ScaleMin;
 		config.ObjectBrush_ScaleMax = (float)ScaleMax;
 		config.ObjectBrush_FitToGround = IsFitToGround;
+		config.ObjectBrush_AlignToGrid = IsAlignToGrid;
 		config.ObjectBrush_PlaceInAdjacentRooms = IsPlaceInAdjacentRooms;
 
 		_editor.ObjectBrushSettingsChange();
@@ -173,6 +178,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 		bool allowScale = isBrush || isPencil || isLine;
 
 		IsFitToGroundEnabled = allowScale;
+		IsAlignToGridEnabled = isBrush || isPencil || isLine;
 		IsRandomScaleEnabled = allowScale;
 		IsScaleMinEnabled = allowScale && IsRandomScale;
 		IsScaleMaxEnabled = allowScale && IsRandomScale;

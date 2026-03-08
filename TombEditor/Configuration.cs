@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
-using System.Reflection;
 using TombLib;
 using TombLib.LevelData;
 using TombLib.LevelData.VisualScripting;
@@ -174,6 +173,7 @@ namespace TombEditor
         public float ObjectBrush_ScaleMin { get; set; } = 0.8f;
         public float ObjectBrush_ScaleMax { get; set; } = 1.2f;
         public bool ObjectBrush_FitToGround { get; set; } = true;
+        public bool ObjectBrush_AlignToGrid { get; set; } = false;
         public bool ObjectBrush_ShowTextures { get; set; } = true;
 
         // Autosave options

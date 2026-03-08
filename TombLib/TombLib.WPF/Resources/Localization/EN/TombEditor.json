@@ -28,6 +28,7 @@
         "FollowMouseDirection": "Follow mouse direction",
         "RandomScale": "Random scale:",
         "FitToFloor": "Fit to floor",
+        "AlignToGrid": "Align to grid",
         "PlaceInAdjacentRooms": "Place in adjacent rooms"
     },
 

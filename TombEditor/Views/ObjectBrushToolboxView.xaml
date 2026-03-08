@@ -22,6 +22,7 @@
 			<RowDefinition Height="Auto" />
 			<RowDefinition Height="Auto" />
 			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
 		</Grid.RowDefinitions>
 
 		<!--  Row 0: Radius, Density, Rotation, Flip  -->
@@ -136,10 +137,11 @@
 			</StackPanel>
 		</Grid>
 
-		<!--  Row 2: Fit to floor | Place in adjacent rooms  -->
+		<!--  Row 2: Fit to floor | Align to grid | Place in adjacent rooms  -->
 		<Grid Grid.Row="2">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="Auto" SharedSizeGroup="LeftCol" />
+				<ColumnDefinition Width="Auto" />
 				<ColumnDefinition Width="*" />
 			</Grid.ColumnDefinitions>
 
@@ -151,6 +153,13 @@
 				IsEnabled="{Binding IsFitToGroundEnabled}" />
 			<CheckBox
 				Grid.Column="1"
+				Margin="8,0,0,0"
+				VerticalAlignment="Center"
+				Content="{tombLib:Localize AlignToGrid}"
+				IsChecked="{Binding IsAlignToGrid, Mode=TwoWay}"
+				IsEnabled="{Binding IsAlignToGridEnabled}" />
+			<CheckBox
+				Grid.Column="2"
 				Margin="8,0,0,0"
 				VerticalAlignment="Center"
 				Content="{tombLib:Localize PlaceInAdjacentRooms}"
