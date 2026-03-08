@@ -60,10 +60,12 @@ public partial class ToolBoxViewModel : ObservableObject
 	[ObservableProperty] private bool _isPortalDiggerChecked;
 	[ObservableProperty] private bool _isObjectEraserChecked;
 
-	// Special checked states (not derived from current tool type).
-	[ObservableProperty] private bool _isUVFixerChecked;
+	// Object brush shapes
 	[ObservableProperty] private bool _isBrushShapeCircleChecked;
 	[ObservableProperty] private bool _isBrushShapeSquareChecked;
+
+	// Special checked states (not derived from current tool type)
+	[ObservableProperty] private bool _isUVFixerChecked;
 	[ObservableProperty] private bool _isTextureEraserChecked;
 	[ObservableProperty] private bool _isTextureInvisibleChecked;
 	[ObservableProperty] private bool _isShowTexturesChecked;

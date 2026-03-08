@@ -1064,6 +1064,7 @@ namespace TombEditor
                 // Update tools
                 _lastFaceEditTool = Configuration.UI_LastTexturingTool;
                 _lastGeometryTool = Configuration.UI_LastGeometryTool;
+                _lastObjectPlacementTool = Configuration.UI_LastObjectPlacementTool;
 
                 if (Mode == EditorMode.Geometry)
                     Tool = Configuration.UI_LastGeometryTool;
@@ -1137,6 +1138,7 @@ namespace TombEditor
                 else if (Mode == EditorMode.ObjectPlacement)
                 {
                     _lastObjectPlacementTool = @event.Current;
+                    Configuration.UI_LastObjectPlacementTool = _lastObjectPlacementTool;
                 }
                 else
                 {

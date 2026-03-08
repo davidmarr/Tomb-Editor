@@ -225,6 +225,7 @@ namespace TombEditor
 
         public EditorTool UI_LastGeometryTool { get; set; } = new EditorTool();
         public EditorTool UI_LastTexturingTool { get; set; } = new EditorTool() { Tool = EditorToolType.Brush };
+        public EditorTool UI_LastObjectPlacementTool { get; set; } = new EditorTool() { Tool = EditorToolType.Brush };
 
         // Geometry IO Window
 
