@@ -160,6 +160,22 @@ namespace TombEditor
         public float Gizmo_ScaleCubeSize { get; set; } = 128.0f;
         public float Gizmo_LineThickness { get; set; } = 45.0f;
 
+        // Object brush options
+
+        public float ObjectBrush_Radius { get; set; } = 512.0f; // In world units
+        public float ObjectBrush_Density { get; set; } = 1.0f; // Objects per sector^2
+        public ObjectBrushShape ObjectBrush_Shape { get; set; } = ObjectBrushShape.Circle;
+        public bool ObjectBrush_PlaceInAdjacentRooms { get; set; } = false;
+        public bool ObjectBrush_RandomizeRotation { get; set; } = true;
+        public bool ObjectBrush_FollowMouseDirection { get; set; } = false;
+        public float ObjectBrush_Rotation { get; set; } = 0.0f; // Degrees, 0-360
+        public bool ObjectBrush_Perpendicular { get; set; } = false; // Add 90 degrees to placed object rotation
+        public bool ObjectBrush_RandomizeScale { get; set; } = false;
+        public float ObjectBrush_ScaleMin { get; set; } = 0.8f;
+        public float ObjectBrush_ScaleMax { get; set; } = 1.2f;
+        public bool ObjectBrush_FitToGround { get; set; } = true;
+        public bool ObjectBrush_ShowTextures { get; set; } = true;
+
         // Autosave options
 
         public bool AutoSave_Enable { get; set; } = true;
@@ -209,22 +225,6 @@ namespace TombEditor
 
         public EditorTool UI_LastGeometryTool { get; set; } = new EditorTool();
         public EditorTool UI_LastTexturingTool { get; set; } = new EditorTool() { Tool = EditorToolType.Brush };
-
-        // Object brush/eraser options
-
-        public float ObjectBrush_Radius { get; set; } = 512.0f; // In world units
-        public float ObjectBrush_Density { get; set; } = 1.0f; // Objects per sector^2
-        public ObjectBrushShape ObjectBrush_Shape { get; set; } = ObjectBrushShape.Circle;
-        public bool ObjectBrush_PlaceInAdjacentRooms { get; set; } = false;
-        public bool ObjectBrush_RandomizeRotation { get; set; } = true;
-        public bool ObjectBrush_FollowMouseDirection { get; set; } = false;
-        public float ObjectBrush_Rotation { get; set; } = 0.0f; // Degrees, 0-360
-        public bool ObjectBrush_Perpendicular { get; set; } = false; // Add 90 degrees to placed object rotation
-        public bool ObjectBrush_RandomizeScale { get; set; } = false;
-        public float ObjectBrush_ScaleMin { get; set; } = 0.8f;
-        public float ObjectBrush_ScaleMax { get; set; } = 1.2f;
-        public bool ObjectBrush_FitToGround { get; set; } = true;
-        public bool ObjectBrush_ShowTextures { get; set; } = true;
 
         // Geometry IO Window
 

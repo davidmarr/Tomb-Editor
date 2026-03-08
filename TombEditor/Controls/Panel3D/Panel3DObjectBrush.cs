@@ -15,6 +15,10 @@ namespace TombEditor.Controls.Panel3D
         private Vector3? _lastBrushWorldPosition;
         private float? _lastBrushDirectionAngle;
 
+        // Brush hover adjustment state.
+        private bool _brushSettingEngaged = false;
+        private Vector3? _brushParamPinPoint;
+
         // Brush cursor state (replaces Editor cursor fields).
         private Vector3? _brushCursorPosition;
         private Room _brushCursorRoom;
@@ -55,12 +59,6 @@ namespace TombEditor.Controls.Panel3D
             _brushCursorRoom = room;
         }
 
-        private void ClearBrushCursor()
-        {
-            _brushCursorPosition = null;
-            _brushCursorRoom = null;
-        }
-
         #endregion
 
         #region Mouse Handlers
@@ -89,7 +87,7 @@ namespace TombEditor.Controls.Panel3D
             {
                 float rotation = _editor.Configuration.ObjectBrush_Rotation + (delta > 0 ? 5.0f : -5.0f);
                 rotation = ((rotation % 360.0f) + 360.0f) % 360.0f;
-                _editor.Configuration.ObjectBrush_Rotation = rotation;
+                _editor.Configuration.ObjectBrush_Rotation = (float)Math.Round(rotation);
                 settingsChanged = true;
             }
 
@@ -154,6 +152,9 @@ namespace TombEditor.Controls.Panel3D
                 var hoverHit = PickBrushFloorPosition(location);
                 if (hoverHit.HasValue)
                 {
+                    if (UpdateBrushParameters(hoverHit.Value.WorldPos))
+                        return true;
+
                     SetBrushCursor(hoverHit.Value.WorldPos, hoverHit.Value.Room);
                     Invalidate();
                 }
@@ -245,6 +246,72 @@ namespace TombEditor.Controls.Panel3D
                 _lastBrushDirectionAngle = angle;
 
             ObjectBrush.Actions.MouseDirectionAngle = _lastBrushDirectionAngle;
+        }
+
+        #endregion
+
+        #region Parameter Handling
+
+        // Adjusts ObjectBrush parameters based on modifier keys held during hover or brush stroke.
+        // Alt: rotation tracks mouse movement direction.
+        // Ctrl: radius = distance from pinned center to current cursor position.
+        // Shift: density scales with distance from pin point.
+        // Returns true if any parameter was modified.
+
+        internal bool UpdateBrushParameters(Vector3 cursorWorldPos, bool storeRotation = false)
+        {
+            if (Control.ModifierKeys.HasFlag(Keys.Shift) ||
+                Control.ModifierKeys.HasFlag(Keys.Alt)   ||
+                Control.ModifierKeys.HasFlag(Keys.Control))
+            {
+                if (!_brushSettingEngaged)
+                {
+                    _brushParamPinPoint = cursorWorldPos;
+                    _brushSettingEngaged = true;
+                }
+            }
+            else
+            {
+                _brushSettingEngaged = false;
+                return false;
+            }
+
+            float dx = cursorWorldPos.X - _brushParamPinPoint.Value.X;
+            float dz = cursorWorldPos.Z - _brushParamPinPoint.Value.Z;
+            float distSq = dx * dx + dz * dz;
+
+            // Skip parameter update until there is meaningful movement from the pin point.
+            if (distSq <= 0.1f)
+                return false;
+
+            bool settingsChanged = false;
+
+            // Ctrl: radius = distance from pinned center to current cursor position.
+            if (Control.ModifierKeys.HasFlag(Keys.Control))
+            {
+                _editor.Configuration.ObjectBrush_Radius = Math.Max(64.0f, (float)Math.Sqrt(distSq));
+                settingsChanged = true;
+            }
+
+            // Alt: rotation = angle from pin point to current cursor position.
+            if (Control.ModifierKeys.HasFlag(Keys.Alt) || storeRotation)
+            {
+                float angle = (float)(Math.Atan2(dx, dz) * (180.0 / Math.PI));
+                _editor.Configuration.ObjectBrush_Rotation = ((angle % 360.0f) + 360.0f) % 360.0f;
+                settingsChanged = true;
+            }
+
+            // Shift: density scales with distance from pin point.
+            if (Control.ModifierKeys.HasFlag(Keys.Shift))
+            {
+                _editor.Configuration.ObjectBrush_Density = Math.Max(0.1f, (float)Math.Round(Math.Sqrt(distSq) / Level.SectorSizeUnit, 1));
+                settingsChanged = true;
+            }
+
+            if (settingsChanged)
+                _editor.ObjectBrushSettingsChange();
+
+            return settingsChanged;
         }
 
         #endregion
