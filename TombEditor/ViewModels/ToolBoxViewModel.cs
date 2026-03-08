@@ -212,7 +212,7 @@ public partial class ToolBoxViewModel : ObservableObject
 		IsBrushChecked = tool.Tool == EditorToolType.Brush;
 		IsPencilChecked = tool.Tool == EditorToolType.Pencil;
 		IsLineChecked = tool.Tool == EditorToolType.Line;
-		IsDeselectChecked = tool.Tool == EditorToolType.Deselect;
+		IsDeselectChecked = tool.Tool == EditorToolType.Deselection;
 		IsFillChecked = tool.Tool == EditorToolType.Fill;
 		IsGroupChecked = tool.Tool == EditorToolType.Group;
 		IsGridPaintChecked = tool.Tool == EditorToolType.GridPaint;

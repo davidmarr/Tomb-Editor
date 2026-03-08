@@ -43,7 +43,7 @@ namespace TombEditor.Controls.ObjectBrush
                     Helper.SelectObjectsWithBrush(editor, room, localX, localZ, editor.ChosenItems, sectorConstraint, _strokeProcessedObjects);
                     break;
 
-                case EditorToolType.Deselect:
+                case EditorToolType.Deselection:
                     Helper.SelectObjectsWithBrush(editor, room, localX, localZ, editor.ChosenItems, sectorConstraint, _strokeProcessedObjects, deselect: true);
                     break;
 

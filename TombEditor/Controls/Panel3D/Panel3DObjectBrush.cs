@@ -10,6 +10,11 @@ namespace TombEditor.Controls.Panel3D
 {
     public partial class Panel3D
     {
+        const float BrushRadiusAdjustmentStep = 64.0f;
+        const float BrushAngleAdjustmentStep = 5.0f;
+        const float BrushParamDeadzone = Level.SectorSizeUnit * 0.5f;
+        const float BrushMinHoverSize  = Level.SectorSizeUnit * 0.25f;
+
         // Brush stroke state.
         private bool _brushEngaged;
         private Vector3? _lastBrushWorldPosition;
@@ -17,6 +22,7 @@ namespace TombEditor.Controls.Panel3D
 
         // Brush hover adjustment state.
         private bool _brushSettingEngaged = false;
+        private bool _brushSettingDeadzoneExceeded = false;
         private Vector3? _brushParamPinPoint;
 
         // Brush cursor state (replaces Editor cursor fields).
@@ -85,17 +91,17 @@ namespace TombEditor.Controls.Panel3D
             // Alt + mousewheel adjusts brush rotation.
             if (Control.ModifierKeys.HasFlag(Keys.Alt))
             {
-                float rotation = _editor.Configuration.ObjectBrush_Rotation + (delta > 0 ? 5.0f : -5.0f);
+                float rotation = _editor.Configuration.ObjectBrush_Rotation + (delta > 0 ? BrushAngleAdjustmentStep : -BrushAngleAdjustmentStep);
                 rotation = ((rotation % 360.0f) + 360.0f) % 360.0f;
-                _editor.Configuration.ObjectBrush_Rotation = (float)Math.Round(rotation);
+                _lastBrushDirectionAngle = _editor.Configuration.ObjectBrush_Rotation = (float)(Math.Round(rotation / BrushAngleAdjustmentStep) * BrushAngleAdjustmentStep);
                 settingsChanged = true;
             }
 
             // Ctrl + mousewheel adjusts brush radius.
             if (Control.ModifierKeys.HasFlag(Keys.Control))
             {
-                float radius = _editor.Configuration.ObjectBrush_Radius + (delta > 0 ? 64.0f : -64.0f);
-                _editor.Configuration.ObjectBrush_Radius = Math.Max(64.0f, radius);
+                float radius = _editor.Configuration.ObjectBrush_Radius + (delta > 0 ? BrushRadiusAdjustmentStep : -BrushRadiusAdjustmentStep);
+                _editor.Configuration.ObjectBrush_Radius = Math.Max(BrushRadiusAdjustmentStep, radius);
                 settingsChanged = true;
             }
 
@@ -273,38 +279,49 @@ namespace TombEditor.Controls.Panel3D
             else
             {
                 _brushSettingEngaged = false;
+                _brushSettingDeadzoneExceeded = false;
                 return false;
             }
 
-            float dx = cursorWorldPos.X - _brushParamPinPoint.Value.X;
-            float dz = cursorWorldPos.Z - _brushParamPinPoint.Value.Z;
-            float distSq = dx * dx + dz * dz;
+            float distance = Vector2.Distance(new Vector2(cursorWorldPos.X, cursorWorldPos.Z),
+                new Vector2(_brushParamPinPoint.Value.X, _brushParamPinPoint.Value.Z));
 
-            // Skip parameter update until there is meaningful movement from the pin point.
-            if (distSq <= 0.1f)
-                return false;
+            // Skip parameter update until the cursor has moved past the deadzone from the pin point.
+            // Once exceeded, keep updating even if cursor moves back inside the deadzone.
+            if (!_brushSettingDeadzoneExceeded)
+            {
+                if (distance < BrushParamDeadzone)
+                    return true;
+
+                _brushSettingDeadzoneExceeded = true;
+            }
 
             bool settingsChanged = false;
 
             // Ctrl: radius = distance from pinned center to current cursor position.
             if (Control.ModifierKeys.HasFlag(Keys.Control))
             {
-                _editor.Configuration.ObjectBrush_Radius = Math.Max(64.0f, (float)Math.Sqrt(distSq));
+                _editor.Configuration.ObjectBrush_Radius = Math.Max(BrushMinHoverSize, distance);
                 settingsChanged = true;
             }
 
-            // Alt: rotation = angle from pin point to current cursor position.
+            // Alt: rotation = smoothed angle from pin point to current cursor position.
             if (Control.ModifierKeys.HasFlag(Keys.Alt) || storeRotation)
             {
-                float angle = (float)(Math.Atan2(dx, dz) * (180.0 / Math.PI));
-                _editor.Configuration.ObjectBrush_Rotation = ((angle % 360.0f) + 360.0f) % 360.0f;
-                settingsChanged = true;
+                _lastBrushWorldPosition = _brushParamPinPoint;
+                UpdateMouseDirectionAngle(cursorWorldPos);
+
+                if (_lastBrushDirectionAngle.HasValue)
+                {
+                    _editor.Configuration.ObjectBrush_Rotation = _lastBrushDirectionAngle.Value;
+                    settingsChanged = true;
+                }
             }
 
             // Shift: density scales with distance from pin point.
             if (Control.ModifierKeys.HasFlag(Keys.Shift))
             {
-                _editor.Configuration.ObjectBrush_Density = Math.Max(0.1f, (float)Math.Round(Math.Sqrt(distSq) / Level.SectorSizeUnit, 1));
+                _editor.Configuration.ObjectBrush_Density = Math.Max(0.1f, (float)Math.Round(distance / Level.SectorSizeUnit, 1));
                 settingsChanged = true;
             }
 
@@ -352,10 +369,9 @@ namespace TombEditor.Controls.Panel3D
                     shape = (int)_editor.Configuration.ObjectBrush_Shape;
                     center = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, _editor.Configuration.ObjectBrush_Radius);
 
-                    if (_editor.Tool.Tool != EditorToolType.Selection && _editor.Tool.Tool != EditorToolType.Deselect && _editor.Tool.Tool != EditorToolType.Eraser &&
-                        !(_editor.Configuration.ObjectBrush_RandomizeRotation && !_editor.Configuration.ObjectBrush_FollowMouseDirection && _editor.Tool.Tool != EditorToolType.Line))
+                    if (_editor.Tool.Tool != EditorToolType.Selection && _editor.Tool.Tool != EditorToolType.Deselection && _editor.Tool.Tool != EditorToolType.Eraser)
                     {
-                        if (_editor.Configuration.ObjectBrush_FollowMouseDirection && _lastBrushDirectionAngle.HasValue && _editor.Tool.Tool != EditorToolType.Line)
+                        if (_editor.Tool.Tool != EditorToolType.Line && _editor.Configuration.ObjectBrush_FollowMouseDirection && _lastBrushDirectionAngle.HasValue)
                             rot = _lastBrushDirectionAngle.Value;
                         else
                             rot = _editor.Configuration.ObjectBrush_Rotation;
