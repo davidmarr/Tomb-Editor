@@ -35,7 +35,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 	[ObservableProperty] private double _radius = 0.5;
 	[ObservableProperty] private double _density = 1.0;
 	[ObservableProperty] private double _rotation;
-	[ObservableProperty] private bool _isPerpendicular;
+	[ObservableProperty] private bool _isOrthogonal;
 	[ObservableProperty] private bool _isRandomRotation;
 	[ObservableProperty] private bool _isFollowMouseDirection;
 	[ObservableProperty] private bool _isRandomScale;
@@ -52,7 +52,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 	[ObservableProperty] private bool _isRadiusEnabled = true;
 	[ObservableProperty] private bool _isDensityEnabled;
 	[ObservableProperty] private bool _isRotationEnabled;
-	[ObservableProperty] private bool _isPerpendicularEnabled;
+	[ObservableProperty] private bool _isOrthogonalEnabled;
 	[ObservableProperty] private bool _isRandomRotationEnabled;
 	[ObservableProperty] private bool _isFollowMouseDirectionEnabled;
 	[ObservableProperty] private bool _isRandomScaleEnabled;
@@ -69,7 +69,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 	partial void OnRadiusChanged(double value) => SaveSettingsIfNotLoading();
 	partial void OnDensityChanged(double value) => SaveSettingsIfNotLoading();
 	partial void OnRotationChanged(double value) => SaveSettingsIfNotLoading();
-	partial void OnIsPerpendicularChanged(bool value) => SaveSettingsIfNotLoading();
+	partial void OnIsOrthogonalChanged(bool value) => SaveSettingsIfNotLoading();
 	partial void OnScaleMinChanged(double value) => SaveSettingsIfNotLoading();
 	partial void OnScaleMaxChanged(double value) => SaveSettingsIfNotLoading();
 	partial void OnIsFitToGroundChanged(bool value) => SaveSettingsIfNotLoading();
@@ -113,7 +113,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 		Radius = Math.Clamp(config.ObjectBrush_Radius / Level.SectorSizeUnit, Controls.ObjectBrush.Constants.MinRadius, Controls.ObjectBrush.Constants.MaxRadius);
 		Density = Math.Clamp(config.ObjectBrush_Density, Controls.ObjectBrush.Constants.MinDensity, Controls.ObjectBrush.Constants.MaxDensity);
 		Rotation = Math.Clamp(config.ObjectBrush_Rotation, 0.0, 360.0);
-		IsPerpendicular = config.ObjectBrush_Perpendicular;
+		IsOrthogonal = config.ObjectBrush_Orthogonal;
 		IsRandomRotation = config.ObjectBrush_RandomizeRotation;
 		IsFollowMouseDirection = config.ObjectBrush_FollowMouseDirection;
 		IsRandomScale = config.ObjectBrush_RandomizeScale;
@@ -137,7 +137,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 		config.ObjectBrush_Radius = (float)Radius * Level.SectorSizeUnit;
 		config.ObjectBrush_Density = (float)Density;
 		config.ObjectBrush_Rotation = (float)Rotation;
-		config.ObjectBrush_Perpendicular = IsPerpendicular;
+		config.ObjectBrush_Orthogonal = IsOrthogonal;
 		config.ObjectBrush_RandomizeRotation = IsRandomRotation;
 		config.ObjectBrush_FollowMouseDirection = IsFollowMouseDirection;
 		config.ObjectBrush_RandomizeScale = IsRandomScale;
@@ -170,7 +170,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 
 		bool allowRotation = isBrush || isPencil || isLine;
 
-		IsPerpendicularEnabled = allowRotation;
+		IsOrthogonalEnabled = allowRotation;
 		IsRandomRotationEnabled = isBrush || isPencil;
 		IsFollowMouseDirectionEnabled = isBrush || isPencil;
 		IsRotationEnabled = isLine || (allowRotation && !IsRandomRotation && !IsFollowMouseDirection);
@@ -178,7 +178,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 		bool allowScale = isBrush || isPencil || isLine;
 
 		IsFitToGroundEnabled = allowScale;
-		IsAlignToGridEnabled = isBrush || isPencil || isLine;
+		IsAlignToGridEnabled = isLine;
 		IsRandomScaleEnabled = allowScale;
 		IsScaleMinEnabled = allowScale && IsRandomScale;
 		IsScaleMaxEnabled = allowScale && IsRandomScale;

@@ -84,10 +84,10 @@
 		</ToggleButton>
 		<ToggleButton
 			Command="{Binding SwitchToolCommand}"
-			CommandParameter="Deselect"
+			CommandParameter="Deselection"
 			IsChecked="{Binding IsDeselectChecked, Mode=OneWay}"
 			Style="{StaticResource ToolToggleButton}"
-			ToolTip="{tombLib:Localize Deselect}"
+			ToolTip="{tombLib:Localize Deselection}"
 			Visibility="{Binding IsObjectPlacementToolsVisible, Converter={StaticResource BoolToVisConverter}}">
 			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Deselection-16.png" />
 		</ToggleButton>

@@ -479,7 +479,7 @@ namespace TombEditor.Controls.ObjectBrush
                 rotY = config.ObjectBrush_Rotation;
             }
 
-            if (config.ObjectBrush_Perpendicular)
+            if (config.ObjectBrush_Orthogonal)
                 rotY = (rotY + 90.0f) % 360.0f;
 
             float scale = 1.0f;
@@ -715,10 +715,10 @@ namespace TombEditor.Controls.ObjectBrush
 
         #region Pencil Tool
 
-        // Computes spacing for seamless pencil placement along the rotation direction.
-        // Uses bounding box Z extent (local depth axis) of the first chosen item, or X if Perpendicular.
+        // Computes spacing for seamless line placement along the rotation direction.
+        // Uses bounding box Z extent (local depth axis) of the first chosen item, or X if orthogonal.
 
-        public static float ComputePencilSpacing(Editor editor)
+        public static float ComputeLineSpacing(Editor editor)
         {
             if (editor.ChosenItems.Count == 0)
                 return editor.Configuration.ObjectBrush_Radius;
@@ -731,7 +731,7 @@ namespace TombEditor.Controls.ObjectBrush
                 ? (editor.Configuration.ObjectBrush_ScaleMin + editor.Configuration.ObjectBrush_ScaleMax) / 2.0f
                 : 1.0f;
 
-            float extent = editor.Configuration.ObjectBrush_Perpendicular
+            float extent = editor.Configuration.ObjectBrush_Orthogonal
                 ? (bbox.Value.Maximum.X - bbox.Value.Minimum.X) * scale
                 : (bbox.Value.Maximum.Z - bbox.Value.Minimum.Z) * scale;
 
@@ -747,9 +747,9 @@ namespace TombEditor.Controls.ObjectBrush
             float centerWorldX, float centerWorldZ, IReadOnlyList<ItemType> chosenItems, ref int itemIndex,
             RectangleInt2? sectorConstraint, bool skipOverlapCheck = false)
         {
-            float radius        = editor.Configuration.ObjectBrush_Radius;
-            bool  adjacent      = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
-            bool  perpendicular = editor.Configuration.ObjectBrush_Perpendicular;
+            float radius     = editor.Configuration.ObjectBrush_Radius;
+            bool  adjacent   = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
+            bool  orthogonal = editor.Configuration.ObjectBrush_Orthogonal;
 
             var placedObjects = new List<PositionBasedObjectInstance>();
             var level = editor.Level;
@@ -768,11 +768,11 @@ namespace TombEditor.Controls.ObjectBrush
             }
 
             // Compute minimum distance from bounding box for seamless placement.
-            // Use X extent if Perpendicular flag adds a 90-degree rotation to placed objects.
+            // Use X extent if orthogonal flag adds a 90-degree rotation to placed objects.
             float minDist = radius;
             if (bbox.HasValue)
             {
-                float extent = perpendicular
+                float extent = orthogonal
                     ? bbox.Value.Maximum.X - bbox.Value.Minimum.X
                     : bbox.Value.Maximum.Z - bbox.Value.Minimum.Z;
 

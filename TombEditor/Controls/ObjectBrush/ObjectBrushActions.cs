@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -10,6 +11,15 @@ namespace TombEditor.Controls.ObjectBrush
     public static class Actions
     {
         private static int _pencilItemIndex;
+
+        private static Vector3 AlignWorldPosToGrid(Vector3 pos)
+        {
+            float half = Level.SectorSizeUnit * 0.5f;
+            return new Vector3(
+                (float)Math.Floor(pos.X / Level.SectorSizeUnit) * Level.SectorSizeUnit + half,
+                pos.Y,
+                (float)Math.Floor(pos.Z / Level.SectorSizeUnit) * Level.SectorSizeUnit + half);
+        }
 
         // Stroke-session state: lives from BeginBrushStroke to EndBrushStroke.
         private static readonly List<UndoRedoInstance> _strokeUndoList = new List<UndoRedoInstance>();
@@ -57,17 +67,24 @@ namespace TombEditor.Controls.ObjectBrush
             }
         }
 
-        public static void BeginBrushStroke(Editor editor, Room room, Vector3 cursorWorldPos)
+        public static Vector3 BeginBrushStroke(Editor editor, Room room, Vector3 cursorWorldPos)
         {
             _pencilItemIndex = 0;
             _strokeUndoList.Clear();
             _strokePlacedObjects.Clear();
             _strokeProcessedObjects.Clear();
 
+            var tool = editor.Tool.Tool;
+            bool alignable = tool == EditorToolType.Brush || tool == EditorToolType.Pencil || tool == EditorToolType.Line;
+
+            if (editor.Configuration.ObjectBrush_AlignToGrid && alignable)
+                cursorWorldPos = AlignWorldPosToGrid(cursorWorldPos);
+
             float localX = cursorWorldPos.X - room.WorldPos.X;
             float localZ = cursorWorldPos.Z - room.WorldPos.Z;
 
             ExecuteBrushAction(editor, room, localX, localZ);
+            return cursorWorldPos;
         }
 
         // Returns true if a paint action was performed (moved far enough from last position).
@@ -75,6 +92,12 @@ namespace TombEditor.Controls.ObjectBrush
         public static bool ContinueBrushStroke(Editor editor, Room room, Vector3 cursorWorldPos,
             Vector3? lastWorldPosition, float quantizationDistance)
         {
+            var tool = editor.Tool.Tool;
+            bool alignable = tool == EditorToolType.Brush || tool == EditorToolType.Pencil;
+
+            if (editor.Configuration.ObjectBrush_AlignToGrid && alignable)
+                cursorWorldPos = AlignWorldPosToGrid(cursorWorldPos);
+
             if (lastWorldPosition.HasValue)
             {
                 float dx = cursorWorldPos.X - lastWorldPosition.Value.X;

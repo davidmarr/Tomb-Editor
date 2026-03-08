@@ -89,7 +89,8 @@ namespace TombEditor.Controls.Panel3D
             {
                 float rotation = _editor.Configuration.ObjectBrush_Rotation + (delta > 0 ? ObjectBrush.Constants.AngleAdjustmentStep : -ObjectBrush.Constants.AngleAdjustmentStep);
                 rotation = ((rotation % 360.0f) + 360.0f) % 360.0f;
-                _lastBrushDirectionAngle = _editor.Configuration.ObjectBrush_Rotation = (float)(Math.Round(rotation / ObjectBrush.Constants.AngleAdjustmentStep) * ObjectBrush.Constants.AngleAdjustmentStep);
+                ObjectBrush.Actions.MouseDirectionAngle =_lastBrushDirectionAngle = _editor.Configuration.ObjectBrush_Rotation = 
+                    (float)(Math.Round(rotation / ObjectBrush.Constants.AngleAdjustmentStep) * ObjectBrush.Constants.AngleAdjustmentStep);
                 settingsChanged = true;
             }
 
@@ -97,7 +98,8 @@ namespace TombEditor.Controls.Panel3D
             if (Control.ModifierKeys.HasFlag(Keys.Control))
             {
                 float radius = _editor.Configuration.ObjectBrush_Radius + (delta > 0 ? ObjectBrush.Constants.RadiusAdjustmentStep : -ObjectBrush.Constants.RadiusAdjustmentStep);
-                _editor.Configuration.ObjectBrush_Radius = Math.Min(ObjectBrush.Constants.MaxRadius * Level.SectorSizeUnit, Math.Max(ObjectBrush.Constants.MinRadius * Level.SectorSizeUnit, radius));
+                _editor.Configuration.ObjectBrush_Radius = 
+                    Math.Min(ObjectBrush.Constants.MaxRadius * Level.SectorSizeUnit, Math.Max(ObjectBrush.Constants.MinRadius * Level.SectorSizeUnit, radius));
                 settingsChanged = true;
             }
 
@@ -105,7 +107,8 @@ namespace TombEditor.Controls.Panel3D
             if (Control.ModifierKeys.HasFlag(Keys.Shift))
             {
                 float density = _editor.Configuration.ObjectBrush_Density + (delta > 0 ? 0.1f : -0.1f);
-                _editor.Configuration.ObjectBrush_Density = Math.Min(ObjectBrush.Constants.MaxDensity, Math.Max(ObjectBrush.Constants.MinDensity, (float)Math.Round(density, 1)));
+                _editor.Configuration.ObjectBrush_Density = 
+                    Math.Min(ObjectBrush.Constants.MaxDensity, Math.Max(ObjectBrush.Constants.MinDensity, (float)Math.Round(density, 1)));
                 settingsChanged = true;
             }
 
@@ -134,9 +137,7 @@ namespace TombEditor.Controls.Panel3D
             else
             {
                 _brushEngaged = true;
-                _lastBrushWorldPosition = floorHit.Value.WorldPos;
-
-                ObjectBrush.Actions.BeginBrushStroke(_editor, _editor.SelectedRoom, floorHit.Value.WorldPos);
+                _lastBrushWorldPosition = ObjectBrush.Actions.BeginBrushStroke(_editor, _editor.SelectedRoom, floorHit.Value.WorldPos);
             }
 
             Invalidate();
@@ -190,7 +191,7 @@ namespace TombEditor.Controls.Panel3D
                 delta.Y = 0;
 
                 float proj = Vector3.Dot(delta, rotDir);
-                float spacing = ObjectBrush.Helper.ComputePencilSpacing(_editor);
+                float spacing = ObjectBrush.Helper.ComputeLineSpacing(_editor);
 
                 if (proj < spacing)
                     return true;

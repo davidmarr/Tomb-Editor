@@ -77,9 +77,9 @@
 			</controls:SpacedStack>
 
 			<CheckBox
-				Content="{tombLib:Localize Flip}"
-				IsChecked="{Binding IsPerpendicular, Mode=TwoWay}"
-				IsEnabled="{Binding IsPerpendicularEnabled}" />
+				Content="{tombLib:Localize Orthogonal}"
+				IsChecked="{Binding IsOrthogonal, Mode=TwoWay}"
+				IsEnabled="{Binding IsOrthogonalEnabled}" />
 		</controls:SpacedStack>
 
 		<CheckBox
