@@ -9,162 +9,144 @@
 	xmlns:tombLib="clr-namespace:TombLib.WPF;assembly=TombLib.WPF"
 	xmlns:viewModels="clr-namespace:TombEditor.ViewModels"
 	d:DataContext="{d:DesignInstance Type=viewModels:ObjectBrushToolboxViewModel}"
-	d:DesignHeight="84"
-	d:DesignWidth="430"
 	Background="{DynamicResource Brush_Background}"
 	Foreground="{DynamicResource Brush_Text}"
 	SnapsToDevicePixels="{x:Static darkUI:Defaults.SnapsToDevicePixels}"
 	UseLayoutRounding="{x:Static darkUI:Defaults.UseLayoutRounding}"
 	mc:Ignorable="d">
 
-	<Grid Margin="2" Grid.IsSharedSizeScope="True">
+	<controls:SpacedGrid
+		Margin="5"
+		ColumnSpacing="5"
+		RowSpacing="5">
 		<Grid.RowDefinitions>
-			<RowDefinition Height="Auto" />
 			<RowDefinition Height="Auto" />
 			<RowDefinition Height="Auto" />
 			<RowDefinition Height="Auto" />
 		</Grid.RowDefinitions>
 
-		<!--  Row 0: Radius, Density, Rotation, Flip  -->
-		<StackPanel
-			Grid.Row="0"
-			Margin="0,0,0,3"
-			Orientation="Horizontal">
-			<Label
-				MinWidth="54"
-				Margin="0,0,4,0"
-				Padding="0"
-				VerticalAlignment="Center"
-				Content="{tombLib:Localize Radius}" />
-			<controls:NumericUpDown
-				Width="56"
-				FormatString="F1"
-				Increment="0.1"
-				IsEnabled="{Binding IsRadiusEnabled}"
-				Maximum="25"
-				Minimum="0.1"
-				TextAlignment="Left"
-				Value="{Binding Radius, Mode=TwoWay}" />
-			<Label
-				MinWidth="54"
-				Margin="12,0,4,0"
-				Padding="0"
-				VerticalAlignment="Center"
-				Content="{tombLib:Localize Density}" />
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="Auto" />
+		</Grid.ColumnDefinitions>
+
+		<controls:SpacedStack
+			Grid.ColumnSpan="3"
+			Orientation="Horizontal"
+			Spacing="10">
+			<controls:SpacedStack Orientation="Horizontal" Spacing="3">
+				<Label Content="{tombLib:Localize Radius}" />
+				<controls:NumericUpDown
+					Width="56"
+					FormatString="F1"
+					Increment="0.1"
+					IsEnabled="{Binding IsRadiusEnabled}"
+					Maximum="25"
+					Minimum="0.1"
+					TextAlignment="Left"
+					Value="{Binding Radius, Mode=TwoWay}" />
+			</controls:SpacedStack>
+
+			<controls:SpacedStack Orientation="Horizontal" Spacing="3">
+				<Label Content="{tombLib:Localize Density}" />
+				<controls:NumericUpDown
+					Width="56"
+					FormatString="F2"
+					Increment="0.05"
+					IsEnabled="{Binding IsDensityEnabled}"
+					Maximum="5"
+					Minimum="0.01"
+					TextAlignment="Left"
+					Value="{Binding Density, Mode=TwoWay}" />
+			</controls:SpacedStack>
+
+			<controls:SpacedStack Orientation="Horizontal" Spacing="3">
+				<Label Content="{tombLib:Localize Rotation}" />
+				<controls:NumericUpDown
+					Width="56"
+					FormatString="F1"
+					Increment="5"
+					IsEnabled="{Binding IsRotationEnabled}"
+					Maximum="360"
+					Minimum="0"
+					TextAlignment="Left"
+					Value="{Binding Rotation, Mode=TwoWay}" />
+			</controls:SpacedStack>
+
+			<CheckBox
+				Content="{tombLib:Localize Flip}"
+				IsChecked="{Binding IsPerpendicular, Mode=TwoWay}"
+				IsEnabled="{Binding IsPerpendicularEnabled}" />
+		</controls:SpacedStack>
+
+		<CheckBox
+			Grid.Row="1"
+			Content="{tombLib:Localize RandomRotation}"
+			IsChecked="{Binding IsRandomRotation, Mode=TwoWay}"
+			IsEnabled="{Binding IsRandomRotationEnabled}" />
+		<CheckBox
+			Grid.Row="1"
+			Grid.Column="1"
+			Content="{tombLib:Localize FollowMouse}"
+			IsChecked="{Binding IsFollowMouseDirection, Mode=TwoWay}"
+			IsEnabled="{Binding IsFollowMouseDirectionEnabled}" />
+
+		<controls:SpacedStack
+			Grid.Row="1"
+			Grid.Column="2"
+			Orientation="Horizontal"
+			Spacing="2">
+			<CheckBox
+				Grid.Row="1"
+				Grid.Column="2"
+				Margin="0,0,5,0"
+				Content="{tombLib:Localize RandomScale}"
+				IsChecked="{Binding IsRandomScale, Mode=TwoWay}"
+				IsEnabled="{Binding IsRandomScaleEnabled}" />
+
 			<controls:NumericUpDown
 				Width="56"
 				FormatString="F2"
 				Increment="0.05"
-				IsEnabled="{Binding IsDensityEnabled}"
-				Maximum="5"
-				Minimum="0.01"
+				IsEnabled="{Binding IsScaleMinEnabled}"
+				Maximum="10"
+				Minimum="0.1"
 				TextAlignment="Left"
-				Value="{Binding Density, Mode=TwoWay}" />
-			<Label
-				MinWidth="54"
-				Margin="12,0,4,0"
-				Padding="0"
-				VerticalAlignment="Center"
-				Content="{tombLib:Localize Rotation}" />
+				Value="{Binding ScaleMin, Mode=TwoWay}" />
+
+			<Label Padding="0" Content="-" />
+
 			<controls:NumericUpDown
 				Width="56"
-				FormatString="F1"
-				Increment="5"
-				IsEnabled="{Binding IsRotationEnabled}"
-				Maximum="360"
-				Minimum="0"
+				FormatString="F2"
+				Increment="0.05"
+				IsEnabled="{Binding IsScaleMaxEnabled}"
+				Maximum="10"
+				Minimum="0.1"
 				TextAlignment="Left"
-				Value="{Binding Rotation, Mode=TwoWay}" />
-			<CheckBox
-				Margin="8,0,0,0"
-				VerticalAlignment="Center"
-				Content="{tombLib:Localize Flip}"
-				IsChecked="{Binding IsPerpendicular, Mode=TwoWay}"
-				IsEnabled="{Binding IsPerpendicularEnabled}" />
-		</StackPanel>
+				Value="{Binding ScaleMax, Mode=TwoWay}" />
+		</controls:SpacedStack>
 
-		<!--  Row 1: Random rotation | Follow mouse direction | Random scale + NUDs  -->
-		<Grid Grid.Row="1" Margin="0,0,0,3">
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="Auto" SharedSizeGroup="LeftCol" />
-				<ColumnDefinition Width="*" />
-			</Grid.ColumnDefinitions>
-
-			<StackPanel Grid.Column="0" Orientation="Horizontal">
-				<CheckBox
-					VerticalAlignment="Center"
-					Content="{tombLib:Localize RandomRotation}"
-					IsChecked="{Binding IsRandomRotation, Mode=TwoWay}"
-					IsEnabled="{Binding IsRandomRotationEnabled}" />
-				<CheckBox
-					Margin="8,0,0,0"
-					VerticalAlignment="Center"
-					Content="{tombLib:Localize FollowMouseDirection}"
-					IsChecked="{Binding IsFollowMouseDirection, Mode=TwoWay}"
-					IsEnabled="{Binding IsFollowMouseDirectionEnabled}" />
-			</StackPanel>
-
-			<StackPanel Grid.Column="1" Orientation="Horizontal">
-				<CheckBox
-					Margin="8,0,0,0"
-					VerticalAlignment="Center"
-					Content="{tombLib:Localize RandomScale}"
-					IsChecked="{Binding IsRandomScale, Mode=TwoWay}"
-					IsEnabled="{Binding IsRandomScaleEnabled}" />
-				<controls:NumericUpDown
-					Width="56"
-					Margin="4,0,0,0"
-					FormatString="F2"
-					Increment="0.05"
-					IsEnabled="{Binding IsScaleMinEnabled}"
-					Maximum="10"
-					Minimum="0.1"
-					TextAlignment="Left"
-					Value="{Binding ScaleMin, Mode=TwoWay}" />
-				<Label
-					Padding="2,0"
-					VerticalAlignment="Center"
-					Content="-" />
-				<controls:NumericUpDown
-					Width="56"
-					FormatString="F2"
-					Increment="0.05"
-					IsEnabled="{Binding IsScaleMaxEnabled}"
-					Maximum="10"
-					Minimum="0.1"
-					TextAlignment="Left"
-					Value="{Binding ScaleMax, Mode=TwoWay}" />
-			</StackPanel>
-		</Grid>
-
-		<!--  Row 2: Fit to floor | Align to grid | Place in adjacent rooms  -->
-		<Grid Grid.Row="2">
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="Auto" SharedSizeGroup="LeftCol" />
-				<ColumnDefinition Width="Auto" />
-				<ColumnDefinition Width="*" />
-			</Grid.ColumnDefinitions>
-
-			<CheckBox
-				Grid.Column="0"
-				VerticalAlignment="Center"
-				Content="{tombLib:Localize FitToFloor}"
-				IsChecked="{Binding IsFitToGround, Mode=TwoWay}"
-				IsEnabled="{Binding IsFitToGroundEnabled}" />
-			<CheckBox
-				Grid.Column="1"
-				Margin="8,0,0,0"
-				VerticalAlignment="Center"
-				Content="{tombLib:Localize AlignToGrid}"
-				IsChecked="{Binding IsAlignToGrid, Mode=TwoWay}"
-				IsEnabled="{Binding IsAlignToGridEnabled}" />
-			<CheckBox
-				Grid.Column="2"
-				Margin="8,0,0,0"
-				VerticalAlignment="Center"
-				Content="{tombLib:Localize PlaceInAdjacentRooms}"
-				IsChecked="{Binding IsPlaceInAdjacentRooms, Mode=TwoWay}"
-				IsEnabled="{Binding IsAdjacentRoomsEnabled}" />
-		</Grid>
-	</Grid>
+		<CheckBox
+			Grid.Row="2"
+			VerticalAlignment="Center"
+			Content="{tombLib:Localize FitToFloor}"
+			IsChecked="{Binding IsFitToGround, Mode=TwoWay}"
+			IsEnabled="{Binding IsFitToGroundEnabled}" />
+		<CheckBox
+			Grid.Row="2"
+			Grid.Column="1"
+			VerticalAlignment="Center"
+			Content="{tombLib:Localize AlignToGrid}"
+			IsChecked="{Binding IsAlignToGrid, Mode=TwoWay}"
+			IsEnabled="{Binding IsAlignToGridEnabled}" />
+		<CheckBox
+			Grid.Row="2"
+			Grid.Column="2"
+			VerticalAlignment="Center"
+			Content="{tombLib:Localize PlaceInAdjacentRooms}"
+			IsChecked="{Binding IsPlaceInAdjacentRooms, Mode=TwoWay}"
+			IsEnabled="{Binding IsAdjacentRoomsEnabled}" />
+	</controls:SpacedGrid>
 </UserControl>

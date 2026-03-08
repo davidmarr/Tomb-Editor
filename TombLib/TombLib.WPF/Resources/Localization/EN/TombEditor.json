@@ -25,7 +25,7 @@
         "Rotation": "Rotation:",
         "Flip": "Flip",
         "RandomRotation": "Random rotation",
-        "FollowMouseDirection": "Follow mouse direction",
+        "FollowMouse": "Follow mouse",
         "RandomScale": "Random scale:",
         "FitToFloor": "Fit to floor",
         "AlignToGrid": "Align to grid",

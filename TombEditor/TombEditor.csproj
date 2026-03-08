@@ -30,6 +30,13 @@
     <StartupObject>TombEditor.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <Page Update="Properties\DesignTimeResources.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+      <ContainsDesignTimeResources>true</ContainsDesignTimeResources>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="CustomTabControl">
       <HintPath>..\Libs\CustomTabControl.dll</HintPath>
     </Reference>
