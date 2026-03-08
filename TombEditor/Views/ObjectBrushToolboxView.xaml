@@ -130,21 +130,18 @@
 
 		<CheckBox
 			Grid.Row="2"
-			VerticalAlignment="Center"
 			Content="{tombLib:Localize FitToFloor}"
 			IsChecked="{Binding IsFitToGround, Mode=TwoWay}"
 			IsEnabled="{Binding IsFitToGroundEnabled}" />
 		<CheckBox
 			Grid.Row="2"
 			Grid.Column="1"
-			VerticalAlignment="Center"
 			Content="{tombLib:Localize AlignToGrid}"
 			IsChecked="{Binding IsAlignToGrid, Mode=TwoWay}"
 			IsEnabled="{Binding IsAlignToGridEnabled}" />
 		<CheckBox
 			Grid.Row="2"
 			Grid.Column="2"
-			VerticalAlignment="Center"
 			Content="{tombLib:Localize PlaceInAdjacentRooms}"
 			IsChecked="{Binding IsPlaceInAdjacentRooms, Mode=TwoWay}"
 			IsEnabled="{Binding IsAdjacentRoomsEnabled}" />
