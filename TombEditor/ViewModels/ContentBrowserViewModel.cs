@@ -164,7 +164,8 @@ public partial class AssetItemViewModel : ObservableObject
 		ImportedGeometryBrush.Freeze();
 	}
 
-	public AssetItemViewModel(IWadObject wadObject, string name, AssetCategory category, string categoryName, string wadSource, bool isInMultipleWads, string catalogCategory = "")
+	public AssetItemViewModel(IWadObject wadObject, string name, AssetCategory category, string categoryName, string wadSource, 
+		bool isInMultipleWads, string catalogCategory = "", string fileVersion = "")
 	{
 		WadObject = wadObject;
 		Name = name;
@@ -183,20 +184,21 @@ public partial class AssetItemViewModel : ObservableObject
 		};
 
 		Initials = BuildInitials(name);
-		CacheKey = BuildCacheKey(wadObject, category);
+		CacheKey = BuildCacheKey(wadObject, category, fileVersion);
 	}
 
-	private static string BuildCacheKey(IWadObject wadObject, AssetCategory category)
+	private static string BuildCacheKey(IWadObject wadObject, AssetCategory category, string fileVersion = "")
 	{
 		string prefix = category.ToString();
+		var versionSuffix = string.IsNullOrEmpty(fileVersion) ? string.Empty : $"_{fileVersion}";
 
 		if (wadObject.Id is not null)
-			return $"{prefix}_{wadObject.Id}";
+			return $"{prefix}_{wadObject.Id}{versionSuffix}";
 
 		if (wadObject is ImportedGeometry geo)
-			return $"{prefix}_{geo.GetHashCode()}";
+			return $"{prefix}_{geo.GetHashCode()}{versionSuffix}";
 
-		return $"{prefix}_{wadObject.GetHashCode()}";
+		return $"{prefix}_{wadObject.GetHashCode()}{versionSuffix}";
 	}
 
 	// Converts an ImageC (BGRA byte array) to a frozen WPF BitmapSource.
@@ -451,6 +453,16 @@ public partial class ContentBrowserViewModel : ObservableObject
 		var allMoveables = settings.WadGetAllMoveables();
 		var allStatics = settings.WadGetAllStatics();
 
+		// Pre-compute wad file versions for version-aware cache keys.
+		// Read-only in parallel tasks below, so no locking is needed.
+		var wadFileVersions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+		foreach (var wad in settings.Wads)
+		{
+			if (wad.Wad is not null && !string.IsNullOrEmpty(wad.Path))
+				wadFileVersions[wad.Path] = GetFileVersion(settings.MakeAbsolute(wad.Path));
+		}
+
 		// Build moveable and static items in parallel using thread-safe collections.
 		// Each item construction is independent - name resolution, wad source lookup.
 		// initials, and cache key are all pure/readonly operations.
@@ -468,9 +480,10 @@ public partial class ContentBrowserViewModel : ObservableObject
 				var wad = settings.WadTryGetWad(itemType, out bool multiple);
 
 				string wadSource = wad is not null ? Path.GetFileName(wad.Path) : "Unknown";
+				var fileVersion = wad is not null && wadFileVersions.TryGetValue(wad.Path, out var wadVer) ? wadVer : string.Empty;
 				string catalogCategory = TrCatalog.GetMoveableCategory(gameVersion, moveable.Id.TypeId);
 
-				var item = new AssetItemViewModel(moveable, name, AssetCategory.Moveables, moveablesCategory, wadSource, multiple, catalogCategory);
+				var item = new AssetItemViewModel(moveable, name, AssetCategory.Moveables, moveablesCategory, wadSource, multiple, catalogCategory, fileVersion);
 
 				// Add the primary catalog category.
 				if (!string.IsNullOrEmpty(catalogCategory))
@@ -490,10 +503,11 @@ public partial class ContentBrowserViewModel : ObservableObject
 				var itemType = new ItemType(staticMesh.Id, settings);
 				var wad = settings.WadTryGetWad(itemType, out bool multiple);
 				string wadSource = wad is not null ? Path.GetFileName(wad.Path) : "Unknown";
+				var fileVersion = wad is not null && wadFileVersions.TryGetValue(wad.Path, out var wadVer) ? wadVer : string.Empty;
 
 				string catalogCategory = TrCatalog.GetStaticCategory(gameVersion, staticMesh.Id.TypeId);
 
-				var item = new AssetItemViewModel(staticMesh, name, AssetCategory.Statics, staticsCategory, wadSource, multiple, catalogCategory);
+				var item = new AssetItemViewModel(staticMesh, name, AssetCategory.Statics, staticsCategory, wadSource, multiple, catalogCategory, fileVersion);
 
 				// Add the primary catalog category.
 				if (!string.IsNullOrEmpty(catalogCategory))
@@ -527,8 +541,9 @@ public partial class ContentBrowserViewModel : ObservableObject
 
 			string name = string.IsNullOrEmpty(geo.Info.Name) ? Path.GetFileNameWithoutExtension(geo.Info.Path) ?? "Unnamed" : geo.Info.Name;
 			string wadSource = !string.IsNullOrEmpty(geo.Info.Path) ? Path.GetFileName(geo.Info.Path) : "Inline";
+			var fileVersion = !string.IsNullOrEmpty(geo.Info.Path) ? GetFileVersion(settings.MakeAbsolute(geo.Info.Path)) : string.Empty;
 
-			geoItems.Add(new AssetItemViewModel(geo, name, AssetCategory.ImportedGeometry, importedGeometryCategory, wadSource, false));
+			geoItems.Add(new AssetItemViewModel(geo, name, AssetCategory.ImportedGeometry, importedGeometryCategory, wadSource, false, string.Empty, fileVersion));
 		}
 
 		// Wait for parallel moveable and static building to complete.
@@ -631,6 +646,18 @@ public partial class ContentBrowserViewModel : ObservableObject
 
 		foreach (var item in AllItems)
 			item.Thumbnail = null;
+	}
+
+	private static string GetFileVersion(string absolutePath)
+	{
+		try
+		{
+			return File.GetLastWriteTimeUtc(absolutePath).Ticks.ToString();
+		}
+		catch
+		{
+			return "0";
+		}
 	}
 
 	/// <summary>

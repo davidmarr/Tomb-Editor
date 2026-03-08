@@ -282,7 +282,6 @@ public partial class ContentBrowser : DarkToolWindow
 				_thumbnailQueue = null;
 				_thumbnailQueueIndex = 0;
 
-				_viewModel.InvalidateThumbnailCache();
 				_renderer?.Dispose();
 				_renderer = null;
 			}
