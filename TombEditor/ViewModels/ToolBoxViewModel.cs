@@ -167,12 +167,24 @@ public partial class ToolBoxViewModel : ObservableObject
 	[RelayCommand]
 	private void SetTextureEraser()
 	{
+		if (IsTextureEraserChecked)
+		{
+			OnPropertyChanged(nameof(IsTextureEraserChecked));
+			return;
+		}
+
 		_editor.SelectedTexture = TextureArea.None;
 	}
 
 	[RelayCommand]
 	private void SetTextureInvisible()
 	{
+		if (IsTextureInvisibleChecked)
+		{
+			OnPropertyChanged(nameof(IsTextureInvisibleChecked));
+			return;
+		}
+
 		_editor.SelectedTexture = TextureArea.Invisible;
 	}
 

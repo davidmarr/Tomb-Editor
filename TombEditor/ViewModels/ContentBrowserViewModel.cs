@@ -272,8 +272,8 @@ public partial class ContentBrowserViewModel : ObservableObject
 	[NotifyPropertyChangedFor(nameof(ThumbSize))]
 	private double _tileWidth = 88;
 
-	// Computed tile height based on tile width (near-square with label allowance).
-	public double TileHeight => TileWidth + 4;
+	// Computed tile height: thumbnail size + 4px margin + fixed label row height.
+	public double TileHeight => ThumbSize + 4 + 22;
 
 	// Computed thumbnail square size based on tile width.
 	public double ThumbSize => TileWidth * 0.78;
