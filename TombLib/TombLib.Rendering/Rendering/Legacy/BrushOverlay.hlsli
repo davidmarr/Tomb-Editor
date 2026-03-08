@@ -19,7 +19,12 @@ void ApplyBrushOverlay(inout float3 rgb, inout float alpha, bool updateAlpha, fl
     float fillAlpha = step(dist, BrushCenter.w) * BrushColor.w;
 
     float3 excludeColor = rgb + BrushColor.xyz - 2.0f * rgb * BrushColor.xyz;
-    rgb = lerp(rgb, excludeColor, fillAlpha);
+    float3 diffColor    = abs(rgb - BrushColor.xyz);
+
+    // Combine both blend modes
+    float3 combined = saturate(excludeColor + diffColor);
+
+    rgb = lerp(rgb, combined, fillAlpha);
 
     if (updateAlpha)
         alpha = max(alpha, fillAlpha);

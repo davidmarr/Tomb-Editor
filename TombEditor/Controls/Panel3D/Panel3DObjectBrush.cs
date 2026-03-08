@@ -353,8 +353,8 @@ namespace TombEditor.Controls.Panel3D
         // Compute brush overlay parameters. Returns null if brush is inactive.
         private BrushOverlayState ComputeBrushOverlay(bool reset = false)
         {
-            const float MinBrushTransparency = 0.15f;
-            const float MaxBrushTransparency = 0.35f;
+            const float MinBrushTransparency = 0.1f;
+            const float MaxBrushTransparency = 0.4f;
 
             if (_editor.Mode != EditorMode.ObjectPlacement || !_brushCursorPosition.HasValue || _brushCursorRoom == null)
                 reset = true;
@@ -367,14 +367,20 @@ namespace TombEditor.Controls.Panel3D
 
             if (!reset)
             {
-                if (_editor.Tool.Tool != EditorToolType.Selection && _editor.Tool.Tool != EditorToolType.Deselection)
+                if (_editor.Tool.Tool != EditorToolType.Selection &&
+                    _editor.Tool.Tool != EditorToolType.Deselection &&
+                    _editor.Tool.Tool != EditorToolType.Line &&
+                    _editor.Tool.Tool != EditorToolType.Pencil)
+                {
                     density = Math.Min(MaxBrushTransparency, Math.Max(MinBrushTransparency, _editor.Configuration.ObjectBrush_Density / ObjectBrush.Constants.MaxDensity));
+                }
 
                 var cursorPos = _brushCursorPosition.HasValue ? _brushCursorPosition.Value : Vector3.Zero;
 
                 if (_editor.Tool.Tool == EditorToolType.Fill)
                 {
                     const float FillBrushSize = 0.2f;
+
                     shape = (int)ObjectBrushShape.Circle;
                     density = 0.0f;
                     center = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, Level.SectorSizeUnit * FillBrushSize);
