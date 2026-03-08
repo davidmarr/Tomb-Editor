@@ -346,24 +346,7 @@ namespace TombEditor.Controls.Panel3D
 
         private bool OnMouseMovedNone(Point location)
         {
-            // Update object brush cursor for radius visualization.
-            if (_editor.Mode == EditorMode.ObjectPlacement)
-            {
-                var brushPicking = DoPicking(GetRay(location.X, location.Y), skipObjects: true) as PickingResultSector;
-                if (brushPicking != null && brushPicking.BelongsToFloor)
-                {
-                    var room = brushPicking.Room == _editor.SelectedRoom ? _editor.SelectedRoom : brushPicking.Room;
-                    var ray = GetRay(location.X, location.Y);
-                    float hitX = ray.Position.X + ray.Direction.X * brushPicking.Distance;
-                    float hitZ = ray.Position.Z + ray.Direction.Z * brushPicking.Distance;
-                    ObjectBrushActions.UpdateBrushCursor(_editor, room, brushPicking.Pos, hitX, hitZ);
-                    return true;
-                }
-                else
-                {
-                    _editor.UpdateObjectBrushCursor(null, null);
-                }
-            }
+            HandleBrushMouseMove(location);
 
             if (_editor.Tool.Tool != EditorToolType.GridPaint)
                 return false;

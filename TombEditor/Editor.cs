@@ -174,7 +174,7 @@ namespace TombEditor
         private ItemType[] _chosenItems = Array.Empty<ItemType>();
         public IReadOnlyList<ItemType> ChosenItems
         {
-            get => _chosenItems;
+            get { return _chosenItems; }
             set
             {
                 var arr = value?.ToArray() ?? Array.Empty<ItemType>();
@@ -273,23 +273,6 @@ namespace TombEditor
         public void ObjectBrushSettingsChange()
         {
             RaiseEvent(new ObjectBrushSettingsChangedEvent());
-        }
-
-        // Object brush cursor state (updated by Panel3D on mouse move)
-        public class ObjectBrushCursorChangedEvent : IEditorEvent
-        {
-            public Vector3? Position { get; internal set; }
-            public Room Room { get; internal set; }
-        }
-        private Vector3? _objectBrushCursorPosition;
-        private Room _objectBrushCursorRoom;
-        public Vector3? ObjectBrushCursorPosition => _objectBrushCursorPosition;
-        public Room ObjectBrushCursorRoom => _objectBrushCursorRoom;
-        public void UpdateObjectBrushCursor(Vector3? position, Room room)
-        {
-            _objectBrushCursorPosition = position;
-            _objectBrushCursorRoom = room;
-            RaiseEvent(new ObjectBrushCursorChangedEvent { Position = position, Room = room });
         }
 
         public LastSelectionType LastSelection = LastSelectionType.None;

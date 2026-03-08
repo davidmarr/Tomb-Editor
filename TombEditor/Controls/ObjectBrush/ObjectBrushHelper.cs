@@ -1,4 +1,3 @@
-using SharpDX.Toolkit.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,12 +8,9 @@ using TombLib.LevelData;
 
 namespace TombEditor.Controls.ObjectBrush
 {
-    public static class ObjectBrushHelper
+    public static class Helper
     {
         private static readonly Random _rng = new Random();
-        private static float? _mouseDirectionAngle;
-
-        internal static void SetMouseDirectionAngle(float? angle) => _mouseDirectionAngle = angle;
 
         #region Floor Height and Geometry Queries
 
@@ -342,8 +338,8 @@ namespace TombEditor.Controls.ObjectBrush
         public static List<PositionBasedObjectInstance> PlaceObjectsWithBrush(Editor editor, Room room, float x, float z,
            IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint = null)
         {
-            var shape = editor.Configuration.ObjectBrush_Shape;
-            float radius = editor.Configuration.ObjectBrush_Radius;
+            var   shape   = editor.Configuration.ObjectBrush_Shape;
+            float radius  = editor.Configuration.ObjectBrush_Radius;
             float density = editor.Configuration.ObjectBrush_Density;
 
             var placedObjects = new List<PositionBasedObjectInstance>();
@@ -417,6 +413,8 @@ namespace TombEditor.Controls.ObjectBrush
             Vector2 candidate, ItemType chosenItem, float minDistSq, ref PlacementContext context, RectangleInt2? sectorConstraint,
             out PositionBasedObjectInstance instance)
         {
+            var config = editor.Configuration;
+
             instance = null;
             float worldX = candidate.X;
             float worldZ = candidate.Y;
@@ -429,8 +427,6 @@ namespace TombEditor.Controls.ObjectBrush
 
             if (!IsWithinConstraint(sectorX, sectorZ, sectorConstraint))
                 return false;
-
-            var config = editor.Configuration;
 
             var placementRoom = targetRoom;
             float placeX = worldX;
@@ -464,15 +460,13 @@ namespace TombEditor.Controls.ObjectBrush
                 return false;
 
             bool randomRot = config.ObjectBrush_RandomizeRotation && editor.Tool.Tool != EditorToolType.Line;
-            bool followDir = config.ObjectBrush_FollowMouseDirection;
-            bool randomScale = config.ObjectBrush_RandomizeScale;
 
             float rotY;
-            if (followDir)
+            if (config.ObjectBrush_FollowMouseDirection)
             {
-                rotY = _mouseDirectionAngle ?? config.ObjectBrush_Rotation;
+                rotY = Actions.MouseDirectionAngle ?? config.ObjectBrush_Rotation;
                 if (randomRot)
-                    rotY += (float)((_rng.NextDouble() - 0.5f) * 45.0f);
+                    rotY += ((float)_rng.NextDouble() - 0.5f) * 45.0f;
 
                 rotY = ((rotY % 360.0f) + 360.0f) % 360.0f;
             }
@@ -490,7 +484,7 @@ namespace TombEditor.Controls.ObjectBrush
 
             float scale = 1.0f;
 
-            if (randomScale && chosenItem.IsStatic)
+            if (config.ObjectBrush_RandomizeScale && chosenItem.IsStatic)
                 scale = config.ObjectBrush_ScaleMin + (float)_rng.NextDouble() * (config.ObjectBrush_ScaleMax - config.ObjectBrush_ScaleMin);
 
             // Determine Y position in the placement room (use cached bounds to avoid repeated wad look-ups).
@@ -521,7 +515,7 @@ namespace TombEditor.Controls.ObjectBrush
             if (instance is IRotateableY rotatable)
                 rotatable.RotationY = rotY;
 
-            if (instance is IScaleable scaleable && randomScale)
+            if (instance is IScaleable scaleable && config.ObjectBrush_RandomizeScale)
                 scaleable.Scale = scale;
 
             placementRoom.AddObject(level, instance);
@@ -538,11 +532,11 @@ namespace TombEditor.Controls.ObjectBrush
         public static List<(PositionBasedObjectInstance Obj, Room Room)> EraseObjectsWithBrush(Editor editor, Room room,
             float centerWorldX, float centerWorldZ, IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint = null)
         {
-            var shape     = editor.Configuration.ObjectBrush_Shape;
-            float radius  = editor.Configuration.ObjectBrush_Radius;
-            float density = editor.Configuration.ObjectBrush_Density;
-            bool adjacent = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
-            bool filterByChosen = Control.ModifierKeys.HasFlag(Keys.Shift);
+            var   shape          = editor.Configuration.ObjectBrush_Shape;
+            float radius         = editor.Configuration.ObjectBrush_Radius;
+            float density        = editor.Configuration.ObjectBrush_Density;
+            bool  adjacent       = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
+            bool  filterByChosen = Control.ModifierKeys.HasFlag(Keys.Shift);
 
             int targetCount = GetTargetObjectCount(radius, density * 0.3f, shape);
 
@@ -633,10 +627,10 @@ namespace TombEditor.Controls.ObjectBrush
             IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint,
             HashSet<ObjectInstance> processedObjects = null, bool deselect = false)
         {
-            var shape = editor.Configuration.ObjectBrush_Shape;
-            float radius = editor.Configuration.ObjectBrush_Radius;
+            var shape     = editor.Configuration.ObjectBrush_Shape;
+            float radius  = editor.Configuration.ObjectBrush_Radius;
             bool adjacent = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
-            bool filterByChosen = Control.ModifierKeys.HasFlag(Keys.Shift);
+            bool filter   = Control.ModifierKeys.HasFlag(Keys.Shift);
 
             var rooms = GetBrushRooms(room, adjacent);
             var objectsInArea = new List<PositionBasedObjectInstance>();
@@ -656,7 +650,7 @@ namespace TombEditor.Controls.ObjectBrush
                     if (processedObjects != null && processedObjects.Contains(obj))
                         continue;
 
-                    if (filterByChosen && !chosenItems.Contains(item.ItemType))
+                    if (filter && !chosenItems.Contains(item.ItemType))
                         continue;
 
                     if (sectorConstraint.HasValue)
@@ -667,7 +661,11 @@ namespace TombEditor.Controls.ObjectBrush
                             continue;
                     }
 
-                    if (IsInBrushArea(obj.Position.X, obj.Position.Z, localCenterX, localCenterZ, radius, shape))
+                    float rotY = (obj as IRotateableY)?.RotationY ?? 0.0f;
+                    float scale = (obj as IScaleable)?.Scale ?? 1.0f;
+                    var bbox = GetItemBoundingBox(targetRoom.Level, item.ItemType);
+
+                    if (DoesBoundingBoxIntersectBrush(obj.Position.X, obj.Position.Z, rotY, scale, bbox, localCenterX, localCenterZ, radius, shape))
                         objectsInArea.Add(obj);
                 }
             }
@@ -749,9 +747,9 @@ namespace TombEditor.Controls.ObjectBrush
             float centerWorldX, float centerWorldZ, IReadOnlyList<ItemType> chosenItems, ref int itemIndex,
             RectangleInt2? sectorConstraint, bool skipOverlapCheck = false)
         {
-            var config = editor.Configuration;
-            float radius = config.ObjectBrush_Radius;
-            bool adjacent = config.ObjectBrush_PlaceInAdjacentRooms;
+            float radius        = editor.Configuration.ObjectBrush_Radius;
+            bool  adjacent      = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
+            bool  perpendicular = editor.Configuration.ObjectBrush_Perpendicular;
 
             var placedObjects = new List<PositionBasedObjectInstance>();
             var level = editor.Level;
@@ -774,9 +772,10 @@ namespace TombEditor.Controls.ObjectBrush
             float minDist = radius;
             if (bbox.HasValue)
             {
-                float extent = config.ObjectBrush_Perpendicular
+                float extent = perpendicular
                     ? bbox.Value.Maximum.X - bbox.Value.Minimum.X
                     : bbox.Value.Maximum.Z - bbox.Value.Minimum.Z;
+
                 if (extent > 0.0f)
                     minDist = Math.Max(extent, radius);
             }
@@ -793,6 +792,7 @@ namespace TombEditor.Controls.ObjectBrush
                 float localZ = centerWorldZ + offset.Z;
 
                 if (!skipOverlapCheck)
+                {
                     foreach (var obj in targetRoom.Objects)
                     {
                         if (obj is ItemInstance item && chosenItems.Contains(item.ItemType))
@@ -806,6 +806,7 @@ namespace TombEditor.Controls.ObjectBrush
                             }
                         }
                     }
+                }
 
                 if (tooClose)
                     continue;
@@ -838,9 +839,8 @@ namespace TombEditor.Controls.ObjectBrush
         public static List<PositionBasedObjectInstance> FillAreaWithObjects(Editor editor, Room room,
             IReadOnlyList<ItemType> chosenItems, RectangleInt2 area)
         {
-            var config = editor.Configuration;
-            float density = config.ObjectBrush_Density;
-            bool adjacent = config.ObjectBrush_PlaceInAdjacentRooms;
+            float density = editor.Configuration.ObjectBrush_Density;
+            bool adjacent = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
 
             var placedObjects = new List<PositionBasedObjectInstance>();
             var level = editor.Level;
@@ -913,53 +913,6 @@ namespace TombEditor.Controls.ObjectBrush
 
             editor.ObjectChange(placedObjects, ObjectChangeType.Add);
             return placedObjects;
-        }
-
-        #endregion
-
-        #region Rendering
-
-        public static void ApplyBrushToModelEffect(Editor editor, Effect effect, float? angle, bool reset = false)
-        {
-            int brushShape = 0;
-            var brushCenter = Vector4.Zero;
-            var brushColor = Vector4.Zero;
-            float brushRotation = -1.0f;
-
-            if (!reset && editor.Mode == EditorMode.ObjectPlacement && editor.ObjectBrushCursorPosition.HasValue && editor.ObjectBrushCursorRoom != null)
-            {
-                var cursorPos = editor.ObjectBrushCursorPosition.Value;
-                var selColor = editor.Configuration.UI_ColorScheme.ColorSelection;
-                brushColor = new Vector4(selColor.X, selColor.Y, selColor.Z, 1.0f);
-
-                if (editor.Tool.Tool == EditorToolType.Fill)
-                {
-                    brushShape = 1;
-                    brushCenter = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, Level.SectorSizeUnit * 0.2f);
-                }
-                else
-                {
-                    float radius = editor.Configuration.ObjectBrush_Radius;
-                    brushShape = editor.Configuration.ObjectBrush_Shape == ObjectBrushShape.Circle ? 1 : 2;
-                    brushCenter = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, radius);
-
-                    if (editor.Tool.Tool != EditorToolType.Selection && editor.Tool.Tool != EditorToolType.Deselect &&
-                        editor.Tool.Tool != EditorToolType.Eraser &&
-                        !(editor.Configuration.ObjectBrush_RandomizeRotation && !editor.Configuration.ObjectBrush_FollowMouseDirection && editor.Tool.Tool != EditorToolType.Line))
-                    {
-                        if (editor.Configuration.ObjectBrush_FollowMouseDirection && angle.HasValue && editor.Tool.Tool != EditorToolType.Line)
-                            brushRotation = angle.Value;
-                        else
-                            brushRotation = editor.Configuration.ObjectBrush_Rotation;
-                    }
-                }
-            }
-
-            effect.Parameters["BrushShape"].SetValue(brushShape);
-            effect.Parameters["BrushCenter"].SetValue(brushCenter);
-            effect.Parameters["BrushColor"].SetValue(brushColor);
-            effect.Parameters["BrushRotation"].SetValue(brushRotation);
-            effect.Parameters["BrushLineWidth"].SetValue(editor.Configuration.Rendering3D_LineWidth);
         }
 
         #endregion

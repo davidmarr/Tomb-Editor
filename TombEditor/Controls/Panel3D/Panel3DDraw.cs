@@ -8,7 +8,7 @@ using TombLib;
 using TombLib.Controls;
 using TombLib.Graphics;
 using TombLib.Graphics.Primitives;
-using TombEditor.Controls.ObjectBrush;
+
 using TombLib.LevelData;
 using TombLib.LevelData.SectorEnums;
 using TombLib.LevelData.SectorEnums.Extensions;
@@ -1513,7 +1513,7 @@ namespace TombEditor.Controls.Panel3D
             var camPos = Camera.GetPosition();
             var skinnedModelEffect = DeviceManager.DefaultDeviceManager.___LegacyEffects["Model"];
 
-            ObjectBrushHelper.ApplyBrushToModelEffect(_editor, skinnedModelEffect, _lastMouseDirectionAngle);
+            ApplyBrushToModelEffect(skinnedModelEffect);
 
             skinnedModelEffect.Parameters["AlphaTest"].SetValue(HideTransparentFaces);
             skinnedModelEffect.Parameters["ColoredVertices"].SetValue(_editor.Level.IsTombEngine);
@@ -1642,7 +1642,7 @@ namespace TombEditor.Controls.Panel3D
             }
 
             // Reset state.
-            ObjectBrushHelper.ApplyBrushToModelEffect(_editor, skinnedModelEffect, null, true);
+            ApplyBrushToModelEffect(skinnedModelEffect, true);
             skinnedModelEffect.Techniques[0].Passes[0].Apply();
         }
 
@@ -1778,7 +1778,7 @@ namespace TombEditor.Controls.Panel3D
             var staticMeshEffect = DeviceManager.DefaultDeviceManager.___LegacyEffects["Model"];
             var camPos = Camera.GetPosition();
 
-            ObjectBrushHelper.ApplyBrushToModelEffect(_editor, staticMeshEffect, _lastMouseDirectionAngle);
+            ApplyBrushToModelEffect(staticMeshEffect);
 
             var groups = staticsToDraw.GroupBy(s => s.WadObjectId);
             foreach (var group in groups)
@@ -1863,7 +1863,7 @@ namespace TombEditor.Controls.Panel3D
             }
 
             // Reset state.
-            ObjectBrushHelper.ApplyBrushToModelEffect(_editor, staticMeshEffect, null, true);
+            ApplyBrushToModelEffect(staticMeshEffect, true);
             staticMeshEffect.Techniques[0].Passes[0].Apply();
         }
 
@@ -1911,40 +1911,7 @@ namespace TombEditor.Controls.Panel3D
             _viewProjection = Camera.GetViewProjectionMatrix(ClientSize.Width, ClientSize.Height);
 
             // Determine brush overlay state.
-            int brushShape = 0;
-            var brushCenter = Vector4.Zero;
-            var brushColor = Vector4.One;
-            float brushRotation = 0.0f;
-
-            if (_editor.Mode == EditorMode.ObjectPlacement && _editor.ObjectBrushCursorPosition.HasValue && _editor.ObjectBrushCursorRoom != null)
-            {
-                var cursorPos = _editor.ObjectBrushCursorPosition.Value;
-                var selColor = _editor.Configuration.UI_ColorScheme.ColorSelection;
-                brushColor = new Vector4(selColor.X, selColor.Y, selColor.Z, 1.0f);
-                brushRotation = -1.0f; // Default: no rotation indicator.
-
-                if (_editor.Tool.Tool == EditorToolType.Fill)
-                {
-                    brushShape = 1; // Always circle.
-                    brushCenter = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, Level.SectorSizeUnit * 0.2f);
-                }
-                else
-                {
-                    float radius = _editor.Configuration.ObjectBrush_Radius;
-                    brushShape = _editor.Configuration.ObjectBrush_Shape == ObjectBrushShape.Circle ? 1 : 2;
-                    brushCenter = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, radius);
-
-                    if (_editor.Tool.Tool != EditorToolType.Selection && _editor.Tool.Tool != EditorToolType.Deselect &&
-                        _editor.Tool.Tool != EditorToolType.Eraser &&
-                        !(_editor.Configuration.ObjectBrush_RandomizeRotation && !_editor.Configuration.ObjectBrush_FollowMouseDirection && _editor.Tool.Tool != EditorToolType.Line))
-                    {
-                        if (_editor.Configuration.ObjectBrush_FollowMouseDirection && _lastMouseDirectionAngle.HasValue && _editor.Tool.Tool != EditorToolType.Line)
-                            brushRotation = _lastMouseDirectionAngle.Value;
-                        else
-                            brushRotation = _editor.Configuration.ObjectBrush_Rotation;
-                    }
-                }
-            }
+            var brushState = ComputeBrushOverlay();
 
             // In ObjectPlacement (brush) mode, use only the brush-specific ShowTextures flag,
             // the global white-lighting override is ignored so it doesn't bleed into brush mode.
@@ -1955,15 +1922,15 @@ namespace TombEditor.Controls.Panel3D
             {
                 ShowExtraBlendingModes = ShowExtraBlendingModes,
                 RoomGridForce = _editor.Mode == EditorMode.Geometry || brushHidesTextures,
-                RoomDisableVertexColors = _editor.Mode == EditorMode.FaceEdit || _editor.Mode == EditorMode.ObjectPlacement,
+                RoomDisableVertexColors = _editor.Mode == EditorMode.FaceEdit,
                 RoomGridLineWidth = _editor.Configuration.Rendering3D_LineWidth,
                 TransformMatrix = _viewProjection,
                 ShowLightingWhiteTextureOnly = whiteTextureOnly,
                 LightMode = lightMode,
-                BrushShape = brushShape,
-                BrushCenter = brushCenter,
-                BrushColor = brushColor,
-                BrushRotation = brushRotation
+                BrushShape = brushState.Shape,
+                BrushCenter = brushState.Center,
+                BrushColor = brushState.Color,
+                BrushRotation = brushState.Rotation
             });
 
             var renderArgs = new RenderingDrawingRoom.RenderArgs

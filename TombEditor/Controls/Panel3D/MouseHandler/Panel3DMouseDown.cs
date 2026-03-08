@@ -229,7 +229,7 @@ namespace TombEditor.Controls.Panel3D
                         break;
 
                     case EditorMode.ObjectPlacement:
-                        HandleObjectPlacementMouseDown(location, pos, newSectorPicking);
+                        HandleObjectPlacementMouseDown(location);
                         break;
                 }
             }
