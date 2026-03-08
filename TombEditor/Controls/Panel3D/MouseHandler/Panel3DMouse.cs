@@ -142,12 +142,12 @@ namespace TombEditor.Controls.Panel3D
             }
         }
 
-        private void OnMouseWheelScroll(int delta)
+        private void OnMouseWheelScroll(int delta, Point location)
         {
             if (_movementTimer.Animating)
                 return;
 
-            if (HandleBrushWheelScroll(delta))
+            if (HandleBrushWheelScroll(delta, location))
                 return;
 
             Camera.Zoom(-delta * _editor.Configuration.Rendering3D_NavigationSpeedMouseWheelZoom);

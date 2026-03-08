@@ -14,10 +14,12 @@ void ApplyBrushOverlay(inout float3 rgb, inout float alpha, bool updateAlpha, fl
     float lineWidth = (lineWidthFactor * 2048.0f) / svPos.w;
     float fw = max(fwidth(dist), 0.001f);
 
-    // Semi-transparent fill tinting the surface toward brush color.
+    // Negate-style fill (invert background color inside brush)
 
-    float fillAlpha = step(dist, BrushCenter.w) * 0.35f;
-    rgb = lerp(rgb, BrushColor.xyz, fillAlpha);
+    float fillAlpha = step(dist, BrushCenter.w) * BrushColor.w;
+
+    float3 excludeColor = rgb + BrushColor.xyz - 2.0f * rgb * BrushColor.xyz;
+    rgb = lerp(rgb, excludeColor, fillAlpha);
 
     if (updateAlpha)
         alpha = max(alpha, fillAlpha);
@@ -27,11 +29,11 @@ void ApplyBrushOverlay(inout float3 rgb, inout float alpha, bool updateAlpha, fl
     float outerEdge = edge / fw;
     float contourAlpha = saturate(1.0f - outerEdge / max(lineWidth, 0.001f));
     rgb = lerp(rgb, float3(1, 1, 1), contourAlpha);
+
     if (updateAlpha)
         alpha = max(alpha, contourAlpha);
 
     // Rotation indicator line extending from the brush center.
-    // Line extends to at least 1024 world units so it is visible even at very small radii.
 
     if (BrushRotation >= 0.0f)
     {

@@ -400,7 +400,7 @@ namespace TombEditor.Controls.Panel3D
         protected override void OnMouseWheel(MouseEventArgs e)
         {
             base.OnMouseWheel(e);
-            OnMouseWheelScroll(e.Delta);
+            OnMouseWheelScroll(e.Delta, e.Location);
         }
 
         protected override void OnMouseDown(MouseEventArgs e)

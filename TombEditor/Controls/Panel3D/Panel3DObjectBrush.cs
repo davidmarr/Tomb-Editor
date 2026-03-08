@@ -10,20 +10,16 @@ namespace TombEditor.Controls.Panel3D
 {
     public partial class Panel3D
     {
-        const float BrushRadiusAdjustmentStep = 64.0f;
-        const float BrushAngleAdjustmentStep = 5.0f;
-        const float BrushParamDeadzone = Level.SectorSizeUnit * 0.5f;
-        const float BrushMinHoverSize  = Level.SectorSizeUnit * 0.25f;
-
         // Brush stroke state.
         private bool _brushEngaged;
         private Vector3? _lastBrushWorldPosition;
         private float? _lastBrushDirectionAngle;
 
         // Brush hover adjustment state.
-        private bool _brushSettingEngaged = false;
-        private bool _brushSettingDeadzoneExceeded = false;
+        private bool _brushParamEngaged = false;
+        private bool _brushParamDeadzoneExceeded = false;
         private Vector3? _brushParamPinPoint;
+        private Vector2 _brushParamPinHoverPos;
 
         // Brush cursor state (replaces Editor cursor fields).
         private Vector3? _brushCursorPosition;
@@ -81,7 +77,7 @@ namespace TombEditor.Controls.Panel3D
         }
 
         // Returns true if the scroll event was consumed by the brush handler.
-        private bool HandleBrushWheelScroll(int delta)
+        private bool HandleBrushWheelScroll(int delta, Point location)
         {
             if (_editor.Mode != EditorMode.ObjectPlacement)
                 return false;
@@ -91,17 +87,17 @@ namespace TombEditor.Controls.Panel3D
             // Alt + mousewheel adjusts brush rotation.
             if (Control.ModifierKeys.HasFlag(Keys.Alt))
             {
-                float rotation = _editor.Configuration.ObjectBrush_Rotation + (delta > 0 ? BrushAngleAdjustmentStep : -BrushAngleAdjustmentStep);
+                float rotation = _editor.Configuration.ObjectBrush_Rotation + (delta > 0 ? ObjectBrush.Constants.AngleAdjustmentStep : -ObjectBrush.Constants.AngleAdjustmentStep);
                 rotation = ((rotation % 360.0f) + 360.0f) % 360.0f;
-                _lastBrushDirectionAngle = _editor.Configuration.ObjectBrush_Rotation = (float)(Math.Round(rotation / BrushAngleAdjustmentStep) * BrushAngleAdjustmentStep);
+                _lastBrushDirectionAngle = _editor.Configuration.ObjectBrush_Rotation = (float)(Math.Round(rotation / ObjectBrush.Constants.AngleAdjustmentStep) * ObjectBrush.Constants.AngleAdjustmentStep);
                 settingsChanged = true;
             }
 
             // Ctrl + mousewheel adjusts brush radius.
             if (Control.ModifierKeys.HasFlag(Keys.Control))
             {
-                float radius = _editor.Configuration.ObjectBrush_Radius + (delta > 0 ? BrushRadiusAdjustmentStep : -BrushRadiusAdjustmentStep);
-                _editor.Configuration.ObjectBrush_Radius = Math.Max(BrushRadiusAdjustmentStep, radius);
+                float radius = _editor.Configuration.ObjectBrush_Radius + (delta > 0 ? ObjectBrush.Constants.RadiusAdjustmentStep : -ObjectBrush.Constants.RadiusAdjustmentStep);
+                _editor.Configuration.ObjectBrush_Radius = Math.Min(ObjectBrush.Constants.MaxRadius * Level.SectorSizeUnit, Math.Max(ObjectBrush.Constants.MinRadius * Level.SectorSizeUnit, radius));
                 settingsChanged = true;
             }
 
@@ -109,12 +105,14 @@ namespace TombEditor.Controls.Panel3D
             if (Control.ModifierKeys.HasFlag(Keys.Shift))
             {
                 float density = _editor.Configuration.ObjectBrush_Density + (delta > 0 ? 0.1f : -0.1f);
-                _editor.Configuration.ObjectBrush_Density = Math.Max(0.1f, (float)Math.Round(density, 1));
+                _editor.Configuration.ObjectBrush_Density = Math.Min(ObjectBrush.Constants.MaxDensity, Math.Max(ObjectBrush.Constants.MinDensity, (float)Math.Round(density, 1)));
                 settingsChanged = true;
             }
 
             if (settingsChanged)
             {
+                _brushParamPinHoverPos = new Vector2(location.X, location.Y);
+                _brushParamDeadzoneExceeded = false;
                 _editor.ObjectBrushSettingsChange();
                 Invalidate();
             }
@@ -158,7 +156,7 @@ namespace TombEditor.Controls.Panel3D
                 var hoverHit = PickBrushFloorPosition(location);
                 if (hoverHit.HasValue)
                 {
-                    if (UpdateBrushParameters(hoverHit.Value.WorldPos))
+                    if (UpdateBrushParameters(location, hoverHit.Value.WorldPos))
                         return true;
 
                     SetBrushCursor(hoverHit.Value.WorldPos, hoverHit.Value.Room);
@@ -264,36 +262,36 @@ namespace TombEditor.Controls.Panel3D
         // Shift: density scales with distance from pin point.
         // Returns true if any parameter was modified.
 
-        internal bool UpdateBrushParameters(Vector3 cursorWorldPos, bool storeRotation = false)
+        internal bool UpdateBrushParameters(Point location, Vector3 cursorWorldPos)
         {
             if (Control.ModifierKeys.HasFlag(Keys.Shift) ||
                 Control.ModifierKeys.HasFlag(Keys.Alt)   ||
                 Control.ModifierKeys.HasFlag(Keys.Control))
             {
-                if (!_brushSettingEngaged)
+                if (!_brushParamEngaged)
                 {
                     _brushParamPinPoint = cursorWorldPos;
-                    _brushSettingEngaged = true;
+                    _brushParamEngaged = true;
+                    _brushParamPinHoverPos = new Vector2(location.X, location.Y);
                 }
             }
             else
             {
-                _brushSettingEngaged = false;
-                _brushSettingDeadzoneExceeded = false;
+                _brushParamEngaged = false;
+                _brushParamDeadzoneExceeded = false;
                 return false;
             }
 
-            float distance = Vector2.Distance(new Vector2(cursorWorldPos.X, cursorWorldPos.Z),
-                new Vector2(_brushParamPinPoint.Value.X, _brushParamPinPoint.Value.Z));
+            float screenDistance = Vector2.Distance(new Vector2(location.X, location.Y), _brushParamPinHoverPos);
 
             // Skip parameter update until the cursor has moved past the deadzone from the pin point.
             // Once exceeded, keep updating even if cursor moves back inside the deadzone.
-            if (!_brushSettingDeadzoneExceeded)
+            if (!_brushParamDeadzoneExceeded)
             {
-                if (distance < BrushParamDeadzone)
+                if (screenDistance < ObjectBrush.Constants.ParamDeadzone)
                     return true;
 
-                _brushSettingDeadzoneExceeded = true;
+                _brushParamDeadzoneExceeded = true;
             }
 
             bool settingsChanged = false;
@@ -301,12 +299,17 @@ namespace TombEditor.Controls.Panel3D
             // Ctrl: radius = distance from pinned center to current cursor position.
             if (Control.ModifierKeys.HasFlag(Keys.Control))
             {
-                _editor.Configuration.ObjectBrush_Radius = Math.Max(BrushMinHoverSize, distance);
+                float distance = Vector2.Distance(new Vector2(cursorWorldPos.X, cursorWorldPos.Z),
+                    new Vector2(_brushParamPinPoint.Value.X, _brushParamPinPoint.Value.Z));
+
+                _editor.Configuration.ObjectBrush_Radius = Math.Min(ObjectBrush.Constants.MaxRadius * Level.SectorSizeUnit,
+                    Math.Max(ObjectBrush.Constants.MinRadius * Level.SectorSizeUnit, distance));
+
                 settingsChanged = true;
             }
 
             // Alt: rotation = smoothed angle from pin point to current cursor position.
-            if (Control.ModifierKeys.HasFlag(Keys.Alt) || storeRotation)
+            if (Control.ModifierKeys.HasFlag(Keys.Alt))
             {
                 _lastBrushWorldPosition = _brushParamPinPoint;
                 UpdateMouseDirectionAngle(cursorWorldPos);
@@ -321,7 +324,11 @@ namespace TombEditor.Controls.Panel3D
             // Shift: density scales with distance from pin point.
             if (Control.ModifierKeys.HasFlag(Keys.Shift))
             {
-                _editor.Configuration.ObjectBrush_Density = Math.Max(0.1f, (float)Math.Round(distance / Level.SectorSizeUnit, 1));
+                var density = (screenDistance / this.Size.Height) * ObjectBrush.Constants.MaxDensity;
+
+                _editor.Configuration.ObjectBrush_Density = Math.Min(ObjectBrush.Constants.MaxDensity, 
+                    Math.Max(ObjectBrush.Constants.MinDensity, density));
+
                 settingsChanged = true;
             }
 
@@ -346,22 +353,30 @@ namespace TombEditor.Controls.Panel3D
         // Compute brush overlay parameters. Returns null if brush is inactive.
         private BrushOverlayState ComputeBrushOverlay(bool reset = false)
         {
+            const float MinBrushTransparency = 0.15f;
+            const float MaxBrushTransparency = 0.35f;
+
             if (_editor.Mode != EditorMode.ObjectPlacement || !_brushCursorPosition.HasValue || _brushCursorRoom == null)
                 reset = true;
 
-            int shape  = 0;
-            var center = Vector4.Zero;
-            var rot    = -1.0f;
-            var color  = _editor.Configuration.UI_ColorScheme.ColorSelection;
+            int shape   = 0;
+            var center  = Vector4.Zero;
+            var rot     = -1.0f;
+            var density = 0.25f;
+            var color   = Vector4.One;
 
             if (!reset)
             {
+                if (_editor.Tool.Tool != EditorToolType.Selection && _editor.Tool.Tool != EditorToolType.Deselection)
+                    density = Math.Min(MaxBrushTransparency, Math.Max(MinBrushTransparency, _editor.Configuration.ObjectBrush_Density / ObjectBrush.Constants.MaxDensity));
+
                 var cursorPos = _brushCursorPosition.HasValue ? _brushCursorPosition.Value : Vector3.Zero;
 
                 if (_editor.Tool.Tool == EditorToolType.Fill)
                 {
                     const float FillBrushSize = 0.2f;
                     shape = (int)ObjectBrushShape.Circle;
+                    density = 0.0f;
                     center = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, Level.SectorSizeUnit * FillBrushSize);
                 }
                 else
@@ -377,6 +392,8 @@ namespace TombEditor.Controls.Panel3D
                             rot = _editor.Configuration.ObjectBrush_Rotation;
                     }
                 }
+
+                color.W = density;
             }
 
             return new BrushOverlayState { Shape = shape + 1, Center = center, Color = color, Rotation = rot };

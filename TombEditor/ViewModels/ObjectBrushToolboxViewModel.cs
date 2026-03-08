@@ -107,8 +107,8 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 
 		var config = _editor.Configuration;
 
-		Radius = Math.Clamp(config.ObjectBrush_Radius / Level.SectorSizeUnit, 0.1, 25.0);
-		Density = Math.Clamp(config.ObjectBrush_Density, 0.01, 5.0);
+		Radius = Math.Clamp(config.ObjectBrush_Radius / Level.SectorSizeUnit, Controls.ObjectBrush.Constants.MinRadius, Controls.ObjectBrush.Constants.MaxRadius);
+		Density = Math.Clamp(config.ObjectBrush_Density, Controls.ObjectBrush.Constants.MinDensity, Controls.ObjectBrush.Constants.MaxDensity);
 		Rotation = Math.Clamp(config.ObjectBrush_Rotation, 0.0, 360.0);
 		IsPerpendicular = config.ObjectBrush_Perpendicular;
 		IsRandomRotation = config.ObjectBrush_RandomizeRotation;
