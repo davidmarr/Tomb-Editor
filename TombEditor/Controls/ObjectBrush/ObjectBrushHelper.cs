@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Windows.Forms;
 using TombLib;
 using TombLib.LevelData;
+using TombLib.Wad;
 
 namespace TombEditor.Controls.ObjectBrush
 {
@@ -110,24 +111,61 @@ namespace TombEditor.Controls.ObjectBrush
 
         #region Bounding Box and Placement Safety
 
-        public static BoundingBox? GetItemBoundingBox(Level level, ItemType itemType)
+        public static BoundingBox? GetItemBoundingBox(Level level, IWadObject wadObject)
         {
-            if (itemType.IsStatic)
+            if (wadObject is WadStatic wadStatic)
             {
-                var wadStatic = level.Settings?.WadTryGetStatic(itemType.StaticId);
-
-                if (wadStatic?.Mesh?.BoundingBox.Size.Length() > 0.0f)
+                if (wadStatic.Mesh?.BoundingBox.Size.Length() > 0.0f)
                     return wadStatic.CollisionBox;
             }
-            else
+            else if (wadObject is WadMoveable wadMoveable)
             {
-                var wadMoveable = level.Settings?.WadTryGetMoveable(itemType.MoveableId);
-
-                if (wadMoveable?.Animations?.Count > 0 && wadMoveable.Animations[0].KeyFrames.Count > 0)
+                if (wadMoveable.Animations?.Count > 0 && wadMoveable.Animations[0].KeyFrames.Count > 0)
                     return wadMoveable.Animations[0].KeyFrames[0].BoundingBox;
+            }
+            else if (wadObject is ImportedGeometry geo)
+            {
+                if (geo.DirectXModel != null)
+                {
+                    // HACK: Invert Y axis of the bounding box.
+                    var result = geo.DirectXModel.BoundingBox;
+                    var min = result.Maximum.Y;
+                    result.Maximum.Y = result.Minimum.Y;
+                    result.Minimum.Y = min;
+
+                    return result;
+                }
             }
 
             return null;
+        }
+
+        // Checks if a room object instance matches one of the chosen IWadObject entries.
+        private static bool MatchesChosen(ObjectInstance obj, IReadOnlyList<IWadObject> chosenItems)
+        {
+            if (obj is not PositionBasedObjectInstance pObj)
+                return false;
+
+            if (obj is ItemInstance item)
+            {
+                foreach (var chosen in chosenItems)
+                {
+                    if (chosen is WadMoveable m && !item.ItemType.IsStatic && item.ItemType.MoveableId == m.Id)
+                        return true;
+                    if (chosen is WadStatic s && item.ItemType.IsStatic && item.ItemType.StaticId == s.Id)
+                        return true;
+                }
+            }
+            else if (obj is ImportedGeometryInstance geoInst)
+            {
+                foreach (var chosen in chosenItems)
+                {
+                    if (chosen is ImportedGeometry geo && geoInst.Model == geo)
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         // Checks bounding box corners at a given position and rotation for valid floor geometry.
@@ -269,12 +307,16 @@ namespace TombEditor.Controls.ObjectBrush
 
         #region Object Creation and Candidate Position Generation
 
-        public static PositionBasedObjectInstance CreateObjectInstance(ItemType itemType)
+        public static PositionBasedObjectInstance CreateObjectInstance(IWadObject wadObject)
         {
-            if (itemType.IsStatic)
-                return new StaticInstance { WadObjectId = itemType.StaticId };
-            else
-                return new MoveableInstance { WadObjectId = itemType.MoveableId };
+            if (wadObject is WadStatic s)
+                return new StaticInstance { WadObjectId = s.Id };
+            else if (wadObject is WadMoveable m)
+                return new MoveableInstance { WadObjectId = m.Id };
+            else if (wadObject is ImportedGeometry geo)
+                return new ImportedGeometryInstance { Model = geo };
+
+            return null;
         }
 
         public static List<Vector2> GenerateCandidatePositions(float centerWorldX, float centerWorldZ, float radius, float density, ObjectBrushShape shape)
@@ -329,14 +371,14 @@ namespace TombEditor.Controls.ObjectBrush
 
         private struct PlacementContext
         {
-            public Dictionary<ItemType, BoundingBox?> BoundsCache;
+            public Dictionary<IWadObject, BoundingBox?> BoundsCache;
             public Dictionary<Room, List<Vector2>> PosCache;
         }
 
         // Main object placement operation.
 
         public static List<PositionBasedObjectInstance> PlaceObjectsWithBrush(Editor editor, Room room, float x, float z,
-           IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint = null)
+           IReadOnlyList<IWadObject> chosenItems, RectangleInt2? sectorConstraint = null)
         {
             var   shape   = editor.Configuration.ObjectBrush_Shape;
             float radius  = editor.Configuration.ObjectBrush_Radius;
@@ -355,7 +397,7 @@ namespace TombEditor.Controls.ObjectBrush
             // Build per-call context: bounds cache (shared across rooms) + position cache (per room).
             var context = new PlacementContext
             {
-                BoundsCache = new Dictionary<ItemType, BoundingBox?>(),
+                BoundsCache = new Dictionary<IWadObject, BoundingBox?>(),
                 PosCache = new Dictionary<Room, List<Vector2>>()
             };
 
@@ -364,8 +406,8 @@ namespace TombEditor.Controls.ObjectBrush
                 var posList = new List<Vector2>();
 
                 foreach (var obj in r.Objects)
-                    if (obj is ItemInstance item && chosenItems.Contains(item.ItemType))
-                        posList.Add(new Vector2(item.Position.X, item.Position.Z));
+                    if (obj is PositionBasedObjectInstance pObj && MatchesChosen(pObj, chosenItems))
+                        posList.Add(new Vector2(obj.Position.X, obj.Position.Z));
 
                 context.PosCache[r] = posList;
             }
@@ -410,7 +452,7 @@ namespace TombEditor.Controls.ObjectBrush
         // Individual object placement attempt.
 
         private static bool TryPlaceObject(Editor editor, Level level, Room targetRoom,
-            Vector2 candidate, ItemType chosenItem, float minDistSq, ref PlacementContext context, RectangleInt2? sectorConstraint,
+            Vector2 candidate, IWadObject chosenItem, float minDistSq, ref PlacementContext context, RectangleInt2? sectorConstraint,
             out PositionBasedObjectInstance instance)
         {
             var config = editor.Configuration;
@@ -484,7 +526,7 @@ namespace TombEditor.Controls.ObjectBrush
 
             float scale = 1.0f;
 
-            if (config.ObjectBrush_RandomizeScale && chosenItem.IsStatic)
+            if (config.ObjectBrush_RandomizeScale && chosenItem is WadStatic or ImportedGeometry)
                 scale = config.ObjectBrush_ScaleMin + (float)_rng.NextDouble() * (config.ObjectBrush_ScaleMax - config.ObjectBrush_ScaleMin);
 
             // Determine Y position in the placement room (use cached bounds to avoid repeated wad look-ups).
@@ -499,13 +541,17 @@ namespace TombEditor.Controls.ObjectBrush
             if (config.ObjectBrush_FitToGround && bbox.HasValue)
             {
                 float? safeHeight = GetSafePlacementHeight(placementRoom, new Vector3(placeX, 0, placeZ), rotY, scale, bbox.Value);
-                if (!safeHeight.HasValue) return false;
+                if (!safeHeight.HasValue)
+                    return false;
+
                 yPos = safeHeight.Value;
             }
             else
             {
                 float? floorH = GetFloorHeightAtPoint(placementRoom, placeX, placeZ);
-                if (!floorH.HasValue) return false;
+                if (!floorH.HasValue)
+                    return false;
+
                 yPos = floorH.Value;
             }
 
@@ -530,7 +576,7 @@ namespace TombEditor.Controls.ObjectBrush
         // Main object erase operation.
 
         public static List<(PositionBasedObjectInstance Obj, Room Room)> EraseObjectsWithBrush(Editor editor, Room room,
-            float centerWorldX, float centerWorldZ, IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint = null)
+            float centerWorldX, float centerWorldZ, IReadOnlyList<IWadObject> chosenItems, RectangleInt2? sectorConstraint = null)
         {
             var   shape          = editor.Configuration.ObjectBrush_Shape;
             float radius         = editor.Configuration.ObjectBrush_Radius;
@@ -580,13 +626,16 @@ namespace TombEditor.Controls.ObjectBrush
         }
 
         private static List<PositionBasedObjectInstance> CollectObjectsInBrushArea(Room room, float centerWorldX, float centerWorldZ, float radius,
-            ObjectBrushShape shape, IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint)
+            ObjectBrushShape shape, IReadOnlyList<IWadObject> chosenItems, RectangleInt2? sectorConstraint)
         {
             var result = new List<PositionBasedObjectInstance>();
 
             foreach (var obj in room.Objects)
             {
-                if (!(obj is ItemInstance item) || (chosenItems != null && !chosenItems.Contains(item.ItemType)))
+                if (!(obj is ItemInstance || obj is ImportedGeometryInstance))
+                    continue;
+
+                if (chosenItems != null && !MatchesChosen(obj, chosenItems))
                     continue;
 
                 if (sectorConstraint.HasValue)
@@ -599,12 +648,28 @@ namespace TombEditor.Controls.ObjectBrush
 
                 float rotY  = (obj as IRotateableY)?.RotationY ?? 0.0f;
                 float scale = (obj as IScaleable)?.Scale ?? 1.0f;
-                var   bbox  = GetItemBoundingBox(room.Level, item.ItemType);
 
+                var bbox = GetBoundingBox(obj);
                 if (DoesBoundingBoxIntersectBrush(obj.Position.X, obj.Position.Z, rotY, scale, bbox, centerWorldX, centerWorldZ, radius, shape))
-                    result.Add(obj);
+                    result.Add(obj as PositionBasedObjectInstance);
             }
             return result;
+        }
+
+        private static BoundingBox? GetBoundingBox(ObjectInstance obj)
+        {
+            BoundingBox? bbox = null;
+
+            if (obj is ItemInstance item)
+            {
+                bbox = GetItemBoundingBox(obj.Room.Level, item.ItemType.IsStatic
+                    ? (IWadObject)obj.Room.Level.Settings?.WadTryGetStatic(item.ItemType.StaticId)
+                    : (IWadObject)obj.Room.Level.Settings?.WadTryGetMoveable(item.ItemType.MoveableId));
+            }
+            else if (obj is ImportedGeometryInstance geoInst && geoInst.Model != null)
+                bbox = GetItemBoundingBox(obj.Room.Level, geoInst.Model);
+
+            return bbox;
         }
 
         public static void ShuffleList<T>(List<T> list)
@@ -624,7 +689,7 @@ namespace TombEditor.Controls.ObjectBrush
         // Ctrl deselects, Shift limits to current ChosenItems only.
 
         public static void SelectObjectsWithBrush(Editor editor, Room room, float centerWorldX, float centerWorldZ,
-            IReadOnlyList<ItemType> chosenItems, RectangleInt2? sectorConstraint,
+            IReadOnlyList<IWadObject> chosenItems, RectangleInt2? sectorConstraint,
             HashSet<ObjectInstance> processedObjects = null, bool deselect = false)
         {
             var shape     = editor.Configuration.ObjectBrush_Shape;
@@ -643,14 +708,14 @@ namespace TombEditor.Controls.ObjectBrush
 
                 foreach (var obj in targetRoom.Objects)
                 {
-                    if (!(obj is ItemInstance item))
+                    if (!(obj is ItemInstance || obj is ImportedGeometryInstance))
                         continue;
 
                     // Skip objects already processed during this stroke.
                     if (processedObjects != null && processedObjects.Contains(obj))
                         continue;
 
-                    if (filter && !chosenItems.Contains(item.ItemType))
+                    if (filter && !MatchesChosen(obj, chosenItems))
                         continue;
 
                     if (sectorConstraint.HasValue)
@@ -661,12 +726,12 @@ namespace TombEditor.Controls.ObjectBrush
                             continue;
                     }
 
-                    float rotY = (obj as IRotateableY)?.RotationY ?? 0.0f;
+                    float rotY  = (obj as IRotateableY)?.RotationY ?? 0.0f;
                     float scale = (obj as IScaleable)?.Scale ?? 1.0f;
-                    var bbox = GetItemBoundingBox(targetRoom.Level, item.ItemType);
 
+                    var bbox = GetBoundingBox(obj);
                     if (DoesBoundingBoxIntersectBrush(obj.Position.X, obj.Position.Z, rotY, scale, bbox, localCenterX, localCenterZ, radius, shape))
-                        objectsInArea.Add(obj);
+                        objectsInArea.Add(obj as PositionBasedObjectInstance);
                 }
             }
 
@@ -744,7 +809,7 @@ namespace TombEditor.Controls.ObjectBrush
         // If Ctrl is held, advance only in the rotation direction.
 
         public static List<PositionBasedObjectInstance> PlaceObjectWithPencil(Editor editor, Room room,
-            float centerWorldX, float centerWorldZ, IReadOnlyList<ItemType> chosenItems, ref int itemIndex,
+            float centerWorldX, float centerWorldZ, IReadOnlyList<IWadObject> chosenItems, ref int itemIndex,
             RectangleInt2? sectorConstraint, bool skipOverlapCheck = false)
         {
             float radius     = editor.Configuration.ObjectBrush_Radius;
@@ -755,7 +820,7 @@ namespace TombEditor.Controls.ObjectBrush
             var level = editor.Level;
 
             // Build bbox cache.
-            var bboxCache = new Dictionary<ItemType, BoundingBox?>();
+            var bboxCache = new Dictionary<IWadObject, BoundingBox?>();
 
             // Select the item to place.
             var chosenItem = chosenItems[itemIndex % chosenItems.Count];
@@ -795,7 +860,7 @@ namespace TombEditor.Controls.ObjectBrush
                 {
                     foreach (var obj in targetRoom.Objects)
                     {
-                        if (obj is ItemInstance item && chosenItems.Contains(item.ItemType))
+                        if (obj is PositionBasedObjectInstance pObj && MatchesChosen(pObj, chosenItems))
                         {
                             float dx = obj.Position.X - localX;
                             float dz = obj.Position.Z - localZ;
@@ -837,7 +902,7 @@ namespace TombEditor.Controls.ObjectBrush
         // Fill a defined area with objects using density setting.
 
         public static List<PositionBasedObjectInstance> FillAreaWithObjects(Editor editor, Room room,
-            IReadOnlyList<ItemType> chosenItems, RectangleInt2 area)
+            IReadOnlyList<IWadObject> chosenItems, RectangleInt2 area)
         {
             float density = editor.Configuration.ObjectBrush_Density;
             bool adjacent = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
@@ -858,7 +923,7 @@ namespace TombEditor.Controls.ObjectBrush
 
             var context = new PlacementContext
             {
-                BoundsCache = new Dictionary<ItemType, BoundingBox?>(),
+                BoundsCache = new Dictionary<IWadObject, BoundingBox?>(),
                 PosCache = new Dictionary<Room, List<Vector2>>()
             };
 
@@ -869,8 +934,8 @@ namespace TombEditor.Controls.ObjectBrush
                 var posList = new List<Vector2>();
                 foreach (var obj in r.Objects)
                 {
-                    if (obj is ItemInstance item && chosenItems.Contains(item.ItemType))
-                        posList.Add(new Vector2(item.Position.X, item.Position.Z));
+                    if (obj is PositionBasedObjectInstance pObj && MatchesChosen(pObj, chosenItems))
+                        posList.Add(new Vector2(obj.Position.X, obj.Position.Z));
                 }
                 context.PosCache[r] = posList;
             }

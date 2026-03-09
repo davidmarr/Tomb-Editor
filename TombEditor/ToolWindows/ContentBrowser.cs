@@ -293,17 +293,13 @@ public partial class ContentBrowser : DarkToolWindow
 		if (obj is Editor.ConfigurationChangedEvent)
 			_refreshPending = true;
 
-		// Sync selection when item is chosen from other tool windows.
-		if (obj is Editor.ChosenItemChangedEvent itemChanged && !_suppressEditorSync)
+		// Sync selection when items are chosen from other tool windows.
+		if (obj is Editor.ChosenItemsChangedEvent itemsChanged && !_suppressEditorSync)
 		{
-			if (itemChanged.Current.HasValue)
-				SyncSelectionFromEditor(itemChanged.Current.Value);
-		}
+			var first = itemsChanged.Current?.FirstOrDefault();
 
-		if (obj is Editor.ChosenImportedGeometryChangedEvent geoChanged && !_suppressEditorSync)
-		{
-			if (geoChanged.Current is not null)
-				SyncImportedGeometrySelection(geoChanged.Current);
+			if (first is not null)
+				SelectWadObject(first);
 		}
 
 		// Update keyboard shortcuts.
@@ -348,59 +344,25 @@ public partial class ContentBrowser : DarkToolWindow
 
 	private void ViewModel_SelectedItemsChanged(object sender, IReadOnlyList<AssetItemViewModel> items)
 	{
-		// When the user clears the ContentBrowser selection, leave ChosenItem/ChosenImportedGeometry unchanged.
-		// so the legacy item browser and imported geometry browser still shows the last chosen item.
+		// When the user clears the ContentBrowser selection, leave ChosenItems unchanged
+		// so the legacy item browser and imported geometry browser still show the last chosen item.
 
 		if (items.Count == 0)
 			return;
 
-		var itemTypes = new List<ItemType>();
-		ImportedGeometry singleGeo = null;
+		var wadObjects = items
+			.Where(vm => vm.WadObject is not null)
+			.Select(vm => vm.WadObject)
+			.ToArray();
 
-		foreach (var vm in items)
-		{
-			if (vm.WadObject is WadMoveable moveable)
-				itemTypes.Add(new ItemType(moveable.Id, _editor?.Level?.Settings));
-			else if (vm.WadObject is WadStatic staticMesh)
-				itemTypes.Add(new ItemType(staticMesh.Id, _editor?.Level?.Settings));
-			else if (vm.WadObject is ImportedGeometry geo && items.Count == 1)
-				singleGeo = geo;
-		}
+		if (wadObjects.Length == 0)
+			return;
 
 		_suppressEditorSync = true;
-
-		// Preserve existing singular selections to maintain legacy workflow.
-		if (itemTypes.Count > 0)
-			_editor.ChosenItems = itemTypes;
-		if (singleGeo is not null)
-			_editor.ChosenImportedGeometry = singleGeo;
-
+		_editor.ChosenItems = wadObjects;
 		_suppressEditorSync = false;
 
 		contentBrowserView.ScrollToItem(items[0]);
-	}
-
-	private void SyncSelectionFromEditor(ItemType item)
-	{
-		if (item.IsStatic)
-		{
-			var staticObj = _editor.Level.Settings.WadTryGetStatic(item.StaticId);
-
-			if (staticObj is not null)
-				SelectWadObject(staticObj);
-		}
-		else
-		{
-			var moveable = _editor.Level.Settings.WadTryGetMoveable(item.MoveableId);
-
-			if (moveable is not null)
-				SelectWadObject(moveable);
-		}
-	}
-
-	private void SyncImportedGeometrySelection(ImportedGeometry geo)
-	{
-		SelectWadObject(geo);
 	}
 
 	private void SelectWadObject(IWadObject wadObject)

@@ -12,6 +12,7 @@ using TombLib.LevelData;
 using TombLib.LevelData.IO;
 using TombLib.Rendering;
 using TombLib.Utils;
+using TombLib.Wad;
 using TombLib.Wad.Catalog;
 
 namespace TombEditor
@@ -91,8 +92,7 @@ namespace TombEditor
                 // Reset state that was related to the old level
                 _levelSettingsWatcher?.StopReloading();
                 SelectedObject = null;
-                ChosenItem = null;
-                ChosenImportedGeometry = null;
+                ChosenItems = Array.Empty<IWadObject>();
                 SelectedSectors = SectorSelection.None;
                 Action = null;
                 SelectedTexture = TextureArea.None;
@@ -155,55 +155,35 @@ namespace TombEditor
 
         public class ChosenItemsChangedEvent : IEditorPropertyChangedEvent
         {
-            public IReadOnlyList<ItemType> Previous { get; internal set; }
-            public IReadOnlyList<ItemType> Current { get; internal set; }
+            public IReadOnlyList<IWadObject> Previous { get; internal set; }
+            public IReadOnlyList<IWadObject> Current { get; internal set; }
         }
 
         public class ChosenItemChangedEvent : ChosenItemsChangedEvent
         {
-            public new ItemType? Previous => base.Previous?.Count > 0 ? base.Previous[0] : null;
-            public new ItemType? Current  => base.Current?.Count  > 0 ? base.Current[0]  : null;
+            public new ItemType? Previous => ToItemType(base.Previous);
+            public new ItemType? Current  => ToItemType(base.Current);
 
-            internal ChosenItemChangedEvent(IReadOnlyList<ItemType> previous, IReadOnlyList<ItemType> current)
+            internal ChosenItemChangedEvent(IReadOnlyList<IWadObject> previous, IReadOnlyList<IWadObject> current)
             {
                 base.Previous = previous;
                 base.Current  = current;
             }
-        }
 
-        private ItemType[] _chosenItems = Array.Empty<ItemType>();
-        public IReadOnlyList<ItemType> ChosenItems
-        {
-            get { return _chosenItems; }
-            set
+            private static ItemType? ToItemType(IReadOnlyList<IWadObject> list)
             {
-                var arr = value?.ToArray() ?? Array.Empty<ItemType>();
-                if (_chosenItems.SequenceEqual(arr))
-                    return;
+                if (list == null)
+                    return null;
 
-                var previous = _chosenItems;
-                _chosenItems = arr;
+                foreach (var obj in list)
+                {
+                    if (obj is WadMoveable m)
+                        return new ItemType(m.Id);
+                    if (obj is WadStatic s)
+                        return new ItemType(s.Id);
+                }
 
-                // When [0] changes, raise singular ChosenItemChangedEvent.
-                bool firstChanged = (previous.Length == 0) != (arr.Length == 0) ||
-                                    (previous.Length > 0 && arr.Length > 0 && previous[0] != arr[0]);
-                if (firstChanged)
-                    RaiseEvent(new ChosenItemChangedEvent(previous, arr));
-                else
-                    RaiseEvent(new ChosenItemsChangedEvent { Previous = previous, Current = arr });
-            }
-        }
-
-        // Single-item view of a first entry of ChosenItems.
-        public ItemType? ChosenItem
-        {
-            get { return _chosenItems.Length > 0 ? _chosenItems[0] : null; }
-            set
-            {
-                if (value.HasValue)
-                    ChosenItems = new[] { value.Value };
-                else
-                    ChosenItems = Array.Empty<ItemType>();
+                return null;
             }
         }
 
@@ -212,17 +192,93 @@ namespace TombEditor
             public ImportedGeometry Previous { get; internal set; }
             public ImportedGeometry Current { get; internal set; }
         }
-        private ImportedGeometry _chosenImportedGeometry = null;
-        public ImportedGeometry ChosenImportedGeometry
+
+        private IWadObject[] _chosenItems = Array.Empty<IWadObject>();
+        public IReadOnlyList<IWadObject> ChosenItems
         {
-            get { return _chosenImportedGeometry; }
+            get { return _chosenItems; }
             set
             {
-                if (value == _chosenImportedGeometry)
+                var arr = value?.ToArray() ?? Array.Empty<IWadObject>();
+                if (_chosenItems.SequenceEqual(arr))
                     return;
-                var previous = _chosenImportedGeometry;
-                _chosenImportedGeometry = value;
-                RaiseEvent(new ChosenImportedGeometryChangedEvent { Previous = previous, Current = value });
+
+                var previous = _chosenItems;
+                _chosenItems = arr;
+
+                RaiseEvent(new ChosenItemsChangedEvent { Previous = previous, Current = arr });
+                Raise0bjectEvents(previous, arr);
+            }
+        }
+
+        // Raises ChosenItemChangedEvent and ChosenImportedGeometryChangedEvent for backward compatibility.
+        private void Raise0bjectEvents(IWadObject[] previous, IWadObject[] current)
+        {
+            var prevFirst = previous.FirstOrDefault();
+            var currFirst = current.FirstOrDefault();
+
+            if (prevFirst != currFirst)
+            {
+                if (currFirst is ImportedGeometry currGeo)
+                {
+                    RaiseEvent(new ChosenImportedGeometryChangedEvent { Previous = ChosenImportedGeometry, Current = currGeo });
+                }
+                else if ((currFirst is WadMoveable || currFirst is WadStatic) && ChosenItem != GetFirstItemType(previous))
+                {
+                    RaiseEvent(new ChosenItemChangedEvent(previous, current));
+                }
+            }
+        }
+
+        private static ItemType? GetFirstItemType(IWadObject[] items)
+        {
+            foreach (var obj in items)
+            {
+                if (obj is WadMoveable m)
+                    return new ItemType(m.Id);
+                if (obj is WadStatic s)
+                    return new ItemType(s.Id);
+            }
+
+            return null;
+        }
+
+        // Single-item view: first WadMoveable or WadStatic in ChosenItems.
+        public ItemType? ChosenItem
+        {
+            get { return GetFirstItemType(_chosenItems); }
+            set
+            {
+                if (value.HasValue)
+                {
+                    var item = value.Value;
+                    IWadObject wadObj = item.IsStatic
+                        ? (IWadObject)Level?.Settings?.WadTryGetStatic(item.StaticId)
+                        : (IWadObject)Level?.Settings?.WadTryGetMoveable(item.MoveableId);
+
+                    if (wadObj != null)
+                        ChosenItems = new[] { wadObj };
+                }
+                else
+                {
+                    ChosenItems = Array.Empty<IWadObject>();
+                }
+            }
+        }
+
+        // Single-item view: first ImportedGeometry in ChosenItems.
+        public ImportedGeometry ChosenImportedGeometry
+        {
+            get { return _chosenItems.OfType<ImportedGeometry>().FirstOrDefault(); }
+            set
+            {
+                if (value != ChosenImportedGeometry)
+                {
+                    if (value != null)
+                        ChosenItems = new IWadObject[] { value };
+                    else if (ChosenImportedGeometry != null)
+                        ChosenItems = _chosenItems.Where(o => o is not ImportedGeometry).ToArray();
+                }
             }
         }
 
