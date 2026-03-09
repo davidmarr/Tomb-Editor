@@ -1,7 +1,6 @@
 ## General Project Information
 
 - Language: **C# targeting .NET 8** (desktop application).
-
 - This is a level editor suite for a family of 3D game engines used in the classic Tomb Raider series.
 - Level formats are grid-based, room-based, and portal-based.
 - A room is a spatial container for level geometry and game entities.
@@ -9,10 +8,13 @@
 - Portals may be visual (`RoomConnectionInfo.VisualType`) or traversable (`RoomConnectionInfo.TraversableType`).
 - One grid sector consists of 1024 units, which roughly equals 2 meters in real-world coordinates.
 
+## General Guidelines
+
 - Files must use Windows line endings. Only standard ASCII symbols are allowed; do not use Unicode symbols.
 - `using` directives are grouped and sorted as follows: `DarkUI` namespaces first, then `System` namespaces, followed by third-party and local namespaces.
 - Namespace declarations and type definitions should place the opening brace on a new line.
 - Prefer grouping all feature-related functionality within a self-contained module or modules. Avoid creating large code blocks over 10–15 lines in existing modules; instead, offload code to helper functions.
+- Avoid duplicating and copypasting code. Implement helper methods instead, whenever similar code is used within a given module, class or feature scope.
 
 ## Formatting
 
@@ -61,12 +63,13 @@
 
 ## Naming
 
-- **PascalCase** for public types, methods, properties and events.
+- **PascalCase** for public types, methods, constants, properties and events.
 - **camelCase** for private fields and local variables. Private fields should start with an underscore (`_editor`, `_primaryControlFocused`). Local variables should not start with an underscore.
 - Constants and `static readonly` fields use PascalCase rather than ALL_CAPS.
 - Enum members use PascalCase.
 - Interfaces are prefixed with `I` and use PascalCase (`IScaleable`).
 - Methods and variables should use clear, descriptive names and generally avoid Hungarian notation. Avoid using short non-descriptive names, such as `s2`, `rwh`, `fmp`, unless underlying meaning is brief (e.g. X coordinate is `x`, counter is `i`).
+- Class method and field names should not repeat words from a class name itself (e.g. `ObjectBrushHelper.BeginObjectBrushStroke` is a bad name, but `ObjectBrushHelper.BeginStroke` is a good name).
 
 ## Members and Access
 
@@ -93,7 +96,8 @@
 ## Code Grouping
 
 - Large methods should group related actions together, separated by blank lines.
-- Constants and static helpers should appear at the top of a class.
+- Constants and static helpers that are used several times should appear at the top of a class.
+- Constants that are used only within a scope of a method, should be declared within this method.
 - One-liner lambdas may be grouped together, if they share similar meaning or functionality.
 
 ## User Interface Implementation
