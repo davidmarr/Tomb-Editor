@@ -394,7 +394,7 @@ namespace TombEditor.Controls.Panel3D
                     {
                         if (_editor.Tool.Tool != EditorToolType.Line && _editor.Configuration.ObjectBrush_FollowMouseDirection && _lastBrushDirectionAngle.HasValue)
                             rot = _lastBrushDirectionAngle.Value;
-                        else
+                        else if (_editor.Tool.Tool == EditorToolType.Line || !_editor.Configuration.ObjectBrush_RandomizeRotation || _editor.Configuration.ObjectBrush_FollowMouseDirection)
                             rot = _editor.Configuration.ObjectBrush_Rotation;
                     }
                 }

@@ -164,7 +164,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 		bool isEraser = tool == EditorToolType.Eraser;
 		bool isFill = tool == EditorToolType.Fill;
 
-		IsRadiusEnabled = true;
+		IsRadiusEnabled = !isFill;
 		IsDensityEnabled = isBrush || isEraser || isFill;
 		IsAdjacentRoomsEnabled = isBrush || isEraser || isPencil || isLine;
 
@@ -175,7 +175,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 		IsFollowMouseDirectionEnabled = isBrush || isPencil;
 		IsRotationEnabled = isLine || (allowRotation && !IsRandomRotation && !IsFollowMouseDirection);
 
-		bool allowScale = isBrush || isPencil || isLine;
+		bool allowScale = isBrush || isPencil || isLine || isFill;
 
 		IsFitToGroundEnabled = allowScale;
 		IsAlignToGridEnabled = isLine;
