@@ -383,7 +383,6 @@ namespace TombEditor.Controls.Panel3D
                     const float FillBrushSize = 0.2f;
 
                     shape = (int)ObjectBrushShape.Circle;
-                    density = 0.0f;
                     center = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, Level.SectorSizeUnit * FillBrushSize);
                 }
                 else

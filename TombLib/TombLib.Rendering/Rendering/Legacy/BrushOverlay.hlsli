@@ -50,7 +50,16 @@ void ApplyBrushOverlay(inout float3 rgb, inout float alpha, bool updateAlpha, fl
 
         float perpFw = max(fwidth(perp), 0.001f);
         float perpNorm = perp / perpFw;
-        float lineExtent = max(BrushCenter.w, 1024.0f);
+
+        float lineExtent;
+
+        if (BrushShape == 1) // circle
+            lineExtent = BrushCenter.w;
+        else // square
+            lineExtent = BrushCenter.w / max(abs(rotDir.x), abs(rotDir.y));
+
+        lineExtent = max(lineExtent, 1024.0f);
+
         float withinLine = step(0.0f, along) * step(along, lineExtent);
 
         float lineAlpha = saturate(1.0f - perpNorm / max(lineWidth * 0.7f, 0.001f)) * withinLine;
