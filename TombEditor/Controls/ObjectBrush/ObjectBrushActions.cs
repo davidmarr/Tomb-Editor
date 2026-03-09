@@ -74,7 +74,7 @@ namespace TombEditor.Controls.ObjectBrush
             _strokePlacedObjects.Clear();
             _strokeProcessedObjects.Clear();
 
-            if (editor.Configuration.ObjectBrush_AlignToGrid && editor.Tool.Tool == EditorToolType.Line)
+            if (editor.Configuration.ObjectBrush_AlignToGrid && (editor.Tool.Tool == EditorToolType.Pencil || editor.Tool.Tool == EditorToolType.Line))
                 cursorWorldPos = AlignWorldPosToGrid(cursorWorldPos);
 
             float localX = cursorWorldPos.X - room.WorldPos.X;
@@ -89,7 +89,7 @@ namespace TombEditor.Controls.ObjectBrush
         public static bool ContinueBrushStroke(Editor editor, Room room, Vector3 cursorWorldPos,
             Vector3? lastWorldPosition, float quantizationDistance)
         {
-            if (editor.Configuration.ObjectBrush_AlignToGrid && editor.Tool.Tool == EditorToolType.Line)
+            if (editor.Configuration.ObjectBrush_AlignToGrid && editor.Tool.Tool == EditorToolType.Pencil)
                 cursorWorldPos = AlignWorldPosToGrid(cursorWorldPos);
 
             if (lastWorldPosition.HasValue)

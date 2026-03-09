@@ -178,7 +178,7 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 		bool allowScale = isBrush || isPencil || isLine || isFill;
 
 		IsFitToGroundEnabled = allowScale;
-		IsAlignToGridEnabled = isLine;
+		IsAlignToGridEnabled = isLine || isPencil;
 		IsRandomScaleEnabled = allowScale;
 		IsScaleMinEnabled = allowScale && IsRandomScale;
 		IsScaleMaxEnabled = allowScale && IsRandomScale;
