@@ -164,6 +164,9 @@ LevelFuncs.Engine.Node.StartTimer = function(name, reset)
             else
                 Timer.Get(name):Start(reset)
             end
+            if not LevelVars.nodeTimers[name] then
+                LevelVars.nodeTimers[name] = {}
+            end
             if LevelVars.nodeTimers[name].debug then
                 TEN.Util.PrintLog("Timer '" .. name .. "' has started", TEN.Util.LogLevel.INFO)
             end
@@ -184,6 +187,9 @@ LevelFuncs.Engine.Node.StopTimer = function(name)
     if name ~= '' then
         if Timer.IfExists(name) then
             Timer.Get(name):Stop()
+            if not LevelVars.nodeTimers[name] then
+                LevelVars.nodeTimers[name] = {}
+            end
             if LevelVars.nodeTimers[name].debug then
                 TEN.Util.PrintLog("Timer '" .. name .. "' has been stopped", TEN.Util.LogLevel.INFO)
             end
@@ -204,6 +210,9 @@ LevelFuncs.Engine.Node.SetPausedTimer = function(name)
     if name ~= '' then
         if Timer.IfExists(name) then
             Timer.Get(name):SetPaused(true)
+            if not LevelVars.nodeTimers[name] then
+                LevelVars.nodeTimers[name] = {}
+            end
             if LevelVars.nodeTimers[name].debug then
                 TEN.Util.PrintLog("Timer '" .. name .. "' has been paused", TEN.Util.LogLevel.INFO)
             end
@@ -230,6 +239,9 @@ LevelFuncs.Engine.Node.SetRemainingTime = function(name, operator, remainingTime
             else
                 local value = Timer.Get(name):GetRemainingTimeInSeconds()
                 Timer.Get(name):SetRemainingTime(LevelFuncs.Engine.Node.ModifyValue(remainingTime, value, operator))
+            end
+            if not LevelVars.nodeTimers[name] then
+                LevelVars.nodeTimers[name] = {}
             end
             if LevelVars.nodeTimers[name].debug then
                 TEN.Util.PrintLog("Set remaining time of '" .. name .. "' timer " .. textOp[operator] .. remainingTime .. ". Remaining time : " .. Timer.Get(name):GetRemainingTimeInSeconds(), TEN.Util.LogLevel.INFO)
@@ -258,6 +270,9 @@ LevelFuncs.Engine.Node.SetTotalTime = function(name, operator, totalTime)
                 local value = Timer.Get(name):GetTotalTimeInSeconds()
                 Timer.Get(name):SetTotalTime(LevelFuncs.Engine.Node.ModifyValue(totalTime, value, operator))
             end
+            if not LevelVars.nodeTimers[name] then
+                LevelVars.nodeTimers[name] = {}
+            end
             if LevelVars.nodeTimers[name].debug then
                 TEN.Util.PrintLog("Set total time of '" .. name .. "' timer " .. textOp[operator] .. totalTime .. ". Total time : " .. Timer.Get(name):GetTotalTimeInSeconds(), TEN.Util.LogLevel.INFO)
             end
@@ -280,6 +295,9 @@ LevelFuncs.Engine.Node.SetLooping = function(name, looping)
         if Timer.IfExists(name) then
             local state = (looping == 1) and true or false
             Timer.Get(name):SetLooping(state)
+            if not LevelVars.nodeTimers[name] then
+                LevelVars.nodeTimers[name] = {}
+            end
             if LevelVars.nodeTimers[name].debug then
                 TEN.Util.PrintLog("Timer '" .. name .. "' loop: " .. tostring(state), TEN.Util.LogLevel.INFO)
             end
@@ -301,7 +319,8 @@ end
 LevelFuncs.Engine.Node.SetTimerColor = function (name, color, tColor)
     if name ~= '' then
         if Timer.IfExists(name) then
-            Timer.Get(name):SetUnpausedColor(TEN.Color(color.r, color.g, color.b, (255 * tColor)))
+            color.a = (255 * tColor)
+            Timer.Get(name):SetUnpausedColor(color)
         else
             TEN.Util.PrintLog("Timer '" .. name .. "' does not exist", TEN.Util.LogLevel.ERROR)
         end
@@ -320,7 +339,8 @@ end
 LevelFuncs.Engine.Node.SetTimerPauseColor = function (name, pausedColor, tPausedColor)
     if name ~= '' then
         if Timer.IfExists(name) then
-            Timer.Get(name):SetPausedColor(TEN.Color(pausedColor.r, pausedColor.g, pausedColor.b, (255 * tPausedColor)))
+            pausedColor.a = (255 * tPausedColor)
+            Timer.Get(name):SetPausedColor(pausedColor)
         else
             TEN.Util.PrintLog("Timer '" .. name .. "' does not exist", TEN.Util.LogLevel.ERROR)
         end
@@ -488,6 +508,9 @@ LevelFuncs.Engine.Node.IfRemainingTimeIs = function(name, operator, value)
             if timer:IsActive() then
                 local result
                 result = timer:IfRemainingTimeIs(operator, value)
+                if not LevelVars.nodeTimers[name] then
+                    LevelVars.nodeTimers[name] = {}
+                end
                 if LevelVars.nodeTimers[name].debug then
                     local floatValue = value + 0.00
                     local remainingTime = timer:GetRemainingTimeInSeconds()
@@ -514,6 +537,9 @@ LevelFuncs.Engine.Node.IfTotalTimeIs = function(name, operator, time)
     if name ~= '' then
         if Timer.IfExists(name) then
             local result = Timer.Get(name):IfTotalTimeIs(operator, time)
+            if not LevelVars.nodeTimers[name] then
+                LevelVars.nodeTimers[name] = {}
+            end
             if LevelVars.nodeTimers[name].debug then
                 local totalTime = Timer.Get(name):GetTotalTimeInSeconds()
                 TEN.Util.PrintLog("If the total time (".. totalTime ..") is " .. textCompareOp[operator] .. " " ..  (time + 0.0) .. ". Result: " .. tostring(result), TEN.Util.LogLevel.INFO, true)
