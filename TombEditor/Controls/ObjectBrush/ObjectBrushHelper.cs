@@ -173,8 +173,9 @@ namespace TombEditor.Controls.ObjectBrush
 
         public static float? GetSafePlacementHeight(Room room, Vector3 localPos, float rotationYDeg, float scale, BoundingBox bbox)
         {
-            var scaledMin = new Vector2(bbox.Minimum.X * scale, bbox.Minimum.Z * scale);
-            var scaledMax = new Vector2(bbox.Maximum.X * scale, bbox.Maximum.Z * scale);
+            // Allow 1 unit of leeway to avoid precision issues with corners sitting exactly on sector boundaries.
+            var scaledMin = new Vector2(bbox.Minimum.X * scale, bbox.Minimum.Z * scale) + Vector2.One;
+            var scaledMax = new Vector2(bbox.Maximum.X * scale, bbox.Maximum.Z * scale) - Vector2.One;
 
             var corners = new Vector2[]
             {
