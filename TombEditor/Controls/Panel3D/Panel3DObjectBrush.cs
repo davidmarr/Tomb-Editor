@@ -148,7 +148,7 @@ namespace TombEditor.Controls.Panel3D
         {
             const float EraserQuantizationDistance = Level.SectorSizeUnit * 0.15f;
 
-            if (_editor.Mode != EditorMode.ObjectPlacement)
+            if (_editor.Mode != EditorMode.ObjectPlacement || _editor.Tool.Tool == EditorToolType.Selection)
                 return false;
 
             // When brush is not engaged, just update the cursor position for visual display.
@@ -357,19 +357,21 @@ namespace TombEditor.Controls.Panel3D
             const float MinBrushTransparency = 0.1f;
             const float MaxBrushTransparency = 0.4f;
 
-            if (_editor.Mode != EditorMode.ObjectPlacement || !_brushCursorPosition.HasValue || _brushCursorRoom == null)
+            if (_editor.Mode != EditorMode.ObjectPlacement || _editor.Tool.Tool == EditorToolType.Selection || !_brushCursorPosition.HasValue || _brushCursorRoom == null)
                 reset = true;
 
             int shape   = 0;
             var center  = Vector4.Zero;
             var rot     = -1.0f;
             var density = 0.25f;
-            var color   = Vector4.One;
+            var color   = Vector4.Zero;
 
             if (!reset)
             {
-                if (_editor.Tool.Tool != EditorToolType.Selection &&
-                    _editor.Tool.Tool != EditorToolType.Deselection &&
+                color = Vector4.One;
+
+                if (_editor.Tool.Tool != EditorToolType.ObjectSelection &&
+                    _editor.Tool.Tool != EditorToolType.ObjectDeselection &&
                     _editor.Tool.Tool != EditorToolType.Line &&
                     _editor.Tool.Tool != EditorToolType.Pencil)
                 {
@@ -390,7 +392,7 @@ namespace TombEditor.Controls.Panel3D
                     shape = (int)_editor.Configuration.ObjectBrush_Shape;
                     center = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, _editor.Configuration.ObjectBrush_Radius);
 
-                    if (_editor.Tool.Tool != EditorToolType.Selection && _editor.Tool.Tool != EditorToolType.Deselection && _editor.Tool.Tool != EditorToolType.Eraser)
+                    if (_editor.Tool.Tool != EditorToolType.ObjectSelection && _editor.Tool.Tool != EditorToolType.ObjectDeselection && _editor.Tool.Tool != EditorToolType.Eraser)
                     {
                         if (_editor.Tool.Tool != EditorToolType.Line && _editor.Configuration.ObjectBrush_FollowMouseDirection && _lastBrushDirectionAngle.HasValue)
                             rot = _lastBrushDirectionAngle.Value;

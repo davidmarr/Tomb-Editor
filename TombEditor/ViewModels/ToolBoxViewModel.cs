@@ -40,10 +40,11 @@ public partial class ToolBoxViewModel : ObservableObject
 	#region Tool Checked States
 
 	[ObservableProperty] private bool _isSelectionChecked;
+	[ObservableProperty] private bool _isObjectSelectionChecked;
 	[ObservableProperty] private bool _isBrushChecked;
 	[ObservableProperty] private bool _isPencilChecked;
 	[ObservableProperty] private bool _isLineChecked;
-	[ObservableProperty] private bool _isDeselectChecked;
+	[ObservableProperty] private bool _isObjectDeselectionChecked;
 	[ObservableProperty] private bool _isFillChecked;
 	[ObservableProperty] private bool _isGroupChecked;
 	[ObservableProperty] private bool _isGridPaintChecked;
@@ -223,10 +224,11 @@ public partial class ToolBoxViewModel : ObservableObject
 		var tool = _editor.Tool;
 
 		IsSelectionChecked = tool.Tool == EditorToolType.Selection;
+		IsObjectSelectionChecked = tool.Tool == EditorToolType.ObjectSelection;
 		IsBrushChecked = tool.Tool == EditorToolType.Brush;
 		IsPencilChecked = tool.Tool == EditorToolType.Pencil;
 		IsLineChecked = tool.Tool == EditorToolType.Line;
-		IsDeselectChecked = tool.Tool == EditorToolType.Deselection;
+		IsObjectDeselectionChecked = tool.Tool == EditorToolType.ObjectDeselection;
 		IsFillChecked = tool.Tool == EditorToolType.Fill;
 		IsGroupChecked = tool.Tool == EditorToolType.Group;
 		IsGridPaintChecked = tool.Tool == EditorToolType.GridPaint;

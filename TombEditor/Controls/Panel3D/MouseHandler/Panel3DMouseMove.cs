@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
 using System.Windows.Forms;
-using TombEditor.Controls.ObjectBrush;
 using TombLib;
 using TombLib.LevelData;
 using TombLib.LevelData.SectorEnums;

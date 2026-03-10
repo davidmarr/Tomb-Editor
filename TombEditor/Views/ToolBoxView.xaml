@@ -91,8 +91,17 @@
 		</RadioButton>
 		<RadioButton
 			Command="{Binding SwitchToolCommand}"
-			CommandParameter="Deselection"
-			IsChecked="{Binding IsDeselectChecked, Mode=OneWay}"
+			CommandParameter="ObjectSelection"
+			IsChecked="{Binding IsObjectSelectionChecked, Mode=OneWay}"
+			Style="{StaticResource ToolRadioButton}"
+			ToolTip="{tombLib:Localize ObjectSelection}"
+			Visibility="{Binding IsObjectPlacementToolsVisible, Converter={StaticResource BoolToVisConverter}}">
+			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_ObjectSelection-16.png" />
+		</RadioButton>
+		<RadioButton
+			Command="{Binding SwitchToolCommand}"
+			CommandParameter="ObjectDeselection"
+			IsChecked="{Binding IsObjectDeselectionChecked, Mode=OneWay}"
 			Style="{StaticResource ToolRadioButton}"
 			ToolTip="{tombLib:Localize Deselection}"
 			Visibility="{Binding IsObjectPlacementToolsVisible, Converter={StaticResource BoolToVisConverter}}">

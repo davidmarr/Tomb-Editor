@@ -49,11 +49,11 @@ namespace TombEditor.Controls.ObjectBrush
                     _strokeUndoList.AddRange(removed.Select(r => new AddRemoveObjectUndoInstance(editor.UndoManager, r.Obj, false, r.Room)));
                     break;
 
-                case EditorToolType.Selection:
+                case EditorToolType.ObjectSelection:
                     Helper.SelectObjectsWithBrush(editor, room, localX, localZ, editor.ChosenItems, sectorConstraint, _strokeProcessedObjects);
                     break;
 
-                case EditorToolType.Deselection:
+                case EditorToolType.ObjectDeselection:
                     Helper.SelectObjectsWithBrush(editor, room, localX, localZ, editor.ChosenItems, sectorConstraint, _strokeProcessedObjects, deselect: true);
                     break;
 

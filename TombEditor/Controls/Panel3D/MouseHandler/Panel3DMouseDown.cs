@@ -17,7 +17,7 @@ namespace TombEditor.Controls.Panel3D
         private void OnMouseButtonDownLeft(Point location)
         {
             // Do picking on the scene
-            bool skipObjectPicking = _editor.Mode == EditorMode.ObjectPlacement && !ModifierKeys.HasFlag(Keys.Alt);
+            bool skipObjectPicking = _editor.Mode == EditorMode.ObjectPlacement && _editor.Tool.Tool != EditorToolType.Selection && !ModifierKeys.HasFlag(Keys.Alt);
             var newPicking = DoPicking(GetRay(location.X, location.Y), _editor.Configuration.Rendering3D_SelectObjectsInAnyRoom, skipObjectPicking);
 
             if (newPicking is PickingResultSector)
@@ -60,7 +60,7 @@ namespace TombEditor.Controls.Panel3D
                 // Handle face selection
                 if ((_editor.Tool.Tool == EditorToolType.Selection || _editor.Tool.Tool == EditorToolType.Group ||
                     (_editor.Tool.Tool >= EditorToolType.Drag && _editor.Tool.Tool != EditorToolType.Eraser)) &&
-                    _editor.Mode != EditorMode.ObjectPlacement &&
+                    (_editor.Mode != EditorMode.ObjectPlacement || _editor.Tool.Tool == EditorToolType.Selection) &&
                     (ModifierKeys == Keys.None || ModifierKeys == Keys.Control))
                 {
                     if (!_editor.SelectedSectors.Valid || !_editor.SelectedSectors.Area.Contains(pos))
@@ -230,7 +230,8 @@ namespace TombEditor.Controls.Panel3D
                         break;
 
                     case EditorMode.ObjectPlacement:
-                        HandleObjectPlacementMouseDown(location);
+                        if (_editor.Tool.Tool != EditorToolType.Selection)
+                            HandleObjectPlacementMouseDown(location);
                         break;
                 }
             }
