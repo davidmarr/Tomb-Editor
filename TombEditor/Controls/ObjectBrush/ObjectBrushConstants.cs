@@ -6,7 +6,7 @@ namespace TombEditor.Controls.ObjectBrush
 	{
 		public const float RadiusAdjustmentStep = 64.0f;
 		public const float AngleAdjustmentStep = 5.0f;
-		public const float ParamDeadzone = 25;
+		public const float ParamDeadzone = 32;
 
 		public const float MinRadius = 0.1f;
 		public const float MaxRadius = 20.0f;

@@ -94,8 +94,8 @@ namespace TombEditor.Controls.Panel3D
                 settingsChanged = true;
             }
 
-            // Ctrl + mousewheel adjusts brush radius.
-            if (Control.ModifierKeys.HasFlag(Keys.Control))
+            // Shift + mousewheel adjusts brush radius.
+            if (Control.ModifierKeys.HasFlag(Keys.Shift))
             {
                 float radius = _editor.Configuration.ObjectBrush_Radius + (delta > 0 ? ObjectBrush.Constants.RadiusAdjustmentStep : -ObjectBrush.Constants.RadiusAdjustmentStep);
                 _editor.Configuration.ObjectBrush_Radius = 
@@ -103,8 +103,8 @@ namespace TombEditor.Controls.Panel3D
                 settingsChanged = true;
             }
 
-            // Shift + mousewheel adjusts brush density.
-            if (Control.ModifierKeys.HasFlag(Keys.Shift))
+            // Ctrl + mousewheel adjusts brush density.
+            if (Control.ModifierKeys.HasFlag(Keys.Control))
             {
                 float density = _editor.Configuration.ObjectBrush_Density + (delta > 0 ? 0.1f : -0.1f);
                 _editor.Configuration.ObjectBrush_Density = 
@@ -297,16 +297,31 @@ namespace TombEditor.Controls.Panel3D
 
             bool settingsChanged = false;
 
-            // Ctrl: radius = distance from pinned center to current cursor position.
-            if (Control.ModifierKeys.HasFlag(Keys.Control))
+            if (Control.ModifierKeys.HasFlag(Keys.Shift))
             {
-                float distance = Vector2.Distance(new Vector2(cursorWorldPos.X, cursorWorldPos.Z),
-                    new Vector2(_brushParamPinPoint.Value.X, _brushParamPinPoint.Value.Z));
+                if (Control.ModifierKeys.HasFlag(Keys.Control))
+                {
+                    // Ctrl+Shift: density scales with distance from pin point.
 
-                _editor.Configuration.ObjectBrush_Radius = Math.Min(ObjectBrush.Constants.MaxRadius * Level.SectorSizeUnit,
-                    Math.Max(ObjectBrush.Constants.MinRadius * Level.SectorSizeUnit, distance));
+                    var density = (screenDistance / this.Size.Height) * ObjectBrush.Constants.MaxDensity;
 
-                settingsChanged = true;
+                    _editor.Configuration.ObjectBrush_Density = Math.Min(ObjectBrush.Constants.MaxDensity, 
+                        Math.Max(ObjectBrush.Constants.MinDensity, density));
+
+                    settingsChanged = true;
+                }
+                else
+                {
+                    // Shift alone: radius = distance from pinned center to current cursor position.
+
+                    float distance = Vector2.Distance(new Vector2(cursorWorldPos.X, cursorWorldPos.Z),
+                        new Vector2(_brushParamPinPoint.Value.X, _brushParamPinPoint.Value.Z));
+
+                    _editor.Configuration.ObjectBrush_Radius = Math.Min(ObjectBrush.Constants.MaxRadius * Level.SectorSizeUnit,
+                        Math.Max(ObjectBrush.Constants.MinRadius * Level.SectorSizeUnit, distance));
+
+                    settingsChanged = true;
+                }
             }
 
             // Alt: rotation = smoothed angle from pin point to current cursor position.
@@ -320,17 +335,6 @@ namespace TombEditor.Controls.Panel3D
                     _editor.Configuration.ObjectBrush_Rotation = _lastBrushDirectionAngle.Value;
                     settingsChanged = true;
                 }
-            }
-
-            // Shift: density scales with distance from pin point.
-            if (Control.ModifierKeys.HasFlag(Keys.Shift))
-            {
-                var density = (screenDistance / this.Size.Height) * ObjectBrush.Constants.MaxDensity;
-
-                _editor.Configuration.ObjectBrush_Density = Math.Min(ObjectBrush.Constants.MaxDensity, 
-                    Math.Max(ObjectBrush.Constants.MinDensity, density));
-
-                settingsChanged = true;
             }
 
             if (settingsChanged)
