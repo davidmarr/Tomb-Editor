@@ -94,22 +94,26 @@ namespace TombEditor.Controls.Panel3D
                 settingsChanged = true;
             }
 
-            // Shift + mousewheel adjusts brush radius.
             if (Control.ModifierKeys.HasFlag(Keys.Shift))
             {
-                float radius = _editor.Configuration.ObjectBrush_Radius + (delta > 0 ? ObjectBrush.Constants.RadiusAdjustmentStep : -ObjectBrush.Constants.RadiusAdjustmentStep);
-                _editor.Configuration.ObjectBrush_Radius = 
-                    Math.Min(ObjectBrush.Constants.MaxRadius * Level.SectorSizeUnit, Math.Max(ObjectBrush.Constants.MinRadius * Level.SectorSizeUnit, radius));
-                settingsChanged = true;
-            }
+                if (Control.ModifierKeys.HasFlag(Keys.Control))
+                {
+                    // Ctrl + shift + mousewheel adjusts brush density.
 
-            // Ctrl + mousewheel adjusts brush density.
-            if (Control.ModifierKeys.HasFlag(Keys.Control))
-            {
-                float density = _editor.Configuration.ObjectBrush_Density + (delta > 0 ? 0.1f : -0.1f);
-                _editor.Configuration.ObjectBrush_Density = 
-                    Math.Min(ObjectBrush.Constants.MaxDensity, Math.Max(ObjectBrush.Constants.MinDensity, (float)Math.Round(density, 1)));
-                settingsChanged = true;
+                    float density = _editor.Configuration.ObjectBrush_Density + (delta > 0 ? 0.1f : -0.1f);
+                    _editor.Configuration.ObjectBrush_Density = 
+                        Math.Min(ObjectBrush.Constants.MaxDensity, Math.Max(ObjectBrush.Constants.MinDensity, (float)Math.Round(density, 1)));
+                    settingsChanged = true;
+                }
+                else
+                {
+                    // Shift + mousewheel adjusts brush radius.
+
+                    float radius = _editor.Configuration.ObjectBrush_Radius + (delta > 0 ? ObjectBrush.Constants.RadiusAdjustmentStep : -ObjectBrush.Constants.RadiusAdjustmentStep);
+                    _editor.Configuration.ObjectBrush_Radius =
+                        Math.Min(ObjectBrush.Constants.MaxRadius * Level.SectorSizeUnit, Math.Max(ObjectBrush.Constants.MinRadius * Level.SectorSizeUnit, radius));
+                    settingsChanged = true;
+                }
             }
 
             if (settingsChanged)
