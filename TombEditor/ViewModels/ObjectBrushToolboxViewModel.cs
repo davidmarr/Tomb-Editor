@@ -169,10 +169,10 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 		IsDensityEnabled = isBrush || isEraser || isFill;
 		IsAdjacentRoomsEnabled = isBrush || isEraser || isPencil || isLine;
 
-		bool allowRotation = isBrush || isPencil || isLine;
+		bool allowRotation = isBrush || isPencil || isLine || isFill;
 
 		IsOrthogonalEnabled = allowRotation;
-		IsRandomRotationEnabled = isBrush || isPencil;
+		IsRandomRotationEnabled = allowRotation && !isLine;
 		IsFollowMouseDirectionEnabled = isBrush || isPencil;
 		IsRotationEnabled = isLine || (allowRotation && !IsRandomRotation && !IsFollowMouseDirection);
 

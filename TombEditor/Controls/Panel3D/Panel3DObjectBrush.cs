@@ -384,12 +384,15 @@ namespace TombEditor.Controls.Panel3D
                 {
                     const float FillBrushSize = 0.2f;
 
-                    shape = (int)ObjectBrushShape.Circle;
+                    shape = (int)ObjectBrushShape.Circle + 1;
                     center = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, Level.SectorSizeUnit * FillBrushSize);
+
+                    if (!_editor.Configuration.ObjectBrush_RandomizeRotation)
+                        rot = _editor.Configuration.ObjectBrush_Rotation;
                 }
                 else
                 {
-                    shape = (int)_editor.Configuration.ObjectBrush_Shape;
+                    shape = (int)_editor.Configuration.ObjectBrush_Shape + 1;
                     center = new Vector4(cursorPos.X, cursorPos.Y, cursorPos.Z, _editor.Configuration.ObjectBrush_Radius);
 
                     if (_editor.Tool.Tool != EditorToolType.ObjectSelection && _editor.Tool.Tool != EditorToolType.ObjectDeselection && _editor.Tool.Tool != EditorToolType.Eraser)
@@ -404,7 +407,7 @@ namespace TombEditor.Controls.Panel3D
                 color.W = density;
             }
 
-            return new BrushOverlayState { Shape = shape + 1, Center = center, Color = color, Rotation = rot };
+            return new BrushOverlayState { Shape = shape, Center = center, Color = color, Rotation = rot };
         }
 
         // Apply brush overlay parameters to a model effect shader.
