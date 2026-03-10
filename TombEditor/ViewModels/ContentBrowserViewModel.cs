@@ -180,7 +180,7 @@ public partial class AssetItemViewModel : ObservableObject
 		ImportedGeometryBrush.Freeze();
 	}
 
-	public AssetItemViewModel(IWadObject wadObject, string name, AssetCategory category, string categoryName, string wadSource, 
+	public AssetItemViewModel(IWadObject wadObject, string name, AssetCategory category, string categoryName, string wadSource,
 		bool isInMultipleWads, string catalogCategory = "", string fileVersion = "")
 	{
 		WadObject = wadObject;
@@ -787,11 +787,11 @@ public partial class ContentBrowserViewModel : ObservableObject
 		}
 		else if (!hasFavorites && hasEntry)
 		{
-			RemoveFavoritesFilterOption();
-
-			// If the user was viewing the Favorites filter, reset to All.
+			// If the user was viewing the Favorites filter, reset to "All".
 			if (SelectedFilter?.IsFavoritesFilter == true)
 				SelectedFilter = _allFilter;
+
+			RemoveFavoritesFilterOption();
 		}
 		else if (hasFavorites)
 		{
@@ -807,7 +807,6 @@ public partial class ContentBrowserViewModel : ObservableObject
 
 	private void RemoveFavoritesFilterOption()
 	{
-		// Remove the Favorites entry and its preceding splitter.
 		int idx = -1;
 
 		for (int i = 0; i < FilterOptions.Count; i++)
@@ -823,23 +822,14 @@ public partial class ContentBrowserViewModel : ObservableObject
 			return;
 
 		// Remove the splitter immediately before the Favorites entry, if present.
+		// After removal the Favorites entry shifts down by one, so idx - 1 becomes the new index.
 		if (idx > 0 && FilterOptions[idx - 1].IsSplitter)
-			FilterOptions.RemoveAt(idx - 1);
-
-		// Re-find after possible shift.
-		idx = -1;
-
-		for (int i = 0; i < FilterOptions.Count; i++)
 		{
-			if (FilterOptions[i].IsFavoritesFilter)
-			{
-				idx = i;
-				break;
-			}
+			FilterOptions.RemoveAt(idx - 1);
+			idx--;
 		}
 
-		if (idx >= 0)
-			FilterOptions.RemoveAt(idx);
+		FilterOptions.RemoveAt(idx);
 	}
 
 	// Routes a file drop from the view to subscribing hosts.
