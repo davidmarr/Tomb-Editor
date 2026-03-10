@@ -266,8 +266,7 @@ namespace TombEditor.Controls.Panel3D
         internal bool UpdateBrushParameters(Point location, Vector3 cursorWorldPos)
         {
             if (Control.ModifierKeys.HasFlag(Keys.Shift) ||
-                Control.ModifierKeys.HasFlag(Keys.Alt)   ||
-                Control.ModifierKeys.HasFlag(Keys.Control))
+                Control.ModifierKeys.HasFlag(Keys.Alt))
             {
                 if (!_brushParamEngaged)
                 {
