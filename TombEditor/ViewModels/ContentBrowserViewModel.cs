@@ -636,9 +636,9 @@ public partial class ContentBrowserViewModel : ObservableObject
 				FilterOptions.Add(FilterOption.CreateCategoryFilter(cat));
 		}
 
-		// Add Favorites filter at the bottom, preceded by a divider.
-		FilterOptions.Add(FilterOption.CreateSplitter());
-		FilterOptions.Add(FilterOption.CreateFavoritesFilter(_localizationService["FilterFavorites"]));
+		// Add Favorites filter at the bottom, preceded by a divider — only when favorites exist.
+		if (settings.Favorites.Count > 0)
+			AddFavoritesFilterOption();
 
 		// Restore previous filter selection or default to All.
 		SelectedFilter = FilterOptions.FirstOrDefault(f =>
@@ -683,6 +683,14 @@ public partial class ContentBrowserViewModel : ObservableObject
 
 		item.Thumbnail = thumbnail;
 		_thumbnailCache[item.CacheKey] = thumbnail;
+	}
+
+	/// <summary>
+	/// Returns true if a cached thumbnail exists for this item.
+	/// </summary>
+	public bool HasCachedThumbnail(AssetItemViewModel item)
+	{
+		return _thumbnailCache.ContainsKey(item.CacheKey);
 	}
 
 	/// <summary>
@@ -764,6 +772,74 @@ public partial class ContentBrowserViewModel : ObservableObject
 	{
 		item.IsFavorite = !item.IsFavorite;
 		FavoriteToggled?.Invoke(this, item);
+		UpdateFavoritesFilterOption();
+	}
+
+	// Adds or removes the Favorites splitter+filter entry based on whether any items are favorited.
+	private void UpdateFavoritesFilterOption()
+	{
+		bool hasFavorites = AllItems.Any(i => i.IsFavorite);
+		bool hasEntry = FilterOptions.Any(f => f.IsFavoritesFilter);
+
+		if (hasFavorites && !hasEntry)
+		{
+			AddFavoritesFilterOption();
+		}
+		else if (!hasFavorites && hasEntry)
+		{
+			RemoveFavoritesFilterOption();
+
+			// If the user was viewing the Favorites filter, reset to All.
+			if (SelectedFilter?.IsFavoritesFilter == true)
+				SelectedFilter = _allFilter;
+		}
+		else if (hasFavorites)
+		{
+			RefreshFilteredItems();
+		}
+	}
+
+	private void AddFavoritesFilterOption()
+	{
+		FilterOptions.Add(FilterOption.CreateSplitter());
+		FilterOptions.Add(FilterOption.CreateFavoritesFilter(_localizationService["FilterFavorites"]));
+	}
+
+	private void RemoveFavoritesFilterOption()
+	{
+		// Remove the Favorites entry and its preceding splitter.
+		int idx = -1;
+
+		for (int i = 0; i < FilterOptions.Count; i++)
+		{
+			if (FilterOptions[i].IsFavoritesFilter)
+			{
+				idx = i;
+				break;
+			}
+		}
+
+		if (idx < 0)
+			return;
+
+		// Remove the splitter immediately before the Favorites entry, if present.
+		if (idx > 0 && FilterOptions[idx - 1].IsSplitter)
+			FilterOptions.RemoveAt(idx - 1);
+
+		// Re-find after possible shift.
+		idx = -1;
+
+		for (int i = 0; i < FilterOptions.Count; i++)
+		{
+			if (FilterOptions[i].IsFavoritesFilter)
+			{
+				idx = i;
+				break;
+			}
+		}
+
+		if (idx >= 0)
+			FilterOptions.RemoveAt(idx);
 	}
 
 	// Routes a file drop from the view to subscribing hosts.

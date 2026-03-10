@@ -10,6 +10,7 @@
         "FilterMoveables": "Moveables",
         "FilterStatics": "Statics",
         "FilterImportedGeometry": "Imported Geometry",
+        "FilterFavorites": "Favorites",
         "CategoryMoveables": "Moveables",
         "CategoryStatics": "Statics",
         "CategoryImportedGeometry": "Imported Geometry",

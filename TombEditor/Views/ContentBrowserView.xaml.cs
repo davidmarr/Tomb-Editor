@@ -598,4 +598,62 @@ public partial class ContentBrowserView : UserControl
 			e.Handled = true;
 		}
 	}
+
+	// Event raised when the viewport scrolls; host uses this to render visible thumbnails.
+	public event EventHandler? ViewportScrolled;
+
+	private void AssetListBox_ScrollChanged(object sender, ScrollChangedEventArgs e)
+	{
+		ViewportScrolled?.Invoke(this, EventArgs.Empty);
+	}
+
+	/// <summary>
+	/// Returns the list of AssetItemViewModels whose containers are currently visible in the viewport.
+	/// </summary>
+	public List<AssetItemViewModel> GetVisibleItems()
+	{
+		var result = new List<AssetItemViewModel>();
+		var scrollViewer = FindVisualChild<ScrollViewer>(AssetListBox);
+
+		if (scrollViewer is null)
+			return result;
+
+		var viewportRect = new Rect(0, 0, scrollViewer.ViewportWidth, scrollViewer.ViewportHeight);
+
+		foreach (var item in AssetListBox.Items)
+		{
+			var container = AssetListBox.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
+
+			if (container is null)
+				continue;
+
+			var transform = container.TransformToAncestor(scrollViewer);
+			var itemRect = transform.TransformBounds(new Rect(0, 0, container.ActualWidth, container.ActualHeight));
+
+			if (viewportRect.IntersectsWith(itemRect) && item is AssetItemViewModel vm)
+				result.Add(vm);
+		}
+
+		return result;
+	}
+
+	private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+	{
+		int count = VisualTreeHelper.GetChildrenCount(parent);
+
+		for (int i = 0; i < count; i++)
+		{
+			var child = VisualTreeHelper.GetChild(parent, i);
+
+			if (child is T result)
+				return result;
+
+			var descendant = FindVisualChild<T>(child);
+
+			if (descendant is not null)
+				return descendant;
+		}
+
+		return null;
+	}
 }

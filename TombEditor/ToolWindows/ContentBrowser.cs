@@ -62,6 +62,9 @@ public partial class ContentBrowser : DarkToolWindow
 		AllowDrop = true;
 		_viewModel.FilesDropped += ViewModel_FilesDropped;
 
+		// Subscribe to viewport scroll for lazy thumbnail rendering.
+		contentBrowserView.ViewportScrolled += ContentBrowserView_ViewportScrolled;
+
 		// Subscribe to editor events.
 		_editor.EditorEventRaised += EditorEventRaised;
 	}
@@ -81,6 +84,8 @@ public partial class ContentBrowser : DarkToolWindow
 			_viewModel.PropertyChanged -= ViewModel_PropertyChanged;
 			_viewModel.FavoriteToggled -= ViewModel_FavoriteToggled;
 			_viewModel.FilesDropped -= ViewModel_FilesDropped;
+
+			contentBrowserView.ViewportScrolled -= ContentBrowserView_ViewportScrolled;
 
 			_thumbnailTimer?.Stop();
 			_thumbnailTimer?.Dispose();
@@ -200,15 +205,29 @@ public partial class ContentBrowser : DarkToolWindow
 
 	private void ViewModel_ThumbnailRenderRequested(object sender, EventArgs e)
 	{
-		// Build/rebuild the queue from items that still need thumbnails.
-		_thumbnailQueue = _viewModel.GetItemsNeedingThumbnails().ToList();
-		_thumbnailQueueIndex = 0;
+		// Defer rendering until scroll/layout provides visible items.
+		QueueVisibleThumbnails();
+	}
 
-		if (_thumbnailQueue.Count > 0)
-		{
-			_thumbnailTimer?.Stop();
-			_thumbnailTimer?.Start();
-		}
+	private void ContentBrowserView_ViewportScrolled(object sender, EventArgs e)
+	{
+		QueueVisibleThumbnails();
+	}
+
+	// Queues only currently-visible items that still need thumbnails.
+	private void QueueVisibleThumbnails()
+	{
+		var visibleItems = contentBrowserView.GetVisibleItems()
+			.Where(i => i.Thumbnail is null && !_viewModel.HasCachedThumbnail(i))
+			.ToList();
+
+		if (visibleItems.Count == 0)
+			return;
+
+		_thumbnailQueue = visibleItems;
+		_thumbnailQueueIndex = 0;
+		_thumbnailTimer?.Stop();
+		_thumbnailTimer?.Start();
 	}
 
 	private void ThumbnailTimer_Tick(object sender, EventArgs e)
