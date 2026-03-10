@@ -108,6 +108,25 @@
 								Opacity="0.9"
 								Text="{Binding Initials}" />
 						</Border>
+
+						<!--  Favorite star toggle (top-right corner of thumbnail)  -->
+						<Border
+							x:Name="FavoriteStar"
+							Width="16"
+							Height="16"
+							Margin="0,2,2,0"
+							HorizontalAlignment="Right"
+							VerticalAlignment="Top"
+							Background="Transparent"
+							Cursor="Hand"
+							MouseLeftButtonDown="FavoriteStar_MouseLeftButtonDown"
+							Opacity="0">
+							<Image
+								x:Name="FavoriteStarImage"
+								RenderOptions.BitmapScalingMode="HighQuality"
+								Source="/Resources/icons_actions/actions_StarOutlined-16.png"
+								Stretch="Uniform" />
+						</Border>
 					</Grid>
 
 					<!--  Asset name  -->
@@ -129,7 +148,14 @@
 				<!--  Hover effect (non-selected items only, because selection trigger below takes priority)  -->
 				<Trigger SourceName="TileBorder" Property="IsMouseOver" Value="True">
 					<Setter TargetName="TileBorder" Property="Background" Value="{DynamicResource Brush_Background_Alternative}" />
+					<Setter TargetName="FavoriteStar" Property="Opacity" Value="0.6" />
 				</Trigger>
+
+				<!--  Show filled star when item is a favorite.  -->
+				<DataTrigger Binding="{Binding IsFavorite}" Value="True">
+					<Setter TargetName="FavoriteStarImage" Property="Source" Value="/Resources/icons_actions/actions_StarFilled-16.png" />
+					<Setter TargetName="FavoriteStar" Property="Opacity" Value="1" />
+				</DataTrigger>
 
 				<!--  Selection always wins (declared last = highest priority)  -->
 				<DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">

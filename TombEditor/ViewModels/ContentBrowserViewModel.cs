@@ -57,6 +57,11 @@ public sealed class FilterOption
 	public bool IsSplitter { get; }
 
 	/// <summary>
+	/// True if this is the special "Favorites" filter.
+	/// </summary>
+	public bool IsFavoritesFilter { get; }
+
+	/// <summary>
 	/// The type filter value, only meaningful when IsTypeFilter is true.
 	/// </summary>
 	public AssetCategory TypeFilter { get; }
@@ -67,23 +72,27 @@ public sealed class FilterOption
 	/// </summary>
 	public string CategoryFilter { get; }
 
-	private FilterOption(string displayName, bool isTypeFilter, bool isSplitter, AssetCategory typeFilter, string categoryFilter)
+	private FilterOption(string displayName, bool isTypeFilter, bool isSplitter, bool isFavoritesFilter, AssetCategory typeFilter, string categoryFilter)
 	{
 		DisplayName = displayName;
 		IsTypeFilter = isTypeFilter;
 		IsSplitter = isSplitter;
+		IsFavoritesFilter = isFavoritesFilter;
 		TypeFilter = typeFilter;
 		CategoryFilter = categoryFilter;
 	}
 
 	public static FilterOption CreateTypeFilter(AssetCategory category, string displayName)
-		=> new(displayName, true, false, category, string.Empty);
+		=> new(displayName, true, false, false, category, string.Empty);
 
 	public static FilterOption CreateSplitter()
-		=> new(string.Empty, false, true, AssetCategory.All, string.Empty);
+		=> new(string.Empty, false, true, false, AssetCategory.All, string.Empty);
 
 	public static FilterOption CreateCategoryFilter(string categoryName)
-		=> new(categoryName, false, false, AssetCategory.All, categoryName);
+		=> new(categoryName, false, false, false, AssetCategory.All, categoryName);
+
+	public static FilterOption CreateFavoritesFilter(string displayName)
+		=> new(displayName, false, false, true, AssetCategory.All, string.Empty);
 
 	public override string ToString() => DisplayName;
 }
@@ -138,6 +147,13 @@ public partial class AssetItemViewModel : ObservableObject
 		_ => 3
 	};
 
+	// Unique key used for favorites persistence.
+	public string FavoriteKey { get; }
+
+	// Whether this item is marked as a favorite.
+	[ObservableProperty]
+	private bool _isFavorite;
+
 	// Backing field for thumbnail property.
 	[ObservableProperty]
 	[NotifyPropertyChangedFor(nameof(HasThumbnail))]
@@ -185,6 +201,23 @@ public partial class AssetItemViewModel : ObservableObject
 
 		Initials = BuildInitials(name);
 		CacheKey = BuildCacheKey(wadObject, category, fileVersion);
+		FavoriteKey = BuildFavoriteKey(wadObject, category);
+	}
+
+	public static string BuildFavoriteKey(IWadObject wadObject, AssetCategory category)
+	{
+		string prefix = category.ToString();
+
+		if (wadObject.Id is WadMoveableId movId)
+			return $"{prefix}_{movId.TypeId}";
+
+		if (wadObject.Id is WadStaticId statId)
+			return $"{prefix}_{statId.TypeId}";
+
+		if (wadObject is ImportedGeometry geo)
+			return $"{prefix}_{geo.Info.Name}_{geo.Info.Path}";
+
+		return $"{prefix}_{wadObject.GetHashCode()}";
 	}
 
 	private static string BuildCacheKey(IWadObject wadObject, AssetCategory category, string fileVersion = "")
@@ -400,6 +433,9 @@ public partial class ContentBrowserViewModel : ObservableObject
 	// Event raised when files are dropped from Windows Explorer onto the Content Browser.
 	public event EventHandler<string[]>? FilesDropped;
 
+	// Event raised when a favorite is toggled; host persists the change to LevelSettings.
+	public event EventHandler<AssetItemViewModel>? FavoriteToggled;
+
 	// Current list of all selected items (for multi-selection).
 	public IReadOnlyList<AssetItemViewModel> SelectedItems { get; private set; } = Array.Empty<AssetItemViewModel>();
 
@@ -566,6 +602,13 @@ public partial class ContentBrowserViewModel : ObservableObject
 		// Track whether any WADs are loaded.
 		HasLoadedWads = AllItems.Count > 0;
 
+		// Apply favorite state from saved settings.
+		foreach (var item in AllItems)
+		{
+			if (settings.Favorites.Contains(item.FavoriteKey))
+				item.IsFavorite = true;
+		}
+
 		// Build category list from all moveable and static items.
 		var allCategories = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -593,8 +636,13 @@ public partial class ContentBrowserViewModel : ObservableObject
 				FilterOptions.Add(FilterOption.CreateCategoryFilter(cat));
 		}
 
+		// Add Favorites filter at the bottom, preceded by a divider.
+		FilterOptions.Add(FilterOption.CreateSplitter());
+		FilterOptions.Add(FilterOption.CreateFavoritesFilter(_localizationService["FilterFavorites"]));
+
 		// Restore previous filter selection or default to All.
-		SelectedFilter = FilterOptions.FirstOrDefault(f => f.DisplayName == previousFilterName && !f.IsSplitter) ?? _allFilter;
+		SelectedFilter = FilterOptions.FirstOrDefault(f =>
+			f.DisplayName == previousFilterName && !f.IsSplitter) ?? _allFilter;
 
 		RefreshFilteredItems();
 
@@ -711,6 +759,13 @@ public partial class ContentBrowserViewModel : ObservableObject
 		AddWadRequested?.Invoke(this, EventArgs.Empty);
 	}
 
+	// Toggles the favorite state of an item and notifies the host.
+	public void ToggleFavorite(AssetItemViewModel item)
+	{
+		item.IsFavorite = !item.IsFavorite;
+		FavoriteToggled?.Invoke(this, item);
+	}
+
 	// Routes a file drop from the view to subscribing hosts.
 	public void HandleFileDrop(string[] files)
 	{
@@ -736,7 +791,12 @@ public partial class ContentBrowserViewModel : ObservableObject
 		// Apply type or category filter
 		if (filter?.IsSplitter == false)
 		{
-			if (filter.IsTypeFilter)
+			if (filter.IsFavoritesFilter)
+			{
+				if (!item.IsFavorite)
+					return false;
+			}
+			else if (filter.IsTypeFilter)
 			{
 				// Type filter: filter by asset type (All shows everything)
 				if (filter.TypeFilter != AssetCategory.All && item.Category != filter.TypeFilter)

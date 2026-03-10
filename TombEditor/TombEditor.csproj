@@ -153,6 +153,8 @@
     <Resource Include="Resources\icons_objects\objects_volume-sphere-16.png" />
     <Resource Include="Resources\icons_objects\objects_volume-box-16.png" />
     <Resource Include="Resources\icons_actions\actions_TextureMode-16.png" />
+    <Resource Include="Resources\icons_actions\actions_StarOutlined-16.png" />
+    <Resource Include="Resources\icons_actions\actions_StarFilled-16.png" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />

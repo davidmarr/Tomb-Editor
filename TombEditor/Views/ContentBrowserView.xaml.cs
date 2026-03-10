@@ -587,4 +587,15 @@ public partial class ContentBrowserView : UserControl
 
 		e.Handled = true;
 	}
+
+	private void FavoriteStar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+	{
+		if (sender is FrameworkElement element &&
+			element.DataContext is AssetItemViewModel item &&
+			DataContext is ContentBrowserViewModel vm)
+		{
+			vm.ToggleFavorite(item);
+			e.Handled = true;
+		}
+	}
 }

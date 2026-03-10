@@ -718,6 +718,19 @@ namespace TombLib.LevelData.IO
                     }
                     settings.Palette = colorList;
                 }
+                else if (id == Prj2Chunks.Favorites)
+                {
+                    settings.Favorites.Clear();
+                    chunkIO.ReadChunks((id2, chunkSize2) =>
+                    {
+                        if (id2 == Prj2Chunks.Favorite)
+                        {
+                            settings.Favorites.Add(chunkIO.ReadChunkString(chunkSize2));
+                            return true;
+                        }
+                        else return false;
+                    });
+                }
                 else
                     return false;
                 return true;

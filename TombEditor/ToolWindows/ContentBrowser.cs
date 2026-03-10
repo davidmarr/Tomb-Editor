@@ -49,6 +49,7 @@ public partial class ContentBrowser : DarkToolWindow
 		_viewModel.AddItemRequested += ViewModel_AddItemRequested;
 		_viewModel.AddWadRequested += ViewModel_AddWadRequested;
 		_viewModel.PropertyChanged += ViewModel_PropertyChanged;
+		_viewModel.FavoriteToggled += ViewModel_FavoriteToggled;
 
 		// Load saved tile width from configuration.
 		_viewModel.TileWidth = (double)_editor.Configuration.ContentBrowser_TileWidth;
@@ -78,6 +79,7 @@ public partial class ContentBrowser : DarkToolWindow
 			_viewModel.AddItemRequested -= ViewModel_AddItemRequested;
 			_viewModel.AddWadRequested -= ViewModel_AddWadRequested;
 			_viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+			_viewModel.FavoriteToggled -= ViewModel_FavoriteToggled;
 			_viewModel.FilesDropped -= ViewModel_FilesDropped;
 
 			_thumbnailTimer?.Stop();
@@ -156,6 +158,19 @@ public partial class ContentBrowser : DarkToolWindow
 	private void ViewModel_AddWadRequested(object sender, EventArgs e)
 	{
 		EditorActions.AddWad(this, null);
+	}
+
+	private void ViewModel_FavoriteToggled(object sender, AssetItemViewModel item)
+	{
+		var settings = _editor.Level?.Settings;
+
+		if (settings is null)
+			return;
+
+		if (item.IsFavorite)
+			settings.Favorites.Add(item.FavoriteKey);
+		else
+			settings.Favorites.Remove(item.FavoriteKey);
 	}
 
 	// Handles files dropped from Windows Explorer: WAD files are loaded as object archives.
