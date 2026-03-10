@@ -5038,10 +5038,16 @@ namespace TombEditor
 
         public static ItemType? GetCurrentItemWithMessage()
         {
-            ItemType? result = _editor.ChosenItem;
-            if (result == null)
-                _editor.SendMessage("Select an item first.", PopupType.Error);
-            return result;
+            foreach (var obj in _editor.ChosenItems)
+            {
+                if (obj is WadMoveable m)
+                    return new ItemType(m.Id);
+                if (obj is WadStatic s)
+                    return new ItemType(s.Id);
+            }
+
+            _editor.SendMessage("Select an item first.", PopupType.Error);
+            return null;
         }
 
         public static void FindItem()

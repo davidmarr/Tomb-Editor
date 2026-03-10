@@ -6,6 +6,7 @@ using TombLib.Graphics;
 using TombLib.LevelData;
 using TombLib.Rendering;
 using TombLib;
+using TombLib.Wad;
 using TombLib.LevelData.SectorEnums;
 using TombLib.LevelData.SectorEnums.Extensions;
 
@@ -257,10 +258,16 @@ namespace TombEditor.Controls.Panel3D
 
                 if (ModifierKeys.HasFlag(Keys.Alt)) // Pick item or imported geo without selection
                 {
-                    if (obj is ItemInstance)
-                        _editor.ChosenItem = ((ItemInstance)obj).ItemType;
-                    else if (obj is ImportedGeometryInstance)
-                        _editor.ChosenImportedGeometry = ((ImportedGeometryInstance)obj).Model;
+                    if (obj is ItemInstance itemInstance)
+                    {
+                        var wadObj = itemInstance.ItemType.ToIWadObject(_editor.Level.Settings);
+                        if (wadObj != null)
+                            _editor.ChosenItems = new[] { wadObj };
+                    }
+                    else if (obj is ImportedGeometryInstance geoInstance)
+                    {
+                        _editor.ChosenItems = new IWadObject[] { geoInstance.Model };
+                    }
                 }
                 else if (_editor.SelectedObject != obj)
                 {

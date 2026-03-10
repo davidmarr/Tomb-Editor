@@ -159,40 +159,6 @@ namespace TombEditor
             public IReadOnlyList<IWadObject> Current { get; internal set; }
         }
 
-        public class ChosenItemChangedEvent : ChosenItemsChangedEvent
-        {
-            public new ItemType? Previous => ToItemType(base.Previous);
-            public new ItemType? Current  => ToItemType(base.Current);
-
-            internal ChosenItemChangedEvent(IReadOnlyList<IWadObject> previous, IReadOnlyList<IWadObject> current)
-            {
-                base.Previous = previous;
-                base.Current  = current;
-            }
-
-            private static ItemType? ToItemType(IReadOnlyList<IWadObject> list)
-            {
-                if (list == null)
-                    return null;
-
-                foreach (var obj in list)
-                {
-                    if (obj is WadMoveable m)
-                        return new ItemType(m.Id);
-                    if (obj is WadStatic s)
-                        return new ItemType(s.Id);
-                }
-
-                return null;
-            }
-        }
-
-        public class ChosenImportedGeometryChangedEvent : IEditorPropertyChangedEvent
-        {
-            public ImportedGeometry Previous { get; internal set; }
-            public ImportedGeometry Current { get; internal set; }
-        }
-
         private IWadObject[] _chosenItems = Array.Empty<IWadObject>();
         public IReadOnlyList<IWadObject> ChosenItems
         {
@@ -207,78 +173,6 @@ namespace TombEditor
                 _chosenItems = arr;
 
                 RaiseEvent(new ChosenItemsChangedEvent { Previous = previous, Current = arr });
-                Raise0bjectEvents(previous, arr);
-            }
-        }
-
-        // Raises ChosenItemChangedEvent and ChosenImportedGeometryChangedEvent for backward compatibility.
-        private void Raise0bjectEvents(IWadObject[] previous, IWadObject[] current)
-        {
-            var prevFirst = previous.FirstOrDefault();
-            var currFirst = current.FirstOrDefault();
-
-            if (prevFirst != currFirst)
-            {
-                if (currFirst is ImportedGeometry currGeo)
-                {
-                    RaiseEvent(new ChosenImportedGeometryChangedEvent { Previous = ChosenImportedGeometry, Current = currGeo });
-                }
-                else if ((currFirst is WadMoveable || currFirst is WadStatic) && ChosenItem != GetFirstItemType(previous))
-                {
-                    RaiseEvent(new ChosenItemChangedEvent(previous, current));
-                }
-            }
-        }
-
-        private static ItemType? GetFirstItemType(IWadObject[] items)
-        {
-            foreach (var obj in items)
-            {
-                if (obj is WadMoveable m)
-                    return new ItemType(m.Id);
-                if (obj is WadStatic s)
-                    return new ItemType(s.Id);
-            }
-
-            return null;
-        }
-
-        // Single-item view: first WadMoveable or WadStatic in ChosenItems.
-        public ItemType? ChosenItem
-        {
-            get { return GetFirstItemType(_chosenItems); }
-            set
-            {
-                if (value.HasValue)
-                {
-                    var item = value.Value;
-                    IWadObject wadObj = item.IsStatic
-                        ? (IWadObject)Level?.Settings?.WadTryGetStatic(item.StaticId)
-                        : (IWadObject)Level?.Settings?.WadTryGetMoveable(item.MoveableId);
-
-                    if (wadObj != null)
-                        ChosenItems = new[] { wadObj };
-                }
-                else
-                {
-                    ChosenItems = Array.Empty<IWadObject>();
-                }
-            }
-        }
-
-        // Single-item view: first ImportedGeometry in ChosenItems.
-        public ImportedGeometry ChosenImportedGeometry
-        {
-            get { return _chosenItems.OfType<ImportedGeometry>().FirstOrDefault(); }
-            set
-            {
-                if (value != ChosenImportedGeometry)
-                {
-                    if (value != null)
-                        ChosenItems = new IWadObject[] { value };
-                    else if (ChosenImportedGeometry != null)
-                        ChosenItems = _chosenItems.Where(o => o is not ImportedGeometry).ToArray();
-                }
             }
         }
 

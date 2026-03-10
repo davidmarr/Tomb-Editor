@@ -128,11 +128,7 @@ public partial class ContentBrowser : DarkToolWindow
 		}
 		else if (item.WadObject is WadMoveable or WadStatic)
 		{
-			if (item.WadObject is WadMoveable moveable)
-				_editor.ChosenItem = new ItemType(moveable.Id, _editor?.Level?.Settings);
-			else if (item.WadObject is WadStatic staticMesh)
-				_editor.ChosenItem = new ItemType(staticMesh.Id, _editor?.Level?.Settings);
-
+			_editor.ChosenItems = new[] { item.WadObject };
 			EditorActions.FindItem();
 		}
 

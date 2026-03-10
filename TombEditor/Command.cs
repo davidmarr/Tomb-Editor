@@ -1180,7 +1180,7 @@ namespace TombEditor
 
             AddCommand("AddImportedGeometry", "Add imported geometry", CommandType.Objects, delegate (CommandArgs args)
             {
-                args.Editor.Action = new EditorActionPlace(false, (l, r) => new ImportedGeometryInstance() { Model = args.Editor.ChosenImportedGeometry });
+                args.Editor.Action = new EditorActionPlace(false, (l, r) => new ImportedGeometryInstance() { Model = args.Editor.ChosenItems.OfType<ImportedGeometry>().FirstOrDefault() });
             });
 
             AddCommand("AddBoxVolumeInSelectedArea", "Add box volume in selected area", CommandType.Objects, delegate (CommandArgs args)
