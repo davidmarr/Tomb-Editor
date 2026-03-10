@@ -163,8 +163,9 @@ public partial class ObjectBrushToolboxViewModel : ObservableObject
 		bool isLine = tool == EditorToolType.Line;
 		bool isEraser = tool == EditorToolType.Eraser;
 		bool isFill = tool == EditorToolType.Fill;
+		bool isSelection = tool == EditorToolType.Selection;
 
-		IsRadiusEnabled = !isFill;
+		IsRadiusEnabled = !isFill && !isSelection;
 		IsDensityEnabled = isBrush || isEraser || isFill;
 		IsAdjacentRoomsEnabled = isBrush || isEraser || isPencil || isLine;
 
