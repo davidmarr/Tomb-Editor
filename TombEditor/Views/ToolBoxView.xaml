@@ -103,7 +103,7 @@
 			CommandParameter="ObjectDeselection"
 			IsChecked="{Binding IsObjectDeselectionChecked, Mode=OneWay}"
 			Style="{StaticResource ToolRadioButton}"
-			ToolTip="{tombLib:Localize Deselection}"
+			ToolTip="{tombLib:Localize ObjectDeselection}"
 			Visibility="{Binding IsObjectPlacementToolsVisible, Converter={StaticResource BoolToVisConverter}}">
 			<Image Source="/TombEditor;component/Resources/icons_toolbox/toolbox_Deselection-16.png" />
 		</RadioButton>

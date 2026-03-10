@@ -40,7 +40,8 @@
         "CircleBrushShape": "Circle Brush Shape",
         "SquareBrushShape": "Square Brush Shape",
         "Selection": "Selection",
-        "Deselect": "Deselect",
+        "ObjectSelection": "Object Selection",
+        "ObjectDeselection": "Object Deselection",
         "Brush": "Brush",
         "Shovel": "Shovel",
         "Pencil": "Pencil",
@@ -60,7 +61,7 @@
         "TextureEraser": "Eraser",
         "Invisibility": "Invisibility",
         "PortalDigger": "Portal Digger",
-        "FixTextureCoordinates": "Fix texture coordinates",
+        "FixTextureCoordinates": "Fix Texture Coordinates",
         "ShowTextures": "Show Textures"
     }
 }
