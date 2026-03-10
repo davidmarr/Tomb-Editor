@@ -344,7 +344,15 @@ public partial class ContentBrowser : DarkToolWindow
 		// so the legacy item browser and imported geometry browser still show the last chosen item.
 
 		if (items.Count == 0)
+		{
+			_suppressEditorSync = true;
+			if (_editor.ChosenItems.Count > 0)
+				_editor.ChosenItems = new[] { _editor.GetFirstWadObject() };
+			else
+				_editor.ChosenItems = null;
+			_suppressEditorSync = false;
 			return;
+		}
 
 		var wadObjects = items
 			.Where(vm => vm.WadObject is not null)

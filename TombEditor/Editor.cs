@@ -176,6 +176,20 @@ namespace TombEditor
             }
         }
 
+        public IWadObject GetFirstWadObject()
+        {
+            if (ChosenItems == null || ChosenItems.Count == 0)
+                return null;
+
+            foreach (var obj in ChosenItems)
+            {
+                if (obj is WadMoveable || obj is WadStatic)
+                    return obj;
+            }
+
+            return null;
+        }
+
         public class ModeChangedEvent : IEditorPropertyChangedEvent
         {
             public EditorMode Previous { get; internal set; }

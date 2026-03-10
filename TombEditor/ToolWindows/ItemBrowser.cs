@@ -1,8 +1,6 @@
 ﻿using DarkUI.Docking;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Windows.Forms;
 using TombLib.Controls;
 using TombLib.LevelData;
@@ -15,6 +13,7 @@ namespace TombEditor.ToolWindows
     public partial class ItemBrowser : DarkToolWindow
     {
         private readonly Editor _editor;
+        private bool _suppressEditorSync = false;
 
         public ItemBrowser()
         {
@@ -63,10 +62,10 @@ namespace TombEditor.ToolWindows
 
                 if (comboItems.Items.Count > 0)
                 {
-                    // Check if any reloaded wads still have current selected item present. If they do, re-select it
-                    // to preserve item list position. If item is not present, just reset selection to first item in the list.
+                    // Check if any reloaded wads still have the currently chosen item. If so, re-select it
+                    // to preserve list position. Otherwise, reset selection to the first item in the list.
 
-                    var chosenWadObject = GetFirstWadObject(_editor.ChosenItems);
+                    var chosenWadObject = _editor.GetFirstWadObject();
 
                     if (chosenWadObject != null && comboItems.Items.Contains(chosenWadObject))
                     {
@@ -95,15 +94,17 @@ namespace TombEditor.ToolWindows
             }
 
             // Update selection of items combo box.
-            if (obj is Editor.ChosenItemsChangedEvent itemsChanged)
+            if (obj is Editor.ChosenItemsChangedEvent)
             {
-                var wadObject = GetFirstWadObject(itemsChanged.Current);
+                _suppressEditorSync = true;
+                var wadObject = _editor.GetFirstWadObject();
                 if (wadObject != null)
                 {
                     comboItems.SelectedItem = panelItem.CurrentObject = wadObject;
                     MakeActive();
                     panelItem.ResetCamera();
                 }
+                _suppressEditorSync = false;
             }
 
             if (obj is Editor.ChosenItemsChangedEvent ||
@@ -137,21 +138,6 @@ namespace TombEditor.ToolWindows
                 panelItem.AnimatePreview = _editor.Configuration.RenderingItem_Animate;
                 lblFromWad.Visible = _editor.Configuration.RenderingItem_ShowMultipleWadsPrompt;
             }
-
-        }
-
-        private static IWadObject GetFirstWadObject(IReadOnlyList<IWadObject> items)
-        {
-            if (items == null)
-                return null;
-
-            foreach (var obj in items)
-            {
-                if (obj is WadMoveable || obj is WadStatic)
-                    return obj;
-            }
-
-            return null;
         }
 
         private void FindLaraSkin()
@@ -165,7 +151,7 @@ namespace TombEditor.ToolWindows
 
         private void comboItems_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (comboItems.SelectedItem is IWadObject wadObject)
+            if (!_suppressEditorSync && comboItems.SelectedItem is IWadObject wadObject)
                 _editor.ChosenItems = new[] { wadObject };
 
             var itemType = comboItems.SelectedItem switch
