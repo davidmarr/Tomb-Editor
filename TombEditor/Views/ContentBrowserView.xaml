@@ -298,7 +298,7 @@
 									<Setter Property="IsEnabled" Value="False" />
 									<Setter Property="IsHitTestVisible" Value="False" />
 									<Setter Property="Focusable" Value="False" />
-									<Setter Property="Height" Value="7" />
+									<Setter Property="Height" Value="5" />
 									<Setter Property="Padding" Value="0" />
 									<Setter Property="Margin" Value="0" />
 									<Setter Property="HorizontalContentAlignment" Value="Stretch" />
