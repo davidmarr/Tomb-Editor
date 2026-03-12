@@ -1922,7 +1922,7 @@ namespace TombEditor.Controls.Panel3D
             {
                 ShowExtraBlendingModes = ShowExtraBlendingModes,
                 RoomGridForce = _editor.Mode == EditorMode.Geometry || brushHidesTextures,
-                RoomDisableVertexColors = _editor.Mode == EditorMode.FaceEdit,
+                RoomDisableVertexColors = _editor.Mode == EditorMode.FaceEdit || _editor.Mode == EditorMode.ObjectPlacement,
                 RoomGridLineWidth = _editor.Configuration.Rendering3D_LineWidth,
                 TransformMatrix = _viewProjection,
                 ShowLightingWhiteTextureOnly = whiteTextureOnly,
