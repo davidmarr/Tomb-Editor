@@ -379,7 +379,7 @@ namespace TombEditor.Controls.ObjectBrush
         // Main object placement operation.
 
         public static List<PositionBasedObjectInstance> PlaceObjectsWithBrush(Editor editor, Room room, float x, float z,
-           IReadOnlyList<IWadObject> chosenItems, RectangleInt2? sectorConstraint = null)
+           RectangleInt2? sectorConstraint = null)
         {
             var   shape   = editor.Configuration.ObjectBrush_Shape;
             float radius  = editor.Configuration.ObjectBrush_Radius;
@@ -407,7 +407,7 @@ namespace TombEditor.Controls.ObjectBrush
                 var posList = new List<Vector2>();
 
                 foreach (var obj in r.Objects)
-                    if (obj is PositionBasedObjectInstance pObj && MatchesChosen(pObj, chosenItems))
+                    if (obj is PositionBasedObjectInstance pObj && MatchesChosen(pObj, editor.ChosenItems))
                         posList.Add(new Vector2(obj.Position.X, obj.Position.Z));
 
                 context.PosCache[r] = posList;
@@ -435,7 +435,7 @@ namespace TombEditor.Controls.ObjectBrush
                     if (placed >= toPlace)
                         break;
 
-                    var chosenItem = chosenItems[_rng.Next(chosenItems.Count)];
+                    var chosenItem = editor.ChosenItems[_rng.Next(editor.ChosenItems.Count)];
 
                     if (!TryPlaceObject(editor, editor.Level, targetRoom, candidate, chosenItem,
                         minDistSq, ref context, sectorConstraint, out var instance))
@@ -577,7 +577,7 @@ namespace TombEditor.Controls.ObjectBrush
         // Main object erase operation.
 
         public static List<(PositionBasedObjectInstance Obj, Room Room)> EraseObjectsWithBrush(Editor editor, Room room,
-            float centerWorldX, float centerWorldZ, IReadOnlyList<IWadObject> chosenItems, RectangleInt2? sectorConstraint = null)
+            float centerWorldX, float centerWorldZ, RectangleInt2? sectorConstraint = null)
         {
             var   shape          = editor.Configuration.ObjectBrush_Shape;
             float radius         = editor.Configuration.ObjectBrush_Radius;
@@ -600,7 +600,7 @@ namespace TombEditor.Controls.ObjectBrush
                 float localCenterX = centerWorldX + offset.X;
                 float localCenterZ = centerWorldZ + offset.Z;
 
-                var toRemove = CollectObjectsInBrushArea(targetRoom, localCenterX, localCenterZ, radius, shape, filterByChosen ? chosenItems : null, sectorConstraint);
+                var toRemove = CollectObjectsInBrushArea(targetRoom, localCenterX, localCenterZ, radius, shape, filterByChosen ? editor.ChosenItems : null, sectorConstraint);
 
                 // Shuffle, so removal is spatially random rather than biased by iteration order.
                 ShuffleList(toRemove);
@@ -690,8 +690,7 @@ namespace TombEditor.Controls.ObjectBrush
         // Ctrl deselects, Shift limits to current ChosenItems only.
 
         public static void SelectObjectsWithBrush(Editor editor, Room room, float centerWorldX, float centerWorldZ,
-            IReadOnlyList<IWadObject> chosenItems, RectangleInt2? sectorConstraint,
-            HashSet<ObjectInstance> processedObjects = null, bool deselect = false)
+            RectangleInt2? sectorConstraint, HashSet<ObjectInstance> processedObjects = null, bool deselect = false)
         {
             var shape     = editor.Configuration.ObjectBrush_Shape;
             float radius  = editor.Configuration.ObjectBrush_Radius;
@@ -716,7 +715,7 @@ namespace TombEditor.Controls.ObjectBrush
                     if (processedObjects != null && processedObjects.Contains(obj))
                         continue;
 
-                    if (filter && !MatchesChosen(obj, chosenItems))
+                    if (filter && !MatchesChosen(obj, editor.ChosenItems))
                         continue;
 
                     if (sectorConstraint.HasValue)
@@ -810,8 +809,7 @@ namespace TombEditor.Controls.ObjectBrush
         // If Ctrl is held, advance only in the rotation direction.
 
         public static List<PositionBasedObjectInstance> PlaceObjectWithPencil(Editor editor, Room room,
-            float centerWorldX, float centerWorldZ, IReadOnlyList<IWadObject> chosenItems, ref int itemIndex,
-            RectangleInt2? sectorConstraint, bool skipOverlapCheck = false)
+            float centerWorldX, float centerWorldZ, ref int itemIndex, RectangleInt2? sectorConstraint, bool skipOverlapCheck = false)
         {
             float radius     = editor.Configuration.ObjectBrush_Radius;
             bool  adjacent   = editor.Configuration.ObjectBrush_PlaceInAdjacentRooms;
@@ -824,7 +822,7 @@ namespace TombEditor.Controls.ObjectBrush
             var bboxCache = new Dictionary<IWadObject, BoundingBox?>();
 
             // Select the item to place.
-            var chosenItem = chosenItems[itemIndex % chosenItems.Count];
+            var chosenItem = editor.ChosenItems[itemIndex % editor.ChosenItems.Count];
 
             // Check if placement would overlap with any existing object of any chosen type.
             if (!bboxCache.TryGetValue(chosenItem, out var bbox))
@@ -861,7 +859,7 @@ namespace TombEditor.Controls.ObjectBrush
                 {
                     foreach (var obj in targetRoom.Objects)
                     {
-                        if (obj is PositionBasedObjectInstance pObj && MatchesChosen(pObj, chosenItems))
+                        if (obj is PositionBasedObjectInstance pObj && MatchesChosen(pObj, editor.ChosenItems))
                         {
                             float dx = obj.Position.X - localX;
                             float dz = obj.Position.Z - localZ;

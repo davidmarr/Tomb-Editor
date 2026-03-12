@@ -39,27 +39,27 @@ namespace TombEditor.Controls.ObjectBrush
             switch (editor.Tool.Tool)
             {
                 case EditorToolType.Brush:
-                    var placed = Helper.PlaceObjectsWithBrush(editor, room, localX, localZ, editor.ChosenItems, sectorConstraint);
+                    var placed = Helper.PlaceObjectsWithBrush(editor, room, localX, localZ, sectorConstraint);
                     _strokeUndoList.AddRange(placed.Select(o => new AddRemoveObjectUndoInstance(editor.UndoManager, o, true)));
                     _strokePlacedObjects.AddRange(placed);
                     break;
 
                 case EditorToolType.Eraser:
-                    var removed = Helper.EraseObjectsWithBrush(editor, room, localX, localZ, editor.ChosenItems, sectorConstraint);
+                    var removed = Helper.EraseObjectsWithBrush(editor, room, localX, localZ, sectorConstraint);
                     _strokeUndoList.AddRange(removed.Select(r => new AddRemoveObjectUndoInstance(editor.UndoManager, r.Obj, false, r.Room)));
                     break;
 
                 case EditorToolType.ObjectSelection:
-                    Helper.SelectObjectsWithBrush(editor, room, localX, localZ, editor.ChosenItems, sectorConstraint, _strokeProcessedObjects);
+                    Helper.SelectObjectsWithBrush(editor, room, localX, localZ, sectorConstraint, _strokeProcessedObjects);
                     break;
 
                 case EditorToolType.ObjectDeselection:
-                    Helper.SelectObjectsWithBrush(editor, room, localX, localZ, editor.ChosenItems, sectorConstraint, _strokeProcessedObjects, deselect: true);
+                    Helper.SelectObjectsWithBrush(editor, room, localX, localZ, sectorConstraint, _strokeProcessedObjects, deselect: true);
                     break;
 
                 case EditorToolType.Pencil:
                 case EditorToolType.Line:
-                    var pencilPlaced = Helper.PlaceObjectWithPencil(editor, room, localX, localZ, editor.ChosenItems, ref _pencilItemIndex,
+                    var pencilPlaced = Helper.PlaceObjectWithPencil(editor, room, localX, localZ, ref _pencilItemIndex,
                         sectorConstraint, skipOverlapCheck: editor.Tool.Tool == EditorToolType.Line);
                     _strokeUndoList.AddRange(pencilPlaced.Select(o => new AddRemoveObjectUndoInstance(editor.UndoManager, o, true)));
                     _strokePlacedObjects.AddRange(pencilPlaced);

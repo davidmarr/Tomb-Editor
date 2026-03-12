@@ -380,10 +380,11 @@ public partial class ContentBrowser : DarkToolWindow
 		if (items.Count == 0)
 		{
 			_suppressEditorSync = true;
-			if (_editor.ChosenItems.Count > 0)
-				_editor.ChosenItems = new[] { _editor.GetFirstWadObject() };
+			var potentialSelection = _editor.GetFirstWadObject();
+			if (potentialSelection != null)
+				_editor.ChosenItems = new[] { potentialSelection };
 			else
-				_editor.ChosenItems = null;
+				_editor.ChosenItems = Array.Empty<IWadObject>();
 			_suppressEditorSync = false;
 			return;
 		}

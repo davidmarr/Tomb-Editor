@@ -263,8 +263,8 @@ namespace TombEditor.Controls.Panel3D
 
         // Adjusts ObjectBrush parameters based on modifier keys held during hover or brush stroke.
         // Alt: rotation tracks mouse movement direction.
-        // Ctrl: radius = distance from pinned center to current cursor position.
-        // Shift: density scales with distance from pin point.
+        // Shift: radius = distance from pinned center to current cursor position.
+        // Ctrl+Shift: density scales with distance from pin point.
         // Returns true if any parameter was modified.
 
         internal bool UpdateBrushParameters(Point location, Vector3 cursorWorldPos)
@@ -305,7 +305,6 @@ namespace TombEditor.Controls.Panel3D
                 if (Control.ModifierKeys.HasFlag(Keys.Control))
                 {
                     // Ctrl+Shift: density scales with distance from pin point.
-
                     var density = (screenDistance / this.Size.Height) * ObjectBrush.Constants.MaxDensity;
 
                     _editor.Configuration.ObjectBrush_Density = Math.Min(ObjectBrush.Constants.MaxDensity, 
@@ -316,7 +315,6 @@ namespace TombEditor.Controls.Panel3D
                 else
                 {
                     // Shift alone: radius = distance from pinned center to current cursor position.
-
                     float distance = Vector2.Distance(new Vector2(cursorWorldPos.X, cursorWorldPos.Z),
                         new Vector2(_brushParamPinPoint.Value.X, _brushParamPinPoint.Value.Z));
 
