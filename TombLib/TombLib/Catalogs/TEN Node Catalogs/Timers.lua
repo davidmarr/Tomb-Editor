@@ -20,10 +20,10 @@ end
 
 -- !Name "Create basic timer"
 -- !Conditional "False"
--- !Description "Creates a simple countdown.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
+-- !Description "Creates a simple countdown.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 57, [ NoMultiline ], Timer name"
--- !Arguments "Numerical, 30, [ 0 | 1000 | 2 | 0.1 | 1 ], The duration of the timer in seconds that can be rounded internally to the nearest game frame (1/30 of a second)"
+-- !Arguments "Numerical, 30, [ 0 | 1000 | 2 | 0.1 | 1 ], The duration of the timer in seconds (internally rounded to the nearest game frame)"
 -- !Arguments "Boolean , 13, {false}, Loop"
 -- !Arguments "NewLine, Boolean, 25, {false}, Hours"
 -- !Arguments "Boolean, 25, {true}, Minutes"
@@ -52,10 +52,10 @@ end
 
 -- !Name "Create timer with function"
 -- !Conditional "False"
--- !Description "Creates a countdown which will execute a `LevelFuncs` lua function upon ending.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
+-- !Description "Creates a countdown which will execute a `LevelFuncs` lua function upon ending.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 57, [ NoMultiline ], Timer name"
--- !Arguments "Numerical, 30, [ 0 | 1000 | 2 | 0.1 | 1 ], The duration of the timer in seconds that can be rounded internally to the nearest game frame (1/30 of a second)"
+-- !Arguments "Numerical, 30, [ 0 | 1000 | 2 | 0.1 | 1 ], The duration of the timer in seconds (internally rounded to the nearest game frame)"
 -- !Arguments "Boolean , 13, {false}, Loop"
 -- !Arguments "NewLine, Boolean, 25, {false}, Hours"
 -- !Arguments "Boolean, 25, {true}, Minutes"
@@ -87,10 +87,10 @@ end
 
 -- !Name "Create timer with volume event set"
 -- !Conditional "False"
--- !Description "Creates a countdown that triggers a volume event set upon ending.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
+-- !Description "Creates a countdown that triggers a volume event set upon ending.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 57, [ NoMultiline ], Timer name"
--- !Arguments "Numerical, 30, [ 0 | 1000 | 2 | 0.1 | 1 ], The duration of the timer in seconds that can be rounded internally to the nearest game frame (1/30 of a second)"
+-- !Arguments "Numerical, 30, [ 0 | 1000 | 2 | 0.1 | 1 ], The duration of the timer in seconds (internally rounded to the nearest game frame)"
 -- !Arguments "Boolean , 13, {false}, Loop"
 -- !Arguments "NewLine, Boolean, 25, {false}, Hours"
 -- !Arguments "Boolean, 25, {true}, Minutes"
@@ -122,10 +122,10 @@ end
 
 -- !Name "Create timer with global event set"
 -- !Conditional "False"
--- !Description "Creates a countdown that triggers a global event set upon ending.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
+-- !Description "Creates a countdown that triggers a global event set upon ending.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 57, [ NoMultiline ], Timer name"
--- !Arguments "Numerical, 30, [ 0 | 1000 | 2 | 0.1 | 1 ], The duration of the timer in seconds that can be rounded internally to the nearest game frame (1/30 of a second)"
+-- !Arguments "Numerical, 30, [ 0 | 1000 | 2 | 0.1 | 1 ], The duration of the timer in seconds (internally rounded to the nearest game frame)"
 -- !Arguments "Boolean , 13, {false}, Loop"
 -- !Arguments "NewLine, Boolean, 25, {false}, Hours"
 -- !Arguments "Boolean, 25, {true}, Minutes"
@@ -157,7 +157,7 @@ end
 
 -- !Name "Start timer"
 -- !Conditional "False"
--- !Description "Begins or resumes a timer.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
+-- !Description "Begins or resumes a timer.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, [ NoMultiline ], Timer name"
 -- !Arguments "NewLine, Boolean , Reset timer when expired"
@@ -183,7 +183,7 @@ end
 
 -- !Name "Stop timer"
 -- !Conditional "False"
--- !Description "Stops a timer.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
+-- !Description "Stops a timer.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, [ NoMultiline ], Timer name"
 LevelFuncs.Engine.Node.StopTimer = function(name)
@@ -204,7 +204,7 @@ end
 
 -- !Name "Pause timer"
 -- !Conditional "False"
--- !Description "Pauses a timer.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
+-- !Description "Pauses a timer.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 100, [ NoMultiline ], Timer name"
 LevelFuncs.Engine.Node.SetPausedTimer = function(name)
@@ -225,11 +225,11 @@ end
 
 -- !Name "Modify remaining time"
 -- !Conditional "False"
--- !Description "Changes the remaining time value (in seconds) of a specific timer.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
+-- !Description "Changes the remaining time value (in seconds) of a specific timer.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 70, [ NoMultiline ], Timer name"
 -- !Arguments "Enumeration, 10, [ + | - | * | / | = ], {4}, Mathematical operation to perform"
--- !Arguments "Numerical, 20, [ 0 | 1000 | 2 | 0.1 | 1 ], New time remaining (in seconds) that can be rounded internally to the nearest game frame (1/30 of a second)"
+-- !Arguments "Numerical, 20, [ 0 | 1000 | 2 | 0.1 | 1 ], New time remaining in seconds (internally rounded to the nearest game frame)"
 LevelFuncs.Engine.Node.SetRemainingTime = function(name, operator, remainingTime)
     if name ~= '' then
         if Timer.IfExists(name) then
@@ -253,11 +253,11 @@ end
 
 -- !Name "Modify total time"
 -- !Conditional "False"
--- !Description "Changes the total duration value (in seconds) of a specific timer.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
+-- !Description "Changes the total duration value (in seconds) of a specific timer.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 70, [ NoMultiline ], Timer name"
 -- !Arguments "Enumeration, 10, [ + | - | * | / | = ], {4}, Mathematical operation to perform"
--- !Arguments "Numerical, 20, [ 0 | 1000 | 2 | 0.1 | 1 ], New total time (in seconds) that can be rounded internally to the nearest game frame (1/30 of a second)"
+-- !Arguments "Numerical, 20, [ 0 | 1000 | 2 | 0.1 | 1 ], New total time in seconds (internally rounded to the nearest game frame)"
 LevelFuncs.Engine.Node.SetTotalTime = function(name, operator, totalTime)
     if name ~= '' then
         if Timer.IfExists(name) then
@@ -281,7 +281,7 @@ end
 
 -- !Name "Set timer loop"
 -- !Conditional "False"
--- !Description "Sets an existing timer as looped or one shot.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
+-- !Description "Sets an existing timer as looped or one shot.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 67, [ NoMultiline ], Timer name"
 -- !Arguments "Enumeration, 33, [ One shot | Looped ], Set timer as"
@@ -304,7 +304,7 @@ end
 
 -- !Name "Set timer color"
 -- !Conditional "False"
--- !Description "Sets colours for timer.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
+-- !Description "Sets colours for timer.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 76, [ NoMultiline ], Timer name"
 -- !Arguments "Color, 10, {TEN.Color(255, 255, 255)}, Timer's color
@@ -324,7 +324,7 @@ end
 
 -- !Name "Set timer paused color"
 -- !Conditional "False"
--- !Description "Sets colours for timer.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
+-- !Description "Sets colours for timer.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 76, [ NoMultiline ], Timer name"
 -- !Arguments "Color, 10, {TEN.Color(255, 255, 0)}, Timer's paused color"
@@ -344,7 +344,7 @@ end
 
 -- !Name "Modify timer position"
 -- !Conditional "False"
--- !Description "sets the position of the timer.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
+-- !Description "sets the position of the timer.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 100, [ NoMultiline ], Timer name"
 -- !Arguments "NewLine, Enumeration, 10, [ + | - | * | / | = ], {4}, Mathematical operation to perform for X"
@@ -378,7 +378,7 @@ end
 
 -- !Name "Modify timer scale"
 -- !Conditional "False"
--- !Description "Sets the scale of the timer.\nUsing this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation. Please carefully consider this configuration."
+-- !Description "Sets the scale of the timer.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 70, [ NoMultiline ], Timer name"
 -- !Arguments "Enumeration, 10, [ + | - | * | / | = ], {4}, Mathematical operation to perform"
@@ -493,7 +493,7 @@ end
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 50, [ NoMultiline ], Timer name"
 -- !Arguments "CompareOperator, 30"
--- !Arguments "Numerical, 20, [ 0 | 1000 | 2 | 0.1 | 1 ], Remaining time (in seconds) that can be rounded internally to the nearest game frame (1/30 of a second)"
+-- !Arguments "Numerical, 20, [ 0 | 1000 | 2 | 0.1 | 1 ], Remaining time in seconds (internally rounded to the nearest game frame)"
 LevelFuncs.Engine.Node.IfRemainingTimeIs = function(name, operator, value)
     if name ~= '' then
         if Timer.IfExists(name) then
@@ -523,7 +523,7 @@ end
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 50, [ NoMultiline ], Timer name"
 -- !Arguments "CompareOperator, 30"
--- !Arguments "Numerical, 20, [ 0 | 1000 | 2 | 0.1 | 1 ], Total Time (in seconds) that can be rounded internally to the nearest game frame (1/30 of a second)"
+-- !Arguments "Numerical, 20, [ 0 | 1000 | 2 | 0.1 | 1 ], Total time in seconds (internally rounded to the nearest game frame)"
 LevelFuncs.Engine.Node.IfTotalTimeIs = function(name, operator, time)
     if name ~= '' then
         if Timer.IfExists(name) then
