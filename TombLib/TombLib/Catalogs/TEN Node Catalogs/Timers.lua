@@ -307,8 +307,8 @@ end
 -- !Description "Sets colours for timer.\nNote: using this node within “On Volume Inside” or “On Loop” events may cause continuous loops and improper operation."
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 76, [ NoMultiline ], Timer name"
--- !Arguments "Color, 10, {TEN.Color(255, 255, 255)}, Timer's color
--- !Arguments "Numerical, 14, {1}, [ 0 | 1 | 2 | 0.1 ], Color transparency'"
+-- !Arguments "Color, 10, {TEN.Color(255, 255, 255)}, Timer's color"
+-- !Arguments "Numerical, 14, {1}, [ 0 | 1 | 2 | 0.1 ], Color transparency"
 LevelFuncs.Engine.Node.SetTimerColor = function (name, color, tColor)
     if name ~= '' then
         if Timer.IfExists(name) then
@@ -505,7 +505,7 @@ LevelFuncs.Engine.Node.IfRemainingTimeIs = function(name, operator, value)
                 if LevelVars.nodeTimers[name].debug then
                     local floatValue = value + 0.00
                     local remainingTime = timer:GetRemainingTimeInSeconds()
-                    TEN.Util.PrintLog("If the remaining time (".. remainingTime ..") is " .. textCompareOp[operator] .. " " ..  floatValue .. ". . Result: " .. tostring(result), TEN.Util.LogLevel.INFO, true)
+                    TEN.Util.PrintLog("If the remaining time (".. remainingTime ..") is " .. textCompareOp[operator] .. " " ..  floatValue .. ". Result: " .. tostring(result), TEN.Util.LogLevel.INFO, true)
                 end
                 return result
             end
