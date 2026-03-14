@@ -146,7 +146,7 @@ LevelFuncs.Engine.Node.CreateTimerWithGEventSet = function(name, time, loop, hou
     if name ~= '' then
         local nodeTimerFormat = {hours = hours, minutes = minutes, seconds = seconds, deciseconds = deciseconds }
         Timer.Create(name, time, loop, nodeTimerFormat, LevelFuncs.Engine.Node.RunGlobalEventSet, setName, eventType, activator)
-        LevelFuncs.Engine.Node.SetTimer(name, debug, alignment, effects, color, pColor, x, y, scale)
+        SetTimer(name, debug, alignment, effects, color, pColor, x, y, scale)
         if LevelVars.nodeTimers[name].debug then
             TEN.Util.PrintLog("Timer with global event set '" .. name .. "' created successfully", TEN.Util.LogLevel.INFO)
         end
