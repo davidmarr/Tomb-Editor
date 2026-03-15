@@ -179,13 +179,14 @@ namespace TombLib.LevelData.Compilers.TombEngine
             if (!room.Properties.FlagHorizon && !room.PortalsCache.Any(p => p.Room.Properties.FlagHorizon))
                 newRoom.Flags |= 0x0040;
 
-            // TRNG-specific flags
             if (room.Properties.FlagDamage)
                 newRoom.Flags |= 0x0800;
             if (room.Properties.FlagCold)
                 newRoom.Flags |= 0x1000;
             if (room.Properties.FlagNoLensflare)
                 newRoom.Flags |= 0x0080;
+            if (room.Properties.FlagNoCaustics)
+                newRoom.Flags |= 0x0200;
 
             // Room type
             switch (room.Properties.Type)
@@ -892,19 +893,21 @@ namespace TombLib.LevelData.Compilers.TombEngine
             foreach (var instance in room.Objects.OfType<StaticInstance>())
             {
                 var sm = _level.Settings?.WadTryGetStatic(instance.WadObjectId);
-                newRoom.StaticMeshes.Add(new TombEngineRoomStaticMesh
-                {
-                    X = (int)Math.Round(newRoom.Info.X + instance.Position.X),
-                    Y = (int)-Math.Round(room.WorldPos.Y + instance.Position.Y),
-                    Z = (int)Math.Round(newRoom.Info.Z + instance.Position.Z),
-                    Yaw = ToTrAngle(instance.RotationY),
-                    Scale = instance.Scale,
-                    ObjectID = checked((ushort)instance.WadObjectId.TypeId),
-                    Flags = (ushort)(0x0007), // FIXME: later let user choose if solid (0x0007) or soft (0x0005)!
-                    Color = new Vector4(instance.Color.X, instance.Color.Y, instance.Color.Z, 1.0f),
-                    HitPoints = 0,
-                    LuaName = instance.LuaName ?? string.Empty
-                }) ;
+
+                if (sm != null)
+                    newRoom.StaticMeshes.Add(new TombEngineRoomStaticMesh
+                    {
+                        X = (int)Math.Round(newRoom.Info.X + instance.Position.X),
+                        Y = (int)-Math.Round(room.WorldPos.Y + instance.Position.Y),
+                        Z = (int)Math.Round(newRoom.Info.Z + instance.Position.Z),
+                        Yaw = ToTrAngle(instance.RotationY),
+                        Scale = instance.Scale,
+                        ObjectID = checked((ushort)instance.WadObjectId.TypeId),
+                        Flags = (ushort)(0x0007), // FIXME: later let user choose if solid (0x0007) or soft (0x0005)!
+                        Color = new Vector4(instance.Color.X, instance.Color.Y, instance.Color.Z, 1.0f),
+                        HitPoints = 0,
+                        LuaName = instance.LuaName ?? string.Empty
+                    }) ;
             }
 
             ConvertLights(room, newRoom);

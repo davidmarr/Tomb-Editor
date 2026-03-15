@@ -314,6 +314,8 @@ namespace TombLib.LevelData.IO
                     settings.AgressiveTexturePacking = chunkIO.ReadChunkBool(chunkSize);
                 else if (id == Prj2Chunks.TextureCompression)
                     settings.CompressTextures = chunkIO.ReadChunkBool(chunkSize);
+                else if (id == Prj2Chunks.TrxTextureBitDepth)
+                    settings.TrxTextureBitDepth = (TrxTextureBitDepth)chunkIO.ReadChunkInt(chunkSize);
                 else if (id == Prj2Chunks.RearrangeRooms)
                     settings.RearrangeVerticalRooms = chunkIO.ReadChunkBool(chunkSize);
                 else if (id == Prj2Chunks.RemoveUnusedObjects)
@@ -989,6 +991,8 @@ namespace TombLib.LevelData.IO
                     }
                     else if (id2 == Prj2Chunks.RoomFlagCold)
                         room.Properties.FlagCold = chunkIO.ReadChunkBool(chunkSize2);
+                    else if (id2 == Prj2Chunks.RoomFlagNoCaustics)
+                        room.Properties.FlagNoCaustics = chunkIO.ReadChunkBool(chunkSize2);
                     else if (id2 == Prj2Chunks.RoomFlagDamage)
                         room.Properties.FlagDamage = chunkIO.ReadChunkBool(chunkSize2);
                     else if (id2 == Prj2Chunks.RoomFlagHorizon)
