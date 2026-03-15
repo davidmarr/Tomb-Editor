@@ -819,7 +819,8 @@ namespace TombEditor
                     }
                 }
 
-                EditorActions.DeleteRooms(args.Editor.SelectedRooms, args.Window);
+                if (args.Editor.Mode == EditorMode.Map2D)
+                    EditorActions.DeleteRooms(args.Editor.SelectedRooms, args.Window);
             });
 
             AddCommand("DeleteMissingObjects", "Delete missing objects", CommandType.Edit, delegate (CommandArgs args)
@@ -1965,7 +1966,7 @@ namespace TombEditor
             {
                 if (!EditorActions.CheckForRoomAndSectorSelection(args.Window))
                     return;
-                if (!EditorActions.VersionCheck(args.Editor.Level.Settings.GameVersion.Native() >= TRVersion.Game.TR3, "Monkeyswing"))
+                if (!EditorActions.VersionCheck(args.Editor.Level.Settings.GameVersion.SupportsMonkeySwing(), "Monkeyswing"))
                     return;
                 EditorActions.ToggleSectorFlag(args.Editor.SelectedRoom, args.Editor.SelectedSectors.Area, SectorFlags.Monkey);
             });
@@ -2111,6 +2112,18 @@ namespace TombEditor
                 if (args.Editor.SelectedRoom != null)
                 {
                     args.Editor.SelectedRoom.Properties.FlagCold = !args.Editor.SelectedRoom.Properties.FlagCold;
+                    args.Editor.RoomPropertiesChange(args.Editor.SelectedRoom);
+                }
+            });
+
+            AddCommand("SetRoomNoCaustics", "Disable caustics in water rooms", CommandType.Rooms, delegate (CommandArgs args)
+            {
+                if (!EditorActions.VersionCheck(args.Editor.Level.Settings.GameVersion == TRVersion.Game.TombEngine, "No caustics"))
+                    return;
+
+                if (args.Editor.SelectedRoom != null)
+                {
+                    args.Editor.SelectedRoom.Properties.FlagNoCaustics = !args.Editor.SelectedRoom.Properties.FlagNoCaustics;
                     args.Editor.RoomPropertiesChange(args.Editor.SelectedRoom);
                 }
             });
