@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
@@ -310,41 +311,40 @@ namespace TombEditor.Controls.Panel3D
 
         /// <summary>
         /// Resolves the look-at target for a static camera preview.
-        /// Searches for a Camera trigger referencing this instance, then checks the same sector
-        /// for a Target trigger pointing to a CAMERA_TARGET entity. Falls back to Lara's position.
+        /// Prioritizes the camera's room and its neighbors before searching remaining rooms.
+        /// Falls back to Lara's position if no CAMERA_TARGET trigger is found.
         /// </summary>
         private Vector3 ResolveCameraTarget(CameraInstance cameraInstance)
         {
             var level = _editor.Level;
+            var cameraRoom = cameraInstance.Room;
 
-            // Search all sectors for a Camera trigger referencing this instance.
+            // Build prioritized search order: camera's room and neighbors first, then remaining rooms
+            var searchedRooms = new HashSet<Room>();
+            var prioritizedRooms = new List<Room>();
+
+            if (cameraRoom is not null)
+            {
+                foreach (var room in cameraRoom.AndAdjoiningRooms)
+                {
+                    if (searchedRooms.Add(room))
+                        prioritizedRooms.Add(room);
+                }
+            }
+
             foreach (var room in level.ExistingRooms)
             {
-                int xCount = room.Sectors.GetLength(0);
-                int zCount = room.Sectors.GetLength(1);
+                if (searchedRooms.Add(room))
+                    prioritizedRooms.Add(room);
+            }
 
-                for (int x = 0; x < xCount; x++)
-                {
-                    for (int z = 0; z < zCount; z++)
-                    {
-                        var triggers = room.Sectors[x, z].Triggers;
+            // Search for a Camera trigger referencing this instance and a co-located Target trigger
+            foreach (var room in prioritizedRooms)
+            {
+                var target = FindCameraTargetInRoom(room, cameraInstance);
 
-                        bool hasCameraTrigger = triggers.Any(t =>
-                            t.TargetType == TriggerTargetType.Camera && t.Target == cameraInstance);
-
-                        if (!hasCameraTrigger)
-                            continue;
-
-                        // Found a Camera trigger for this instance - check for a Target trigger on the same sector
-                        var targetInstance = triggers
-                            .Where(t => t.TargetType == TriggerTargetType.Target && t.Target is PositionBasedObjectInstance)
-                            .Select(t => t.Target as PositionBasedObjectInstance)
-                            .FirstOrDefault();
-
-                        if (targetInstance != null)
-                            return targetInstance.WorldPosition;
-                    }
-                }
+                if (target is not null)
+                    return target.Value;
             }
 
             // No CAMERA_TARGET found - fall back to Lara's position
@@ -353,11 +353,42 @@ namespace TombEditor.Controls.Panel3D
                 .OfType<MoveableInstance>()
                 .FirstOrDefault(m => m.WadObjectId == WadMoveableId.Lara);
 
-            if (lara != null)
+            if (lara is not null)
                 return lara.WorldPosition;
 
             // Last resort: look straight ahead from the camera position
             return cameraInstance.WorldPosition + (Vector3.UnitZ * Level.SectorSizeUnit);
+        }
+
+        private Vector3? FindCameraTargetInRoom(Room room, CameraInstance cameraInstance)
+        {
+            int xCount = room.Sectors.GetLength(0);
+            int zCount = room.Sectors.GetLength(1);
+
+            for (int x = 0; x < xCount; x++)
+            {
+                for (int z = 0; z < zCount; z++)
+                {
+                    var triggers = room.Sectors[x, z].Triggers;
+
+                    bool hasCameraTrigger = triggers.Any(t =>
+                        t.TargetType == TriggerTargetType.Camera && t.Target == cameraInstance);
+
+                    if (!hasCameraTrigger)
+                        continue;
+
+                    // Found a Camera trigger - check for a Target trigger on the same sector
+                    var targetInstance = triggers
+                        .Where(t => t.TargetType == TriggerTargetType.Target && t.Target is PositionBasedObjectInstance)
+                        .Select(t => t.Target as PositionBasedObjectInstance)
+                        .FirstOrDefault();
+
+                    if (targetInstance is not null)
+                        return targetInstance.WorldPosition;
+                }
+            }
+
+            return null;
         }
     }
 }
