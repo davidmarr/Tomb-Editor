@@ -1742,8 +1742,10 @@ namespace TombLib.LevelData
                                 continue;
 
                             var texture = Sectors[x, z].GetFaceTexture(face);
+                            float maxTexCoordSpan = Level?.IsTombEngine == true ? 1024.0f : 256.0f;
+
                             if (texture.TextureIsInvisible || texture.TextureIsUnavailable ||
-                                (shape == FaceShape.Triangle && texture.TriangleCoordsOutOfBounds) || (shape == FaceShape.Quad && texture.QuadCoordsOutOfBounds))
+                                (shape == FaceShape.Triangle && texture.AreTriangleCoordsOutOfBounds(maxTexCoordSpan)) || (shape == FaceShape.Quad && texture.AreQuadCoordsOutOfBounds(maxTexCoordSpan)))
                                 continue;
 
                             var doubleSided = Level.Settings.GameVersion.Native() > TRVersion.Game.TR2 && texture.DoubleSided;
