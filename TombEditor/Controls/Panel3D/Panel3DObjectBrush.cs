@@ -89,7 +89,7 @@ namespace TombEditor.Controls.Panel3D
             {
                 float rotation = _editor.Configuration.ObjectBrush_Rotation + (delta > 0 ? ObjectBrush.Constants.AngleAdjustmentStep : -ObjectBrush.Constants.AngleAdjustmentStep);
                 rotation = ((rotation % 360.0f) + 360.0f) % 360.0f;
-                ObjectBrush.Actions.MouseDirectionAngle =_lastBrushDirectionAngle = _editor.Configuration.ObjectBrush_Rotation = 
+                ObjectBrush.Actions.MouseDirectionAngle = _lastBrushDirectionAngle = _editor.Configuration.ObjectBrush_Rotation = 
                     (float)(Math.Round(rotation / ObjectBrush.Constants.AngleAdjustmentStep) * ObjectBrush.Constants.AngleAdjustmentStep);
                 settingsChanged = true;
             }
