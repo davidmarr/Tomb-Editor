@@ -1347,7 +1347,7 @@ namespace TombEditor.Controls.Panel3D
                                             instance.ObjectMatrix;
                                 }
 
-                                if (wireframe == false)
+                                if (!wireframe)
                                 {
                                     _legacyDevice.SetRasterizerState(_rasterizerWireframe);
                                     wireframe = true;
@@ -1360,17 +1360,16 @@ namespace TombEditor.Controls.Panel3D
                                     break;
 
                                 // Push unselected cone further away in sprite mode for neatness
-                                if (_editor.Configuration.Rendering3D_UseSpritesForServiceObjects)
-                                    model = Matrix4x4.CreateTranslation(new Vector3(0, 0, -_coneRadius * 0.5f));
-                                else
-                                    model = Matrix4x4.Identity;
+                                model = _editor.Configuration.Rendering3D_UseSpritesForServiceObjects
+                                    ? Matrix4x4.CreateTranslation(new Vector3(0, 0, -_coneRadius * 0.5f))
+                                    : Matrix4x4.Identity;
 
                                 model *= Matrix4x4.CreateTranslation(new Vector3(0, 0, -_coneRadius * 1.2f)) *
                                          Matrix4x4.CreateRotationY((float)Math.PI) *
                                          Matrix4x4.CreateScale(1 / _coneRadius * _littleCubeRadius * 2.0f) *
                                          instance.ObjectMatrix;
 
-                                if (wireframe == true)
+                                if (wireframe)
                                 {
                                     _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullNone);
                                     wireframe = false;
@@ -1910,15 +1909,9 @@ namespace TombEditor.Controls.Panel3D
             }
 
             // New rendering setup
-            if (_editor.CameraPreviewMode && _flybyPreview != null && !_flybyPreview.IsFinished)
-            {
-                // Build custom view-projection with roll support for flyby preview
-                _viewProjection = BuildFlybyPreviewViewProjection(ClientSize.Width, ClientSize.Height);
-            }
-            else
-            {
-                _viewProjection = Camera.GetViewProjectionMatrix(ClientSize.Width, ClientSize.Height);
-            }
+            _viewProjection = (_editor.CameraPreviewMode && _flybyPreview != null && !_flybyPreview.IsFinished)
+                ? BuildFlybyPreviewViewProjection(ClientSize.Width, ClientSize.Height)
+                : Camera.GetViewProjectionMatrix(ClientSize.Width, ClientSize.Height);
 
             // Determine brush overlay state.
             var brushState = ComputeBrushOverlay();
@@ -2111,7 +2104,7 @@ namespace TombEditor.Controls.Panel3D
             float fov = frame.Fov > 0.01f ? frame.Fov : Camera.FieldOfView;
 
             Matrix4x4 view = MathC.Matrix4x4CreateLookAtLH(frame.Position, target, up);
-            float aspectRatio = width / height;
+            float aspectRatio = (height != 0.0f) ? (width / height) : 1.0f;
             Matrix4x4 projection = MathC.Matrix4x4CreatePerspectiveFieldOfViewLH(fov, aspectRatio, 20.0f, 1000000.0f);
 
             return view * projection;

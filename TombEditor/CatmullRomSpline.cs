@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -22,6 +23,9 @@ namespace TombEditor
         /// </summary>
         public static float Evaluate(float t, float[] knots)
         {
+            if (knots == null || knots.Length < 4)
+                throw new ArgumentException("Knots array must have at least 4 elements.", nameof(knots));
+
             int segments = knots.Length - 3;
             int span = (int)t;
 
@@ -54,6 +58,9 @@ namespace TombEditor
         /// </summary>
         public static float[] PadKnots(float[] values)
         {
+            if (values == null || values.Length == 0)
+                return Array.Empty<float>();
+
             int n = values.Length;
             var padded = new float[n + 2];
             padded[0] = values[0];
@@ -74,8 +81,11 @@ namespace TombEditor
         /// <returns>A list of interpolated positions along the spline, ending at the last control point.</returns>
         public static List<Vector3> EvaluatePositions(IList<Vector3> positions, int subdivisionsPerSegment)
         {
-            if (positions.Count < 2)
-                return new List<Vector3>(positions);
+            if (positions == null || positions.Count < 2)
+                return new List<Vector3>(positions ?? Array.Empty<Vector3>());
+
+            if (subdivisionsPerSegment <= 0)
+                throw new ArgumentOutOfRangeException(nameof(subdivisionsPerSegment), "Subdivisions per segment must be greater than zero.");
 
             int n = positions.Count;
             var xKnots = new float[n];
