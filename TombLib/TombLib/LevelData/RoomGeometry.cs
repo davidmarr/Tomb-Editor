@@ -87,9 +87,6 @@ namespace TombLib.LevelData
 
             // Build color array
             VertexColors.Resize(VertexPositions.Count, room.Properties.AmbientLight);
-
-            // Lighting
-            Relight(room, highQualityLighting);
         }
 
         #region Build Helpers
