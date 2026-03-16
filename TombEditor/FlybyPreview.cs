@@ -113,6 +113,9 @@ namespace TombEditor
             _currentT = 0;
             _currentSegment = 0;
             IsFinished = false;
+
+            // Initialize LastFrame so rendering is consistent before the first Update().
+            LastFrame = GetFrameAtT(0);
         }
 
         public void Start()

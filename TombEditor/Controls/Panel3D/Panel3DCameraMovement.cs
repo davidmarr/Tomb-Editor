@@ -197,6 +197,9 @@ namespace TombEditor.Controls.Panel3D
                 if (_editor.FlyMode)
                     return;
 
+                // Stop any in-progress camera animation so it doesn't interfere with preview.
+                _movementTimer.Stop(true);
+
                 // Save the current camera state
                 _flybyPreviewOldCamera = Camera;
 
@@ -215,7 +218,13 @@ namespace TombEditor.Controls.Panel3D
                     Camera.Position = cameraInstance.WorldPosition;
 
                     Vector3 targetPos = ResolveCameraTarget(cameraInstance);
-                    Vector3 direction = Vector3.Normalize(targetPos - Camera.Position);
+                    Vector3 toTarget = targetPos - Camera.Position;
+                    float distSq = toTarget.LengthSquared();
+
+                    // Fall back to +Z if target coincides with camera position.
+                    Vector3 direction = distSq > 0.001f
+                        ? toTarget / (float)Math.Sqrt(distSq)
+                        : Vector3.UnitZ;
 
                     // Compute yaw (RotationY) and pitch (RotationX) from direction vector.
                     // FreeCamera convention: yaw around Y, pitch around X, look direction is +Z.
