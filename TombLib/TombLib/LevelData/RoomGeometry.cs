@@ -1188,7 +1188,8 @@ namespace TombLib.LevelData
 
             // Distance-based attenuation: 1.0 at inner range, fading to 0.0 at outer range
             float innerRadius = light.InnerRange * Level.SectorSizeUnit;
-            float attenuation = Math.Clamp((outerRadius - distance) / (outerRadius - innerRadius), 0.0f, 1.0f);
+            float rangeDelta = outerRadius - innerRadius;
+            float attenuation = rangeDelta > 0 ? Math.Clamp((outerRadius - distance) / rangeDelta, 0.0f, 1.0f) : 1.0f;
 
             if (attenuation <= 0.0f)
                 return Vector3.Zero;
@@ -1270,17 +1271,19 @@ namespace TombLib.LevelData
                 return Vector3.Zero;
 
             // Cone angular attenuation: 1.0 inside inner cone, fading to 0.0 at outer cone
-            float coneFactor = Math.Clamp((float)(1.0 - ((cosAngle - cosInner) / (cosOuter - cosInner))), 0.0f, 1.0f);
+            double coneDelta = cosOuter - cosInner;
+            float coneFactor = coneDelta != 0 ? Math.Clamp((float)(1.0 - ((cosAngle - cosInner) / coneDelta)), 0.0f, 1.0f) : 1.0f;
 
             if (coneFactor <= 0.0f)
                 return Vector3.Zero;
 
             // Distance attenuation
             float innerRadius = light.InnerRange * Level.SectorSizeUnit;
+            float rangeDelta = outerRadius - innerRadius;
             float distAttenuation = 1.0f;
 
-            if (distance >= innerRadius)
-                distAttenuation = Math.Clamp(1.0f - ((distance - innerRadius) / (outerRadius - innerRadius)), 0.0f, 1.0f);
+            if (distance >= innerRadius && rangeDelta > 0)
+                distAttenuation = Math.Clamp(1.0f - ((distance - innerRadius) / rangeDelta), 0.0f, 1.0f);
 
             if (distAttenuation <= 0.0f)
                 return Vector3.Zero;
