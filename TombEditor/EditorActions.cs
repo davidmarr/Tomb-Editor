@@ -1328,6 +1328,8 @@ namespace TombEditor
             {
                 if (_editor.ShouldRelight)
                     room.RebuildLighting(_editor.Configuration.Rendering3D_HighQualityLightPreview);
+                else
+                    room.PendingRelight = true;
 
                 _editor.RoomGeometryChange(room);
             }

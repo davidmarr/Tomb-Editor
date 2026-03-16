@@ -1092,11 +1092,8 @@ namespace TombEditor
                 // If the mode switched to lighting mode, relight all rooms which have `PendingRelight` set to true
                 if (@event.Current == EditorMode.Lighting)
                 {
-                    foreach (Room room in Level.Rooms)
-                    {
-                        if (room?.PendingRelight == true)
-                            room.RebuildLighting(Configuration.Rendering3D_HighQualityLightPreview);
-                    }
+                    Parallel.ForEach(Level.Rooms.Where(room => room?.PendingRelight == true),
+                        room => room.RebuildLighting(Configuration.Rendering3D_HighQualityLightPreview));
                 }
             }
 

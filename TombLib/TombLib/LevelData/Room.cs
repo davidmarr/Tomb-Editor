@@ -136,7 +136,7 @@ namespace TombLib.LevelData
 
         // Internal data structures
         public RoomGeometry RoomGeometry { get; } = new RoomGeometry();
-        public bool PendingRelight { get; private set; } = true;
+        public bool PendingRelight { get; set; } = true;
 
         private IEnumerable<PortalInstance> _portalsCache;
 

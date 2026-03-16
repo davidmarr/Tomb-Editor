@@ -187,7 +187,12 @@ namespace TombEditor
 
                 // Rebuild lighting!
                 if (UndoObject is LightInstance)
-                    Room.RebuildLighting(parent.Editor.Configuration.Rendering3D_HighQualityLightPreview);
+                {
+                    if (Parent.Editor.ShouldRelight)
+                        Room.RebuildLighting(Parent.Editor.Configuration.Rendering3D_HighQualityLightPreview);
+                    else
+                        Room.PendingRelight = true;
+                }
 
                 // Move origin of object group, if it contains object
                 if (Parent.Editor.SelectedObject is ObjectGroup)
