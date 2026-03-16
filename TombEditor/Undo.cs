@@ -187,7 +187,12 @@ namespace TombEditor
 
                 // Rebuild lighting!
                 if (UndoObject is LightInstance)
-                    Room.BuildGeometry();
+                {
+                    if (Parent.Editor.ShouldRelight)
+                        Room.RebuildLighting(Parent.Editor.Configuration.Rendering3D_HighQualityLightPreview);
+                    else
+                        Room.PendingRelight = true;
+                }
 
                 // Move origin of object group, if it contains object
                 if (Parent.Editor.SelectedObject is ObjectGroup)
@@ -401,12 +406,12 @@ namespace TombEditor
                     for (int z = Area.Y0, j = 0; z < Area.Y1; z++, j++)
                         Room.Sectors[x, z].ReplaceGeometry(Parent.Editor.Level, Sectors[i, j]);
 
-                Room.BuildGeometry();
+                Room.Rebuild(parent.Editor.ShouldRelight, parent.Editor.Configuration.Rendering3D_HighQualityLightPreview);
                 Parent.Editor.RoomGeometryChange(Room);
                 Parent.Editor.RoomSectorPropertiesChange(Room);
                 var relevantRooms = room.Portals.Select(p => p.AdjoiningRoom).Distinct();
-                Parallel.ForEach(relevantRooms, r => r.BuildGeometry());
-                
+                Parallel.ForEach(relevantRooms, r => r.Rebuild(parent.Editor.ShouldRelight, parent.Editor.Configuration.Rendering3D_HighQualityLightPreview));
+
 
                 foreach (Room relevantRoom in relevantRooms)
                     Parent.Editor.RoomGeometryChange(relevantRoom);
