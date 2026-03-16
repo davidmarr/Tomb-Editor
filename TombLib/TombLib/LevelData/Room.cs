@@ -952,7 +952,7 @@ namespace TombLib.LevelData
             }
         }
 
-        public void Rebuild(bool relight, bool highQualityLighting)
+        public void Rebuild(bool relight, bool highQualityLighting = false)
         {
             RoomGeometry.Build(this);
 
