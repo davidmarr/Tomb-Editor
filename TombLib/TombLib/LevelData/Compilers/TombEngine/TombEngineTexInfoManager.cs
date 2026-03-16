@@ -16,7 +16,7 @@ using TombLib.Wad;
 
 namespace TombLib.LevelData.Compilers
 {
-    public enum TextureDestination
+	public enum TextureDestination
     {
         RoomOrAggressive,
         Moveable,
@@ -25,6 +25,19 @@ namespace TombLib.LevelData.Compilers
 
     public class TombEngineTexInfoManager
     {
+        [ThreadStatic]
+        private static HashSet<int>? _candidatePool;
+
+        private static HashSet<int> GetCandidateSet()
+        {
+            if (_candidatePool == null)
+                _candidatePool = new HashSet<int>(128);
+            else
+                _candidatePool.Clear();
+
+            return _candidatePool;
+        }
+
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         private const int _noTexInfo = -1;
@@ -308,24 +321,32 @@ namespace TombLib.LevelData.Compilers
             }
 
             // Compare parent's properties with incoming texture properties.
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
             public bool ParametersSimilar(TextureArea incomingTexture, TextureDestination destination)
             {
-                if (Destination != destination)
+                // Are textures for the same destination?
+                if (Destination != destination) return false;
+
+                var t1 = incomingTexture.Texture;
+                var t2 = Texture;
+
+                // Are textures the same .NET instance?
+                if (ReferenceEquals(t1, t2))
+                    return true;
+
+                // Have textures the same absolute path if present?
+                if (!string.IsNullOrEmpty(t1.AbsolutePath) && !string.IsNullOrEmpty(t2.AbsolutePath))
+                    return string.Equals(t1.AbsolutePath, t2.AbsolutePath, StringComparison.OrdinalIgnoreCase);
+
+                // Are textures hashed and have same hash? (For embedded WadTexture only)
+                if (t1 is TextureHashed h1)
+                    return t2 is TextureHashed h2 && h1.Hash == h2.Hash;
+
+                if (t2 is TextureHashed) 
                     return false;
 
-                // See if texture is the same
-                TextureHashed incoming = incomingTexture.Texture as TextureHashed;
-                TextureHashed current = Texture as TextureHashed;
-
-                // First case here should never happen, unless we find a way to texture rooms
-                // with WAD textures or vice versa.
-                if ((incoming == null) != (current == null))
-                    return false;
-                else if (incoming != null)
-                    return incoming.Hash == current.Hash;
-                else
-                    return incomingTexture.Texture.GetHashCode() == Texture.GetHashCode();
+                // Fallback to GetHashCode comparison (it shouldn't happen for most of the situations however)
+                return t1.GetHashCode() == t2.GetHashCode();
             }
 
             // Compare raw bitmap data of given area with incoming texture
@@ -786,7 +807,7 @@ namespace TombLib.LevelData.Compilers
             // degenerate quad. It's needed to fake UVRotate application to triangular areas.
             public bool ConvertToQuad;
 
-            public TombEnginePolygon CreateTombEnginePolygon3(int[] indices, byte blendMode, List<TombEngineVertex> vertices)
+            public TombEnginePolygon CreateTombEnginePolygon3(int[] indices, BlendMode blendMode, int materialIndex, List<TombEngineVertex> vertices)
             {
                 if (indices.Length != 3)
                     throw new ArgumentOutOfRangeException(nameof(indices.Length));
@@ -809,21 +830,22 @@ namespace TombLib.LevelData.Compilers
                 polygon.Shape = TombEnginePolygonShape.Triangle;
                 polygon.Indices.AddRange(transformedIndices);
                 polygon.TextureId = objectTextureIndex;
-                polygon.BlendMode = blendMode;
+                polygon.MaterialIndex = materialIndex;
+                polygon.BlendMode = (byte)blendMode;
                 polygon.Animated = Animated;
 
                 if (vertices != null)
                 {
                     // Calculate the normal
-                    Vector3 e1 = vertices[polygon.Indices[1]].Position - vertices[polygon.Indices[0]].Position;
-                    Vector3 e2 = vertices[polygon.Indices[2]].Position - vertices[polygon.Indices[0]].Position;
+                    var e1 = vertices[polygon.Indices[1]].Position - vertices[polygon.Indices[0]].Position;
+                    var e2 = vertices[polygon.Indices[2]].Position - vertices[polygon.Indices[0]].Position;
                     polygon.Normal = Vector3.Normalize(Vector3.Cross(e1, e2));
                 }
 
                 return polygon;
             }
 
-            public TombEnginePolygon CreateTombEnginePolygon4(int[] indices, byte blendMode, List<TombEngineVertex> vertices)
+            public TombEnginePolygon CreateTombEnginePolygon4(int[] indices, BlendMode blendMode, int materialIndex, List<TombEngineVertex> vertices)
             {
                 if (indices.Length != 4)
                     throw new ArgumentOutOfRangeException(nameof(indices.Length));
@@ -847,7 +869,8 @@ namespace TombLib.LevelData.Compilers
                 polygon.Shape = TombEnginePolygonShape.Quad;
                 polygon.Indices.AddRange(transformedIndices);
                 polygon.TextureId = objectTextureIndex;
-                polygon.BlendMode = blendMode;
+                polygon.MaterialIndex = materialIndex;
+                polygon.BlendMode = (byte)blendMode;
                 polygon.Animated = Animated;
 
                 if (vertices != null)
@@ -862,158 +885,333 @@ namespace TombLib.LevelData.Compilers
             }
         }
 
-        // Gets existing TexInfo child index if there is similar one in parent textures list
+        /// <summary>
+        /// Tries to find an existing texture info (TexInfo) that matches the given texture area,
+        /// optionally taking into account whether the area is a triangle or a quad, blend mode,
+        /// and a UV similarity margin.
+        /// 
+        /// The search is performed across a list of parent texture areas, each of which can hold
+        /// multiple children (candidate TexInfos). The method:
+        /// 1. Normalizes the UV coordinates for the incoming area.
+        /// 2. For each parent whose parameters are compatible:
+        ///    - Builds a bounding rectangle from the area UVs.
+        ///    - Queries a spatial index (grid) to quickly find candidate children.
+        ///    - For those candidates, compares UVs using <see cref="TestUVSimilarity"/>.
+        ///    - If no candidate from the grid matches, performs a full scan over all children.
+        /// 3. If a match is found, it updates some bookkeeping info on the parent and returns
+        ///    a <see cref="Result"/> containing the TexInfo index and the rotation needed
+        ///    to align the coordinates.
+        /// 4. If no match is found in any parent, returns null.
+        /// </summary>
+        /// <param name="areaToLook">
+        /// The texture area we are trying to match against existing TexInfos.
+        /// Contains UVs, texture reference, blend mode, etc.
+        /// </param>
+        /// <param name="parentList">
+        /// List of parent texture areas. Each parent groups several children (TexInfos)
+        /// and may also maintain a spatial grid index for fast lookup.
+        /// </param>
+        /// <param name="destination">
+        /// The texture destination (atlas / target texture) where the area will be placed.
+        /// Used to compare parameters between the incoming area and a parent.
+        /// </param>
+        /// <param name="isForTriangle">
+        /// If true, the area is treated as a triangle (3 UV coordinates).
+        /// If false, it is treated as a quad (4 UV coordinates).
+        /// </param>
+        /// <param name="blendMode">
+        /// Blend mode that will be applied to the parent if a matching child is found.
+        /// Also used as a filtering criterion when <paramref name="checkParameters"/> is true.
+        /// </param>
+        /// <param name="checkParameters">
+        /// If true, candidate children must match the blend mode (and possibly other parameters)
+        /// of <paramref name="areaToLook"/> before being considered as UV matches.
+        /// If false, only UV similarity is checked.
+        /// </param>
+        /// <param name="lookupMargin">
+        /// Allowed margin for UV similarity. Passed to <see cref="TestUVSimilarity"/> as the
+        /// maximum squared distance threshold (after squaring inside that method).
+        /// </param>
+        /// <returns>
+        /// A <see cref="Result"/> containing the matched TexInfo index and rotation if a match is found,
+        /// or null if no compatible TexInfo exists in the provided parents.
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        private Result? GetTexInfo(TextureArea areaToLook, List<ParentTextureArea> parentList, TextureDestination destination,
-                           bool isForTriangle, BlendMode blendMode,
-                           bool checkParameters = true, float lookupMargin = 0.0f)
+        private Result? GetTexInfo(
+            TextureArea areaToLook,
+            List<ParentTextureArea> parentList,
+            TextureDestination destination,
+            bool isForTriangle,
+            BlendMode blendMode,
+            bool checkParameters = true,
+            float lookupMargin = 0.0f)
         {
+            // Decide how many UV coordinates we expect based on primitive type:
+            //  - 3 for triangles
+            //  - 4 for quads
             int coordCount = isForTriangle ? 3 : 4;
+
+            // Stackallocate a small buffer for the UVs of the area we are trying to match.
+            // Using Span + stackalloc avoids heap allocations in this hot path.
             Span<Vector2> lookupCoordinates = stackalloc Vector2[coordCount];
             for (int i = 0; i < coordCount; i++)
                 lookupCoordinates[i] = areaToLook.GetTexCoord(i);
 
+            // Build a bounding rectangle in UV space for the lookup area.
+            // For triangles, we compute a rectangle that encloses the 3 UVs.
+            // For quads, the rectangle encloses all 4 UVs.
+            Rectangle2 rect = isForTriangle
+                ? Rectangle2.FromCoordinates(lookupCoordinates[0], lookupCoordinates[1], lookupCoordinates[2])
+                : Rectangle2.FromCoordinates(lookupCoordinates[0], lookupCoordinates[1], lookupCoordinates[2], lookupCoordinates[3]);
+
+            // Preallocate this
+            var candidates = GetCandidateSet();
+
+            // Iterate over all parents by reference (CollectionsMarshal.AsSpan avoids
+            // Enumerator overhead and allows direct ref access to list elements).
             foreach (ref var parent in CollectionsMarshal.AsSpan(parentList))
             {
+                // Quickly skip parents whose parameters are not compatible
+                // with the target area and destination. 
                 if (!parent.ParametersSimilar(areaToLook, destination))
                     continue;
 
-                // Lookup rectangle
-                Rectangle2 rect = (isForTriangle)
-                    ? Rectangle2.FromCoordinates(lookupCoordinates[0], lookupCoordinates[1], lookupCoordinates[2])
-                    : Rectangle2.FromCoordinates(lookupCoordinates[0], lookupCoordinates[1], lookupCoordinates[2], lookupCoordinates[3]);
+                // --- Phase 1: use the grid / spatial index to get a reduced candidate set ---
 
-                // 1) Candidates from grid index
-                HashSet<int> candidates = new HashSet<int>();
+                // Collect candidate child indices whose bounding rectangles overlap 'rect'.
+                // This is a fast pre-filter: it reduces the number of expensive UV comparisons.
+                candidates.Clear();
                 parent.CollectCandidates(rect, candidates);
 
                 if (candidates.Count > 0)
                 {
+                    var children = parent.Children;
+
+                    // Check each candidate from the spatial index.
                     foreach (var candidateIndex in candidates)
                     {
-                        var child = parent.Children[candidateIndex];
-                        if (child.IsForTriangle != isForTriangle) continue;
-                        if (checkParameters && areaToLook.BlendMode != child.BlendMode) continue;
+                        var child = children[candidateIndex];
 
+                        // Skip if the primitive type (triangle vs quad) does not match.
+                        if (child.IsForTriangle != isForTriangle)
+                            continue;
+
+                        // Optionally require a blend mode match (and other parameters) before checking UVs.
+                        if (checkParameters && areaToLook.BlendMode != child.BlendMode)
+                            continue;
+
+                        // Compare UVs with optional rotation using the SIMD-optimized UV similarity test.
                         int rot = TestUVSimilarity(child.AbsCoord, lookupCoordinates, lookupMargin);
                         if (rot != _noTexInfo)
                         {
+                            // We found a matching TexInfo.
+                            // Update the parent's blend mode to the requested one.
                             parent.BlendMode = blendMode;
+
+                            // If the texture is the same and the incoming area has a non-zero parent area,
+                            // propagate that parent area to the parent. This can be used to track
+                            // hierarchy or aggregated area information.
                             if (areaToLook.Texture == parent.Texture && !areaToLook.ParentArea.IsZero)
                                 parent.Area = areaToLook.ParentArea;
 
-                            return new Result { TexInfoIndex = child.TextureId, Rotation = (byte)rot };
+                            // Return the matched TexInfo index and the rotation needed to align UVs.
+                            return new Result
+                            {
+                                TexInfoIndex = child.TextureId,
+                                Rotation = (byte)rot
+                            };
                         }
                     }
                 }
 
-                // 2) Fallback for all other cases
+                // --- Phase 2: fallback – linear scan over all children ---
+                // This covers cases where the grid did not return any candidates
+                // (e.g., small or misaligned rectangles), or where all candidates failed.
                 for (int i = 0; i < parent.Children.Count; i++)
                 {
                     var child = parent.Children[i];
-                    if (child.IsForTriangle != isForTriangle) continue;
-                    if (checkParameters && areaToLook.BlendMode != child.BlendMode) continue;
 
+                    // Again, ensure primitive type compatibility.
+                    if (child.IsForTriangle != isForTriangle)
+                        continue;
+
+                    // Optional parameter check (e.g. matching blend mode).
+                    if (checkParameters && areaToLook.BlendMode != child.BlendMode)
+                        continue;
+
+                    // Test UV similarity for this child.
                     int rot = TestUVSimilarity(child.AbsCoord, lookupCoordinates, lookupMargin);
                     if (rot != _noTexInfo)
                     {
+                        // Matching TexInfo found in the fallback path.
                         parent.BlendMode = blendMode;
+
                         if (areaToLook.Texture == parent.Texture && !areaToLook.ParentArea.IsZero)
                             parent.Area = areaToLook.ParentArea;
 
-                        return new Result { TexInfoIndex = child.TextureId, Rotation = (byte)rot };
+                        return new Result
+                        {
+                            TexInfoIndex = child.TextureId,
+                            Rotation = (byte)rot
+                        };
                     }
                 }
             }
 
+            // No matching TexInfo found among any parent.
             return null;
         }
 
+		/// </returns>
+		/// <summary>
+		/// Tests whether two small UV sets (triangles or quads) are similar within a given margin,
+		/// optionally allowing for cyclic rotation of the vertices.
+		/// 
+		/// Returns:
+		/// - 0  -> UVs are similar with no rotation.
+		/// - N  -> UVs are similar, but the 'second' set is rotated N steps relative to 'first'
+		///         (encoded as 4 - rotation for quads, 3 - rotation for triangles).
+		/// - _noTexInfo -> UVs are not similar (different size, too far apart, or no rotation matches).
+		/// </summary>
+		/// <param name="first">
+		/// First UV set, as a plain array (must contain either 3 or 4 elements).
+		/// This set is treated as the canonical orientation.
+		/// </param>
+		/// <param name="second">
+		/// Second UV set, as a read-only span (must have the same length as <paramref name="first"/>).
+		/// The method will try all cyclic rotations of this set.
+		/// </param>
+		/// <param name="lookupMargin">
+		/// Maximum allowed Euclidean distance between corresponding UVs, *summed* over all vertices.
+		/// The comparison is done on squared distances, so this value is squared internally.
+		/// </param>
+		/// <returns>
+		/// An integer encoding the rotation needed to align the second UV set to the first,
+		/// or _noTexInfo if no match is found.
+		/// </returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+		private int TestUVSimilarity(Vector2[] first, ReadOnlySpan<Vector2> second, float lookupMargin)
+		{
+			int len = first.Length;
 
-        // Tests if all UV coordinates are similar with different rotations.
-        // If all coordinates are equal for one of the rotation factors, rotation factor is returned,
-        // otherwise NoTexInfo is returned (not similar). If coordinates are 100% equal, 0 is returned.
+			// Only 3 or 4 vertices are supported.
+			// Conditions:
+			//  - lengths must match
+			//  - (uint)(len - 3) > 1 is a compact range check:
+			//      len == 3 -> len - 3 = 0  -> (uint)0 > 1?  false
+			//      len == 4 -> len - 3 = 1  -> (uint)1 > 1?  false
+			//      any other len -> result is either very large (for len < 3) or >= 2 (for len > 4),
+			//                       so the condition becomes true.
+			if (len != second.Length || (uint)(len - 3) > 1)
+				return _noTexInfo;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private int TestUVSimilarity(Vector2[] first, ReadOnlySpan<Vector2> second, float lookupMargin)
-        {
-            int len = first.Length;
-            if (len != second.Length || (uint)(len - 3) > 1) // solo 3 o 4
-                return _noTexInfo;
+			// Work with squared distances to avoid the cost of square roots.
+			// The caller specifies a distance in UV units, but internally we compare
+			// against lookupMargin^2.
+			float marginSquared = lookupMargin * lookupMargin;
 
-            float marginSquared = lookupMargin * lookupMargin;
+			// --- Quad path (4 vertices) -------------------------------------------------
+			if (len == 4)
+			{
+				// Try all 4 cyclic rotations of the "second" set.
+				// rotation = 0 -> (0,1,2,3)
+				// rotation = 1 -> (1,2,3,0)
+				// rotation = 2 -> (2,3,0,1)
+				// rotation = 3 -> (3,0,1,2)
+				for (int rotation = 0; rotation < 4; rotation++)
+				{
+					float sum = 0.0f;
 
-            if (len == 4)
-            {
-                // Flatten first array: [x0, y0, x1, y1, x2, y2, x3, y3]
-                Span<float> flatFirst = stackalloc float[8];
-                for (int i = 0; i < 4; i++)
-                {
-                    flatFirst[i * 2 + 0] = first[i].X;
-                    flatFirst[i * 2 + 1] = first[i].Y;
-                }
+					// Accumulate the squared distance for all 4 vertices
+					// under the current rotation.
+					for (int i = 0; i < 4; i++)
+					{
+						// (i + rotation) & 3 is equivalent to (i + rotation) % 4,
+						// but avoids the modulo operator.
+						int idx = (i + rotation) & 3;
 
-                var vecFirst = new Vector<float>(flatFirst);
+						var f = first[i];
+						var s = second[idx];
 
-                // Reusable span to avoid CA2014 warning
-                Span<float> flatSecond = stackalloc float[8];
+						float dx = f.X - s.X;
+						float dy = f.Y - s.Y;
 
-                for (int rotation = 0; rotation < 4; rotation++)
-                {
-                    for (int i = 0; i < 4; i++)
-                    {
-                        int idx = (i + rotation) & 3; // faster than modulus
-                        flatSecond[i * 2 + 0] = second[idx].X;
-                        flatSecond[i * 2 + 1] = second[idx].Y;
-                    }
+						sum += dx * dx + dy * dy;
+					}
 
-                    var vecSecond = new Vector<float>(flatSecond);
-                    var diff = vecFirst - vecSecond;
-                    var distSquared = diff * diff;
+					// If the total squared distance is within the allowed margin,
+					// the two UV sets are considered equivalent under this rotation.
+					if (sum <= marginSquared)
+					{
+						// Encoding:
+						//  - rotation == 0 -> return 0 (no rotation needed)
+						//  - rotation == 1 -> return 3
+						//  - rotation == 2 -> return 2
+						//  - rotation == 3 -> return 1
+						//
+						// This "4 - rotation" encoding corresponds to how many steps are needed
+						// to rotate back to the canonical orientation and is used by the
+						// polygon-building code to reindex the vertices.
+						return rotation == 0 ? 0 : 4 - rotation;
+					}
+				}
 
-                    float sum = 0f;
-                    for (int i = 0; i < Vector<float>.Count; i++)
-                        sum += distSquared[i];
+				// None of the 4 rotations produced a match.
+				return _noTexInfo;
+			}
 
-                    if (sum <= marginSquared)
-                        return rotation == 0 ? 0 : 4 - rotation;
-                }
+			// --- Triangle path (3 vertices) --------------------------------------------
+			// For triangles, we reuse the same idea as in the original version:
+			// test each of the 3 cyclic rotations and ensure that *each* corresponding
+			// vertex pair is within the allowed margin.
 
-                return _noTexInfo;
-            }
+			for (int rotation = 0; rotation < 3; rotation++)
+			{
+				bool allEqual = true;
 
-            // Fallback for len == 3
-            for (int rotation = 0; rotation < 3; rotation++)
-            {
-                bool allEqual = true;
+				// Test all 3 vertices for the current rotation.
+				for (int j = 0; j < 3; j++)
+				{
+					int idx = j + rotation;
+					if (idx >= 3)
+						idx -= 3; // Equivalent to (j + rotation) % 3.
 
-                for (int j = 0; j < 3; j++)
-                {
-                    int idx = j + rotation;
-                    if (idx >= 3) idx -= 3;
+					var f = first[j];
+					var s = second[idx];
 
-                    var f = first[j];
-                    var s = second[idx];
+					float dx = f.X - s.X;
+					float dy = f.Y - s.Y;
 
-                    var dx = f.X - s.X;
-                    var dy = f.Y - s.Y;
-                    if ((dx * dx + dy * dy) > marginSquared)
-                    {
-                        allEqual = false;
-                        break;
-                    }
-                }
+					// If any vertex is further than allowed, this rotation fails.
+					if ((dx * dx + dy * dy) > marginSquared)
+					{
+						allEqual = false;
+						break;
+					}
+				}
 
-                if (allEqual)
-                    return rotation == 0 ? 0 : 3 - rotation;
-            }
+				// All vertices are within the margin for this rotation.
+				if (allEqual)
+				{
+					// Encoding mirrors the quad case:
+					//  - rotation == 0 -> return 0 (no rotation)
+					//  - rotation == 1 -> return 2
+					//  - rotation == 2 -> return 1
+					//
+					// Again, the return value represents how many steps you'd need
+					// to rotate back to the canonical ordering.
+					return rotation == 0 ? 0 : 3 - rotation;
+				}
+			}
 
-            return _noTexInfo;
-        }
+			// No rotation (for triangle) produced a match either.
+			return _noTexInfo;
+		}
 
-        // Generate new parent with incoming texture and immediately add incoming texture as a child
 
-        private void AddParent(TextureArea texture, List<ParentTextureArea> parentList, TextureDestination destination, bool isForTriangle, BlendMode blendMode, int frameIndex = -1)
+		// Generate new parent with incoming texture and immediately add incoming texture as a child
+
+		private void AddParent(TextureArea texture, List<ParentTextureArea> parentList, TextureDestination destination, bool isForTriangle, BlendMode blendMode, int frameIndex = -1)
         {
             var newParent = new ParentTextureArea(texture, destination);
             parentList.Add(newParent);
@@ -1428,9 +1626,27 @@ namespace TombLib.LevelData.Compilers
             return new VectorInt2(atlasWidth, atlasHeight);
         }
 
-        private List<TombEngineAtlas> CreateAtlas(ref List<ParentTextureArea> textures, int numPages, bool bump, bool forceMinimumPadding, int baseIndex, VectorInt2 atlasSize, bool uvrotate)
+        private class SidecarLoadingCacheEntry
         {
-            var customBumpmaps = new Dictionary<string, ImageC>();
+            public MaterialType MaterialType { get; set; } = MaterialType.Default;
+            public string NormalMapPath { get; set; }
+            public string HeightMapPath { get; set; }
+            public string SpecularMapPath { get; set; }
+            public string AmbientOcclusionMapPath { get; set; }
+            public string RoughnessMapPath { get; set; }
+            public string EmissiveMapPath { get; set; }
+            public ImageC? NormalMap { get; set; }
+            public ImageC? HeightMap { get; set; }
+            public ImageC? SpecularMap { get; set; }
+            public ImageC? AmbientOcclusionMap { get; set; }
+            public ImageC? RoughnessMap { get; set; }
+            public ImageC? EmissiveMap { get; set; }
+        }
+
+        private List<TombEngineAtlas> CreateAtlas(ref List<ParentTextureArea> textures, int numPages, bool forceMinimumPadding, int baseIndex, VectorInt2 atlasSize, bool uvrotate)
+        {
+            var sidecarLoadingCache = new Dictionary<Texture, SidecarLoadingCacheEntry>();
+
             var atlasList = new List<TombEngineAtlas>();
             for (int i = 0; i < numPages; i++)
             {
@@ -1443,117 +1659,274 @@ namespace TombLib.LevelData.Compilers
                 actualPadding = (_padding == 0 && forceMinimumPadding) ? _minimumPadding : _padding;
             }
 
+            void EnsureMap(ref ImageC? image, ColorC value)
+            {
+                if (image is null)
+                {
+                    image = ImageC.CreateNew(atlasSize.X, atlasSize.Y);
+                    image.Value.Fill(value);
+                }
+            }
+
             int x, y;
 
-            for (int b = 0; b < (bump ? 2 : 1); b++)
+            for (int i = 0; i < textures.Count; i++)
             {
-                for (int i = 0; i < textures.Count; i++)
-                {
-                    var p = textures[i];
+                var p = textures[i];
 
-                    if (p.Texture == null || p.Texture.Image == null)
+                if (p.Texture == null || p.Texture.Image == null)
+                {
+                    _progressReporter.ReportWarn("Texture null: " + i);
+                    continue;
+                }
+
+                x = (int)p.Area.Start.X;
+                y = (int)p.Area.Start.Y;
+                var width = (int)p.Area.Width;
+                var height = (int)p.Area.Height;
+
+                var image = atlasList[p.Page];
+
+                var destX = p.PositionInPage.X + p.Padding[0];
+                var destY = p.PositionInPage.Y + p.Padding[1];
+
+                // Always copy color data
+                image.ColorMap.CopyFrom(destX, destY, p.Texture.Image, x, y, width, height);
+                AddPadding(p, p.Texture.Image, image.ColorMap, 0, actualPadding);
+
+                // Try sidecar loading
+                if (!sidecarLoadingCache.ContainsKey(p.Texture))
+                {
+                    var textureAbsolutePath = string.Empty;
+
+                    if (p.Texture is LevelTexture)
+                        textureAbsolutePath = p.Texture.Image.FileName;
+                    else if (p.Texture is ImportedGeometryTexture)
+                        textureAbsolutePath = ((ImportedGeometryTexture)p.Texture).AbsolutePath;
+                    else if (p.Texture is WadTexture)
+                        textureAbsolutePath = ((WadTexture)p.Texture).AbsolutePath;
+
+                    var cacheEntry = new SidecarLoadingCacheEntry();
+                    var materialData = MaterialData.TrySidecarLoadOrLoadExisting(textureAbsolutePath);
+
+                    void TryLoadMap(string mapName, bool isFound, Func<MaterialData, string> pathSelector, Action<ImageC> assignImage, Action<string> assignPath)
                     {
-                        _progressReporter.ReportWarn("Texture null: " + i);
-                        continue;
+                        var mapPath = pathSelector(materialData);
+                        if (string.IsNullOrEmpty(mapPath))
+                            return;
+
+                        if (!isFound)
+                        {
+                            _progressReporter.ReportWarn($"{mapName} not found: {mapPath}");
+                            return;
+                        }
+
+                        try
+                        {
+                            var potentialImage = ImageC.FromFile(mapPath);
+                            if (potentialImage.Size == p.Texture.Image.Size)
+                            {
+                                assignImage(potentialImage);
+                                assignPath(mapPath);
+                                logger.Info($"{mapName} found: {mapPath}");
+                            }
+                            else
+                            {
+                                _progressReporter.ReportWarn(
+                                    $"Texture file '{p.Texture}' has a {mapName.ToLower()} with a different size and was ignored.");
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            _progressReporter.ReportWarn($"Error while loading {mapName.ToLower()}: {mapPath}");
+                        }
                     }
 
-                    x = (int)p.Area.Start.X;
-                    y = (int)p.Area.Start.Y;
-                    var width = (int)p.Area.Width;
-                    var height = (int)p.Area.Height;
-
-                    var image = atlasList[p.Page];
-
-                    var destX = p.PositionInPage.X + p.Padding[0];
-                    var destY = p.PositionInPage.Y + p.Padding[1];
-
-                    image.ColorMap.CopyFrom(destX, destY, p.Texture.Image, x, y, width, height);
-                    AddPadding(p, p.Texture.Image, image.ColorMap, 0, actualPadding);
-
-                    // Do the bump map if needed
-
-                    if (p.Texture is LevelTexture && b == 1)
+                    if (!string.IsNullOrEmpty(textureAbsolutePath))
                     {
-                        var tex = (p.Texture as LevelTexture);
-                        var bumpX = destX;
-                        var bumpY = destY;
+                        cacheEntry.MaterialType = materialData.Type;
 
-                        // Try to copy custom bumpmaps
-                        if (!String.IsNullOrEmpty(tex.BumpPath))
+                        TryLoadMap("Normal map", materialData.IsNormalMapFound, m => m.NormalMap,
+                            img => cacheEntry.NormalMap = img, path => cacheEntry.NormalMapPath = path );
+
+                        // LEGACY: for legacy compatibility, try to load external bump map textures or generate automatically,
+                        // if no normal was provided with sidecar loading, and fill the cache.
+                        if (cacheEntry.NormalMap is null && p.Texture is LevelTexture tex)
                         {
-                            if (!customBumpmaps.ContainsKey(tex.BumpPath))
+                            if (!string.IsNullOrEmpty(tex.BumpPath))
                             {
-                                var potentialBumpImage = ImageC.FromFile(_level.Settings.MakeAbsolute(tex.BumpPath));
-
-                                // Only assign bumpmap image if size is equal to texture image size, otherwise use dummy
-
-                                if (potentialBumpImage != null && potentialBumpImage.Size == tex.Image.Size)
-                                    customBumpmaps.Add(tex.BumpPath, potentialBumpImage);
-                                else
+                                // Load external custom bump map
+                                try
                                 {
-                                    _progressReporter.ReportWarn("Texture file '" + tex + "' has external bumpmap assigned which has different size and was ignored.");
-                                    customBumpmaps.Add(tex.BumpPath, ImageC.Black);
+                                    var potentialImage = ImageC.FromFile(materialData.NormalMap);
+                                    if (potentialImage.Size == p.Texture.Image.Size)
+                                    {
+                                        cacheEntry.NormalMap = potentialImage;
+                                        cacheEntry.NormalMapPath = materialData.NormalMap;
+                                    }
+                                    else
+                                        _progressReporter.ReportWarn($"Texture file '{p.Texture}' has a normal map with a different size and was ignored.");
+                                }
+                                catch (Exception)
+                                {
+                                    _progressReporter.ReportWarn($"Error while loading custom external bump map: {tex.BumpPath}");
                                 }
                             }
 
-                            // Init the normal map if not done yet
-                            if (!image.HasNormalMap)
-                            {
-                                image.HasNormalMap = true;
-                                image.NormalMap = ImageC.CreateNew(atlasSize.X, atlasSize.Y);
-                                image.NormalMap.Fill(new ColorC(128, 128, 255));
-                            }
-                            image.NormalMap.CopyFrom(bumpX, bumpY, customBumpmaps[tex.BumpPath], x, y, width, height);
-                            AddPadding(p, image.NormalMap, image.NormalMap, 0, actualPadding, bumpX, bumpY);
+                            // If also no custom bump path was found, we'll automatically generate the normal map later
                         }
-                        else
+
+                        TryLoadMap("Height map", materialData.IsHeightMapFound, m => m.HeightMap,
+                            img => cacheEntry.HeightMap = img, path => cacheEntry.HeightMapPath = path);
+
+                        // TODO: Copy R channel of height map to A channel. Must be later done in CopySingleChannelFrom.
+                        if (cacheEntry.HeightMap is not null)
                         {
-                            var level = tex.GetBumpMappingLevelFromTexCoord(p.Area.GetMid());
-
-
-                            var bumpImage = ImageC.CreateNew(width, height);
-                            bumpImage.CopyFrom(0, 0, p.Texture.Image, x, y, width, height);
-
-                            float sobelLevel = 0;
-                            float sobelStrength = 0;
-
-                            switch (level)
+                            var heightMap = cacheEntry.HeightMap.Value;
+                            Parallel.For(0, heightMap.Height, yy =>
                             {
-                                case BumpMappingLevel.Level1:
-                                    sobelLevel = 0.004f;
-                                    sobelStrength = 0.003f;
-                                    break;
-                                case BumpMappingLevel.Level2:
-                                    sobelLevel = 0.007f;
-                                    sobelStrength = 0.004f;
-                                    break;
-                                case BumpMappingLevel.Level3:
-                                    sobelLevel = 0.009f;
-                                    sobelStrength = 0.008f;
-                                    break;
-                            }
-
-                            // Init the normal map if not done yet
-                            if (!image.HasNormalMap)
-                            {
-                                image.HasNormalMap = true;
-                                image.NormalMap = ImageC.CreateNew(atlasSize.X, atlasSize.Y);
-                                image.NormalMap.Fill(new ColorC(128, 128, 255));
-                            }
-
-                            if (level != BumpMappingLevel.None)
-                            {
-                                bumpImage = ImageC.GrayScaleFilter(bumpImage, true, 0, 0, bumpImage.Width, bumpImage.Height);
-                                bumpImage = ImageC.SobelFilter(bumpImage, sobelStrength, sobelLevel, SobelFilterType.Sobel, 0, 0, bumpImage.Width, bumpImage.Height);
-                            }
-                            else
-                                // Neutral Bump
-                                bumpImage.Fill(new ColorC(128, 128, 255, 255));
-
-                            image.NormalMap.CopyFrom(bumpX, bumpY, bumpImage, 0, 0, width, height);
-                            AddPadding(p, image.NormalMap, image.NormalMap, 0, actualPadding, bumpX, bumpY);
+                                for (int xx = 0; xx < heightMap.Width; xx++)
+                                {
+                                    var heightPixel = heightMap.GetPixel(xx, yy);
+                                    heightPixel.A = heightPixel.R;
+                                    heightMap.SetPixel(xx, yy, heightPixel);
+                                }
+                            });
                         }
+
+                        TryLoadMap("Specular map", materialData.IsSpecularMapFound, m => m.SpecularMap,
+                            img => cacheEntry.SpecularMap = img, path => cacheEntry.SpecularMapPath = path);
+
+                        TryLoadMap("Ambient occlusion map", materialData.IsAmbientOcclusionMapFound, m => m.AmbientOcclusionMap,
+                            img => cacheEntry.AmbientOcclusionMap = img, path => cacheEntry.AmbientOcclusionMapPath = path);
+
+                        TryLoadMap("Roughness map", materialData.IsRoughnessMapFound,  m => m.RoughnessMap,
+                            img => cacheEntry.RoughnessMap = img, path => cacheEntry.RoughnessMapPath = path);
+
+                        TryLoadMap("Emissive map", materialData.IsEmissiveMapFound, m => m.EmissiveMap,
+                            img => cacheEntry.EmissiveMap = img, path => cacheEntry.EmissiveMapPath = path);
                     }
+
+                    sidecarLoadingCache.Add(p.Texture, cacheEntry);
+                }
+
+                var currentCacheEntry = sidecarLoadingCache[p.Texture];
+
+                // Normal map processing
+                if (currentCacheEntry.NormalMap is not null)
+                {
+                    EnsureMap(ref image.NormalMap, new ColorC(128, 128, 255));
+                    image.NormalMap.Value.CopyFrom(destX, destY, currentCacheEntry.NormalMap.Value, x, y, width, height);
+                }
+                else if (p.Texture is LevelTexture)
+                {
+                    // LEGACY: generate normal maps programmatically if no sidecar normal or bump map was provided
+                    // and bump mapping is requested for this texture
+
+                    var tex = p.Texture as LevelTexture;
+
+                    // Only for level textures, try to generate normal maps
+                    var level = tex.GetBumpMappingLevelFromTexCoord(p.Area.GetMid());
+
+                    var bumpImage = ImageC.CreateNew(width, height);
+                    bumpImage.CopyFrom(0, 0, p.Texture.Image, x, y, width, height);
+
+                    float sobelLevel = 0;
+                    float sobelStrength = 0;
+
+                    switch (level)
+                    {
+                        case BumpMappingLevel.Level1:
+                            sobelLevel = 0.004f;
+                            sobelStrength = 0.003f;
+                            break;
+                        case BumpMappingLevel.Level2:
+                            sobelLevel = 0.007f;
+                            sobelStrength = 0.004f;
+                            break;
+                        case BumpMappingLevel.Level3:
+                            sobelLevel = 0.009f;
+                            sobelStrength = 0.008f;
+                            break;
+                    }
+
+                    // Init the normal map if not done yet
+                    EnsureMap(ref image.NormalMap, new ColorC(128, 128, 255));
+
+                    if (level != BumpMappingLevel.None)
+                    {
+                        // TODO: disabled for now
+                        // bumpImage = ImageC.GrayScaleFilter(bumpImage, true, 0, 0, bumpImage.Width, bumpImage.Height);
+                        // bumpImage = ImageC.GaussianBlur(bumpImage, radius: 1.0f);
+                        // bumpImage = ImageC.NormalizeContrast(bumpImage);
+                        // bumpImage = ImageC.SobelFilter(bumpImage, sobelStrength, sobelLevel, SobelFilterType.Scharr, 0, 0, bumpImage.Width, bumpImage.Height);
+
+                        // The old way of doing normal maps
+                        bumpImage = ImageC.GrayScaleFilter(bumpImage, true, 0, 0, bumpImage.Width, bumpImage.Height);
+                        bumpImage = ImageC.SobelFilter(bumpImage, sobelStrength, sobelLevel, SobelFilterType.Sobel, 0, 0, bumpImage.Width, bumpImage.Height);
+                    }
+                    else
+                        // Neutral Bump
+                        bumpImage.Fill(new ColorC(128, 128, 255));
+
+                    image.NormalMap.Value.CopyFrom(destX, destY, bumpImage, 0, 0, width, height);
+                }
+
+                // Add padding for normal map
+                if (image.NormalMap is not null)
+                    AddPadding(p, image.NormalMap.Value, image.NormalMap.Value, 0, actualPadding, destX, destY);
+
+                // Ambient occlusion map
+                if (currentCacheEntry.AmbientOcclusionMap is not null)
+                {
+                    EnsureMap(ref image.ORSHMap, new ColorC(255, 255, 0));
+                    image.ORSHMap.Value.CopySingleChannelFrom(destX, destY, currentCacheEntry.AmbientOcclusionMap.Value, x, y, width, height, ImageChannel.R);
+                }
+
+                // Roughness map
+                if (currentCacheEntry.RoughnessMap is not null)
+                {
+                    EnsureMap(ref image.ORSHMap, new ColorC(255, 255, 0));
+                    image.ORSHMap.Value.CopySingleChannelFrom(destX, destY, currentCacheEntry.RoughnessMap.Value, x, y, width, height, ImageChannel.G);
+                }
+
+                // Specular map
+                if (currentCacheEntry.SpecularMap is not null)
+                {
+                    EnsureMap(ref image.ORSHMap, new ColorC(255, 255, 0));
+                    image.ORSHMap.Value.CopySingleChannelFrom(destX, destY, currentCacheEntry.SpecularMap.Value, x, y, width, height, ImageChannel.B);
+                }
+                else
+                {
+                    // In this case, for reflective materials, let's create a dummy white specular map on the fly
+                    if (currentCacheEntry.MaterialType == MaterialType.Reflective || 
+                        currentCacheEntry.MaterialType == MaterialType.SkyboxReflective)
+                    {
+                        var dummySpecularMap = ImageC.CreateNew(width, height);
+                        dummySpecularMap.Fill(new ColorC(128, 128, 128));
+
+                        EnsureMap(ref image.ORSHMap, new ColorC(255, 255, 0));
+                        image.ORSHMap.Value.CopySingleChannelFrom(destX, destY, dummySpecularMap, 0, 0, width, height, ImageChannel.B);
+                    }
+                }
+
+                // Height map
+                if (currentCacheEntry.HeightMap is not null)
+                {
+                    EnsureMap(ref image.ORSHMap, new ColorC(255, 255, 0));
+                    image.ORSHMap.Value.CopySingleChannelFrom(destX, destY, currentCacheEntry.HeightMap.Value, x, y, width, height, ImageChannel.A);
+                }
+
+                // Add padding here for AmbientOcclusionRoughnessSpecularMap because we have packed three textures in RGB channels
+                if (image.ORSHMap is not null)
+                    AddPadding(p, image.ORSHMap.Value, image.ORSHMap.Value, 0, actualPadding, destX, destY);
+
+                // Emissive map
+                if (currentCacheEntry.EmissiveMap is not null)
+                {
+                    EnsureMap(ref image.EmissiveMap, new ColorC(0, 0, 0, 255));
+                    image.EmissiveMap.Value.CopyFrom(destX, destY, currentCacheEntry.EmissiveMap.Value, x, y, width, height);
+                    AddPadding(p, image.EmissiveMap.Value, image.EmissiveMap.Value, 0, actualPadding, destX, destY);
                 }
             }
 
@@ -1695,15 +2068,15 @@ namespace TombLib.LevelData.Compilers
             // In TombEngine, we pack textures in 4K pages and we can use big textures up to 256 pixels without bleeding
             VectorInt2 atlasSize = new VectorInt2(MaxTileSize, MaxTileSize);
 
-            RoomsAtlas = CreateAtlas(ref roomTextures, numRoomsAtlases, true, false, 0, atlasSize, false);
-            MoveablesAtlas = CreateAtlas(ref moveablesTextures, numMoveablesAtlases, false, true, 0, atlasSize, false);
-            StaticsAtlas = CreateAtlas(ref staticsTextures, numStaticsAtlases, false, true, 0, atlasSize, false);
+            RoomsAtlas = CreateAtlas(ref roomTextures, numRoomsAtlases, true, 0, atlasSize, false);
+            MoveablesAtlas = CreateAtlas(ref moveablesTextures, numMoveablesAtlases, true, 0, atlasSize, false);
+            StaticsAtlas = CreateAtlas(ref staticsTextures, numStaticsAtlases, true, 0, atlasSize, false);
 
             AnimatedAtlas = new List<TombEngineAtlas>();
             for (int n = 0; n < _actualAnimTextures.Count; n++)
             {
                 var textures = animatedTextures[n];
-                AnimatedAtlas.AddRange(CreateAtlas(ref textures, 1, false, false, AnimatedAtlas.Count,
+                AnimatedAtlas.AddRange(CreateAtlas(ref textures, 1, false, AnimatedAtlas.Count,
                     animatedAtlasSizes.ElementAt(n),
                     _actualAnimTextures[n].Origin.AnimationType == AnimatedTextureAnimationType.UVRotate));
             }
@@ -1716,21 +2089,33 @@ namespace TombLib.LevelData.Compilers
                 for (int n = 0; n < RoomsAtlas.Count; n++)
                 {
                     RoomsAtlas[n].ColorMap.SaveToFile("OutputDebug\\RoomsAtlas" + n + ".png");
+                    RoomsAtlas[n].NormalMap?.SaveToFile("OutputDebug\\RoomsAtlas" + n + "_N.png");
+                    RoomsAtlas[n].ORSHMap?.SaveToFile("OutputDebug\\RoomsAtlas" + n + "_AOS.png");
+                    RoomsAtlas[n].EmissiveMap?.SaveToFile("OutputDebug\\RoomsAtlas" + n + "_E.png");
                 }
 
                 for (int n = 0; n < MoveablesAtlas.Count; n++)
                 {
                     MoveablesAtlas[n].ColorMap.SaveToFile("OutputDebug\\MoveablesAtlas" + n + ".png");
+                    MoveablesAtlas[n].NormalMap?.SaveToFile("OutputDebug\\MoveablesAtlas" + n + "_N.png");
+                    MoveablesAtlas[n].ORSHMap?.SaveToFile("OutputDebug\\MoveablesAtlas" + n + "_AOS.png");
+                    MoveablesAtlas[n].EmissiveMap?.SaveToFile("OutputDebug\\MoveablesAtlas" + n + "_E.png");
                 }
 
                 for (int n = 0; n < StaticsAtlas.Count; n++)
                 {
                     StaticsAtlas[n].ColorMap.SaveToFile("OutputDebug\\StaticsAtlas" + n + ".png");
+                    StaticsAtlas[n].NormalMap?.SaveToFile("OutputDebug\\StaticsAtlas" + n + "_N.png");
+                    StaticsAtlas[n].ORSHMap?.SaveToFile("OutputDebug\\StaticsAtlas" + n + "_AOS.png");
+                    StaticsAtlas[n].EmissiveMap?.SaveToFile("OutputDebug\\StaticsAtlas" + n + "_E.png");
                 }
 
                 for (int n = 0; n < AnimatedAtlas.Count; n++)
                 {
                     AnimatedAtlas[n].ColorMap.SaveToFile("OutputDebug\\AnimatedAtlas" + n + ".png");
+                    AnimatedAtlas[n].NormalMap?.SaveToFile("OutputDebug\\AnimatedAtlas" + n + "_N.png");
+                    AnimatedAtlas[n].ORSHMap?.SaveToFile("OutputDebug\\AnimatedAtlas" + n + "_AOS.png");
+                    AnimatedAtlas[n].EmissiveMap?.SaveToFile("OutputDebug\\AnimatedAtlas" + n + "_E.png");
                 }
             }
             catch { }   
@@ -1740,100 +2125,70 @@ namespace TombLib.LevelData.Compilers
             BuildTextureInfos();
         }
 
-        // Compiles all final texture infos into final list to be written into level file.
-        private void BuildTextureInfos()
-        {
-            float maxSize = (float)MaxTileSize - (1.0f / (float)(MaxTileSize - 1));
+		private void BuildTextureInfos()
+		{
+			float maxSize = (float)MaxTileSize - (1.0f / (float)(MaxTileSize - 1));
 
-            _objectTextures = new SortedDictionary<int, ObjectTexture>();
+			_objectTextures = new SortedDictionary<int, ObjectTexture>();
 
-            SortOutAlpha(_parentRoomTextureAreas);
-            foreach (var parent in _parentRoomTextureAreas)
-                foreach (var child in parent.Children)
-                    if (!_objectTextures.ContainsKey(child.TextureId))
-                    {
-                        var newObjectTexture = new ObjectTexture(parent, child, maxSize);
+			// Helper local function for repetitive pattern
+			void ProcessAreas(List<ParentTextureArea> parents)
+			{
+				SortOutAlpha(parents);
+				foreach (var parent in parents)
+				{
+					foreach (var child in parent.Children)
+					{
+						if (_objectTextures.ContainsKey(child.TextureId))
+							continue;
+
+						var newObjectTexture = new ObjectTexture(parent, child, maxSize);
 #if DEBUG
-                        if (newObjectTexture.TexCoord[0] == newObjectTexture.TexCoord[1] ||
-                            newObjectTexture.TexCoord[0] == newObjectTexture.TexCoord[2] ||
-                            newObjectTexture.TexCoord[1] == newObjectTexture.TexCoord[2] ||
-                            newObjectTexture.TexCoord[0].X < 0 || newObjectTexture.TexCoord[0].Y < 0 ||
-                            newObjectTexture.TexCoord[1].X < 0 || newObjectTexture.TexCoord[1].Y < 0 ||
-                            newObjectTexture.TexCoord[2].X < 0 || newObjectTexture.TexCoord[2].Y < 0 ||
-                            (!child.IsForTriangle && newObjectTexture.TexCoord[0] == newObjectTexture.TexCoord[3]) ||
-                            (!child.IsForTriangle && newObjectTexture.TexCoord[1] == newObjectTexture.TexCoord[3]) ||
-                            (!child.IsForTriangle && newObjectTexture.TexCoord[2] == newObjectTexture.TexCoord[3]) ||
-                            (!child.IsForTriangle && (newObjectTexture.TexCoord[3].X < 0 || newObjectTexture.TexCoord[3].Y < 0)))
-                        {
-                            _progressReporter.ReportWarn("Compiled TexInfo " + child.TextureId + " is broken, coordinates are invalid.");
-                        }
+						if (newObjectTexture.TexCoord[0] == newObjectTexture.TexCoord[1] ||
+							newObjectTexture.TexCoord[0] == newObjectTexture.TexCoord[2] ||
+							newObjectTexture.TexCoord[1] == newObjectTexture.TexCoord[2] ||
+							newObjectTexture.TexCoord[0].X < 0 || newObjectTexture.TexCoord[0].Y < 0 ||
+							newObjectTexture.TexCoord[1].X < 0 || newObjectTexture.TexCoord[1].Y < 0 ||
+							newObjectTexture.TexCoord[2].X < 0 || newObjectTexture.TexCoord[2].Y < 0 ||
+							(!child.IsForTriangle && newObjectTexture.TexCoord[0] == newObjectTexture.TexCoord[3]) ||
+							(!child.IsForTriangle && newObjectTexture.TexCoord[1] == newObjectTexture.TexCoord[3]) ||
+							(!child.IsForTriangle && newObjectTexture.TexCoord[2] == newObjectTexture.TexCoord[3]) ||
+							(!child.IsForTriangle && (newObjectTexture.TexCoord[3].X < 0 || newObjectTexture.TexCoord[3].Y < 0)))
+						{
+							_progressReporter.ReportWarn(
+								"Compiled TexInfo " + child.TextureId + " is broken, coordinates are invalid.");
+						}
 #endif
-                        _objectTextures.Add(child.TextureId, newObjectTexture);
-                    }
+						_objectTextures.Add(child.TextureId, newObjectTexture);
+					}
+				}
+			}
 
-            SortOutAlpha(_parentMoveableTextureAreas);
-            foreach (var parent in _parentMoveableTextureAreas)
-                foreach (var child in parent.Children)
-                    if (!_objectTextures.ContainsKey(child.TextureId))
-                    {
-                        var newObjectTexture = new ObjectTexture(parent, child, maxSize);
-#if DEBUG
-                        if (newObjectTexture.TexCoord[0] == newObjectTexture.TexCoord[1] ||
-                            newObjectTexture.TexCoord[0] == newObjectTexture.TexCoord[2] ||
-                            newObjectTexture.TexCoord[1] == newObjectTexture.TexCoord[2] ||
-                            newObjectTexture.TexCoord[0].X < 0 || newObjectTexture.TexCoord[0].Y < 0 ||
-                            newObjectTexture.TexCoord[1].X < 0 || newObjectTexture.TexCoord[1].Y < 0 ||
-                            newObjectTexture.TexCoord[2].X < 0 || newObjectTexture.TexCoord[2].Y < 0 ||
-                            (!child.IsForTriangle && newObjectTexture.TexCoord[0] == newObjectTexture.TexCoord[3]) ||
-                            (!child.IsForTriangle && newObjectTexture.TexCoord[1] == newObjectTexture.TexCoord[3]) ||
-                            (!child.IsForTriangle && newObjectTexture.TexCoord[2] == newObjectTexture.TexCoord[3]) ||
-                            (!child.IsForTriangle && (newObjectTexture.TexCoord[3].X < 0 || newObjectTexture.TexCoord[3].Y < 0)))
-                        {
-                            _progressReporter.ReportWarn("Compiled TexInfo " + child.TextureId + " is broken, coordinates are invalid.");
-                        }
-#endif
-                        _objectTextures.Add(child.TextureId, newObjectTexture);
-                    }
+			// Process texture sets
+			ProcessAreas(_parentRoomTextureAreas);
+			ProcessAreas(_parentMoveableTextureAreas);
+			ProcessAreas(_parentStaticTextureAreas);
 
-            SortOutAlpha(_parentStaticTextureAreas);
-            foreach (var parent in _parentStaticTextureAreas)
-                foreach (var child in parent.Children)
-                    if (!_objectTextures.ContainsKey(child.TextureId))
-                    {
-                        var newObjectTexture = new ObjectTexture(parent, child, maxSize);
-#if DEBUG
-                        if (newObjectTexture.TexCoord[0] == newObjectTexture.TexCoord[1] ||
-                            newObjectTexture.TexCoord[0] == newObjectTexture.TexCoord[2] ||
-                            newObjectTexture.TexCoord[1] == newObjectTexture.TexCoord[2] ||
-                            newObjectTexture.TexCoord[0].X < 0 || newObjectTexture.TexCoord[0].Y < 0 ||
-                            newObjectTexture.TexCoord[1].X < 0 || newObjectTexture.TexCoord[1].Y < 0 ||
-                            newObjectTexture.TexCoord[2].X < 0 || newObjectTexture.TexCoord[2].Y < 0 ||
-                            (!child.IsForTriangle && newObjectTexture.TexCoord[0] == newObjectTexture.TexCoord[3]) ||
-                            (!child.IsForTriangle && newObjectTexture.TexCoord[1] == newObjectTexture.TexCoord[3]) ||
-                            (!child.IsForTriangle && newObjectTexture.TexCoord[2] == newObjectTexture.TexCoord[3]) ||
-                            (!child.IsForTriangle && (newObjectTexture.TexCoord[3].X < 0 || newObjectTexture.TexCoord[3].Y < 0)))
-                        {
-                            _progressReporter.ReportWarn("Compiled TexInfo " + child.TextureId + " is broken, coordinates are invalid.");
-                        }
-#endif
-                        _objectTextures.Add(child.TextureId, newObjectTexture);
-                    }
+			// Process animated textures
+			foreach (var animTexture in _actualAnimTextures)
+			{
+				SortOutAlpha(animTexture.CompiledAnimation);
+				foreach (var parent in animTexture.CompiledAnimation)
+				{
+					foreach (var child in parent.Children)
+					{
+						if (!_objectTextures.ContainsKey(child.TextureId))
+							_objectTextures.Add(child.TextureId, new ObjectTexture(parent, child, maxSize));
+					}
+				}
+			}
+		}
 
-            foreach (var animTexture in _actualAnimTextures)
-            {
-                SortOutAlpha(animTexture.CompiledAnimation);
-                foreach (var parent in animTexture.CompiledAnimation)
-                    foreach (var child in parent.Children)
-                        if (!_objectTextures.ContainsKey(child.TextureId))
-                            _objectTextures.Add(child.TextureId, new ObjectTexture(parent, child, maxSize));
-            }
-        }
+		// Sorts animated textures and prepares index table to layout them later.
+		// We need to build index table in advance of CleanUp() call, because after that step animated texture order
+		// gets shuffled.
 
-        // Sorts animated textures and prepares index table to layout them later.
-        // We need to build index table in advance of CleanUp() call, because after that step animated texture order
-        // gets shuffled.
-
-        private void PrepareAnimatedTextures()
+		private void PrepareAnimatedTextures()
         {
             // Put UVRotate sequences first
             _actualAnimTextures = _actualAnimTextures.OrderBy(item => !item.Origin.IsUvRotate).ToList();

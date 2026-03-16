@@ -15,6 +15,8 @@ using TombEditor.Forms;
 using TombLib;
 using TombLib.Controls;
 using TombLib.Forms;
+using TombLib.Forms.ViewModels;
+using TombLib.Forms.Views;
 using TombLib.GeometryIO;
 using TombLib.LevelData;
 using TombLib.LevelData.Compilers;
@@ -29,6 +31,7 @@ using TombLib.Rendering;
 using TombLib.Utils;
 using TombLib.Wad;
 using TombLib.Wad.Catalog;
+using TombLib.WPF;
 
 namespace TombEditor
 {
@@ -1529,7 +1532,9 @@ namespace TombEditor
                                     break;
 
                                 case TextureSearchType.Broken:
-                                    if (tex.TriangleCoordsOutOfBounds || tex.QuadCoordsOutOfBounds)
+                                    float maxTexCoordSpan = _editor.Level?.IsTombEngine == true ? 1024.0f : 256.0f;
+
+                                    if (tex.AreTriangleCoordsOutOfBounds(maxTexCoordSpan) || tex.AreQuadCoordsOutOfBounds(maxTexCoordSpan))
                                         result.Add(entry);
 
                                     if (!tex.TextureIsInvisible)
@@ -2334,6 +2339,41 @@ namespace TombEditor
             if (instance is ObjectGroup)
                 foreach (var obj in (ObjectGroup)instance)
                     AllocateScriptIds(obj);
+        }
+
+        // Batch-optimized version that allocates script IDs in bulk.
+        public static void AllocateScriptIds(IEnumerable<PositionBasedObjectInstance> instances)
+        {
+            if (_editor.Level.IsTombEngine)
+            {
+                var existingNames = _editor.Level.GetAllLuaNames();
+                foreach (var instance in instances)
+                    AllocateScriptIdsWithCache(instance, existingNames);
+            }
+            else
+            {
+                foreach (var instance in instances)
+                    AllocateScriptIds(instance);
+            }
+        }
+
+        private static void AllocateScriptIdsWithCache(PositionBasedObjectInstance instance, HashSet<string> luaNameCache)
+        {
+            if (instance is IHasScriptID && (_editor.Level.Settings.GameVersion == TRVersion.Game.TR4 || _editor.Level.IsNG))
+            {
+                var si = instance as IHasScriptID;
+                if (si.ScriptId == null)
+                    si.AllocateNewScriptId();
+            }
+            else if (instance is PositionAndScriptBasedObjectInstance scriptObj && _editor.Level.IsTombEngine)
+            {
+                if (string.IsNullOrEmpty(scriptObj.LuaName))
+                    scriptObj.AllocateNewLuaName(luaNameCache);
+            }
+
+            if (instance is ObjectGroup group)
+                foreach (var obj in group)
+                    AllocateScriptIdsWithCache(obj, luaNameCache);
         }
 
         public static void PlaceLight(LightType type)
@@ -3466,7 +3506,7 @@ namespace TombEditor
                 return null;
             }
 
-            if(room.IsAnyPortal(direction, clampedSelection.Value.Area))
+            if (room.IsAnyPortal(direction, clampedSelection.Value.Area))
             {
                 _editor.SendMessage("Can't create adjoining room. \nSelection contains existing portals.", PopupType.Error);
                 return null;
@@ -3584,6 +3624,15 @@ namespace TombEditor
             newRoom.AddObject(_editor.Level, new PortalInstance(portalArea, PortalInstance.GetOppositeDirection(direction), room));
             newRoom.Name = "Room " + roomNumber;
 
+            // Copy main parent room properties
+            newRoom.Properties.AmbientLight = room.Properties.AmbientLight;
+            newRoom.Properties.Type = room.Properties.Type;
+            newRoom.Properties.TypeStrength = room.Properties.TypeStrength;
+            newRoom.Properties.FlagCold = room.Properties.FlagCold;
+            newRoom.Properties.FlagDamage = room.Properties.FlagDamage;
+            newRoom.Properties.FlagOutside = room.Properties.FlagOutside;
+            newRoom.Properties.FlagHorizon = room.Properties.FlagHorizon;
+
             if (_editor.Configuration.UI_GenerateRoomDescriptions)
                 newRoom.Name += " (dug " + dirString + ")";
 
@@ -3602,7 +3651,7 @@ namespace TombEditor
             });
 
             if (switchRoom && (_editor.SelectedRoom == room || _editor.SelectedRoom == room.AlternateOpposite))
-                _editor.SelectedRoom = newRoom; //Don't center
+                _editor.SelectedRoom = newRoom; // Don't center
             else
             {
                 _editor.RoomSectorPropertiesChange(room);
@@ -4357,20 +4406,26 @@ namespace TombEditor
                 return null;
 
             var geometry = new ImportedGeometry();
+            var config = Editor.Instance?.Configuration;
 
-            using (var settingsDialog = new GeometryIOSettingsDialog(new IOGeometrySettings()))
-            {
-                settingsDialog.AddPreset(IOSettingsPresets.GeometryImportSettingsPresets);
-                settingsDialog.SelectPreset("Normal scale to TR scale");
+            var viewModel = new GeometryIOSettingsWindowViewModel(IOSettingsPresets.GeometryImportSettingsPresets);
+            viewModel.SelectPreset(config?.GeometryIO_LastUsedGeometryImportPresetName);
 
-                if (settingsDialog.ShowDialog(owner) == DialogResult.Cancel)
-                    return null;
+            var settingsDialog = new GeometryIOSettingsWindow { DataContext = viewModel };
+            settingsDialog.SetOwner(owner);
+            settingsDialog.ShowDialog();
 
-                var info = new ImportedGeometryInfo(path, settingsDialog.Settings);
-                _editor.Level.Settings.ImportedGeometryUpdate(geometry, info);
-                _editor.Level.Settings.ImportedGeometries.Add(geometry);
-                _editor.LoadedImportedGeometriesChange();
-            }
+            if (viewModel.DialogResult != true)
+                return null;
+
+            if (config is not null)
+                config.GeometryIO_LastUsedGeometryImportPresetName = viewModel.SelectedPreset?.Name;
+
+            var settings = viewModel.GetCurrentSettings();
+            var info = new ImportedGeometryInfo(path, settings);
+            _editor.Level.Settings.ImportedGeometryUpdate(geometry, info);
+            _editor.Level.Settings.ImportedGeometries.Add(geometry);
+            _editor.LoadedImportedGeometriesChange();
 
             return geometry;
         }
@@ -4629,7 +4684,10 @@ namespace TombEditor
             var list = new Dictionary<IReloadableResource, string>() { { toReplace, path } };
 
             if (searchForOthers)
-                foreach (var item in toReplace.GetResourceList(settings).Where(i => i != toReplace && i != null && i.LoadException != null))
+            {
+                var resourceListToReplace = toReplace.GetResourceList(settings).Where(i => !string.Equals(i.GetPath(), toReplace.GetPath()) && i != null && i.LoadException != null);
+
+                foreach (var item in resourceListToReplace)
                 {
                     // Now recursively search down the folder structure
                     var newPath = PathC.TryFindFile(Path.GetDirectoryName(settings.MakeAbsolute(path)), settings.MakeAbsolute(item.GetPath()), 4, 4);
@@ -4646,6 +4704,7 @@ namespace TombEditor
                         list.TryAdd(item, settings.MakeRelative(newPath, VariableType.LevelDirectory));
                     }
                 }
+            }
 
             if (toReplace.ResourceType == ReloadableResourceType.ImportedGeometry)
             {
@@ -4989,10 +5048,16 @@ namespace TombEditor
 
         public static ItemType? GetCurrentItemWithMessage()
         {
-            ItemType? result = _editor.ChosenItem;
-            if (result == null)
-                _editor.SendMessage("Select an item first.", PopupType.Error);
-            return result;
+            foreach (var obj in _editor.ChosenItems)
+            {
+                if (obj is WadMoveable m)
+                    return new ItemType(m.Id);
+                if (obj is WadStatic s)
+                    return new ItemType(s.Id);
+            }
+
+            _editor.SendMessage("Select an item first.", PopupType.Error);
+            return null;
         }
 
         public static void FindItem()
@@ -5075,56 +5140,68 @@ namespace TombEditor
                     return;
                 }
 
-                using (var settingsDialog = new GeometryIOSettingsDialog(new IOGeometrySettings() { Export = true, ExportRoom = true }))
+                var config = Editor.Instance?.Configuration;
+
+                var viewModel = new GeometryIOSettingsWindowViewModel(
+                    IOSettingsPresets.GeometryExportSettingsPresets,
+                    new() { Export = true, ExportRoom = true }
+                );
+
+                viewModel.SelectPreset(config?.GeometryIO_LastUsedGeometryExportPresetName);
+
+                var settingsDialog = new GeometryIOSettingsWindow { DataContext = viewModel };
+                settingsDialog.SetOwner(owner);
+                settingsDialog.ShowDialog();
+
+                if (viewModel.DialogResult != true)
+                    return;
+
+                if (config is not null)
+                    config.GeometryIO_LastUsedGeometryExportPresetName = viewModel.SelectedPreset?.Name;
+
+                var settings = viewModel.GetCurrentSettings();
+
+                BaseGeometryExporter.GetTextureDelegate getTextureCallback = txt =>
                 {
-                    settingsDialog.AddPreset(IOSettingsPresets.GeometryExportSettingsPresets);
-                    settingsDialog.SelectPreset("Normal scale");
+                    if (txt is LevelTexture)
+                        return _editor.Level.Settings.MakeAbsolute(((LevelTexture)txt).Path);
+                    else
+                        return "";
+                };
 
-                    if (settingsDialog.ShowDialog(owner) == DialogResult.OK)
+                BaseGeometryExporter exporter = BaseGeometryExporter.CreateForFile(saveFileDialog.FileName, settings, getTextureCallback);
+                new Thread(() =>
+                {
+                    bool exportInWorldCoordinates = rooms.Count() > 1;
+                    var result = RoomGeometryExporter.ExportRooms(rooms, saveFileDialog.FileName, _editor.Level, exportInWorldCoordinates);
+
+                    if (result.Errors.Count < 1)
                     {
-                        BaseGeometryExporter.GetTextureDelegate getTextureCallback = txt =>
+                        IOModel resultModel = result.Model;
+                        if (exporter.ExportToFile(resultModel, saveFileDialog.FileName))
                         {
-                            if (txt is LevelTexture)
-                                return _editor.Level.Settings.MakeAbsolute(((LevelTexture)txt).Path);
-                            else
-                                return "";
-                        };
-
-                        BaseGeometryExporter exporter = BaseGeometryExporter.CreateForFile(saveFileDialog.FileName, settingsDialog.Settings, getTextureCallback);
-                        new Thread(() =>
-                        {
-                            bool exportInWorldCoordinates = rooms.Count() > 1;
-                            var result = RoomGeometryExporter.ExportRooms(rooms, saveFileDialog.FileName, _editor.Level, exportInWorldCoordinates);
-
-                            if (result.Errors.Count < 1)
+                            if (result.Warnings.Count > 0)
                             {
-                                IOModel resultModel = result.Model;
-                                if (exporter.ExportToFile(resultModel, saveFileDialog.FileName))
+                                if (result.Warnings.Count < 5)
                                 {
-                                    if (result.Warnings.Count > 0)
-                                    {
-                                        if (result.Warnings.Count < 5)
-                                        {
-                                            string warningmessage = "";
-                                            result.Warnings.ForEach(warning => warningmessage += warning + "\n");
-                                            _editor.SendMessage("Room export successful with warnings: \n" + warningmessage, PopupType.Warning);
-                                        }
-                                        else
-                                            _editor.SendMessage("Room export successful with multiple warnings.", PopupType.Warning);
-                                    }
-                                    else
-                                        _editor.SendMessage("Room export successful.", PopupType.Info);
+                                    string warningmessage = "";
+                                    result.Warnings.ForEach(warning => warningmessage += warning + "\n");
+                                    _editor.SendMessage("Room export successful with warnings: \n" + warningmessage, PopupType.Warning);
                                 }
+                                else
+                                    _editor.SendMessage("Room export successful with multiple warnings.", PopupType.Warning);
                             }
                             else
-                            {
-                                string errorMessage = "";
-                                result.Errors.ForEach((error) => { errorMessage += error + "\n"; });
-                                _editor.SendMessage("There was an error exporting room(s): \n" + errorMessage, PopupType.Error);
-                            }
-                        }).Start();
+                                _editor.SendMessage("Room export successful.", PopupType.Info);
+                        }
                     }
-                }
+                    else
+                    {
+                        string errorMessage = "";
+                        result.Errors.ForEach((error) => { errorMessage += error + "\n"; });
+                        _editor.SendMessage("There was an error exporting room(s): \n" + errorMessage, PopupType.Error);
+                    }
+                }).Start();
             }
         }
 

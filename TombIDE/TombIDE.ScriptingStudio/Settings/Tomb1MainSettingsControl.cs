@@ -14,6 +14,7 @@ using TombLib.Scripting.Resources;
 using TombLib.Scripting.Tomb1Main;
 using TombLib.Scripting.Tomb1Main.Objects;
 using TombLib.Scripting.Tomb1Main.Resources;
+using TombLib.Scripting.Tomb1Main.Services.Implementations;
 using TombLib.Utils;
 
 namespace TombIDE.ScriptingStudio.Settings
@@ -42,7 +43,7 @@ namespace TombIDE.ScriptingStudio.Settings
 
 		private void InitializePreview()
 		{
-			editorPreview = new Tomb1MainEditor(new Version(0, 0), false)
+			editorPreview = new Tomb1MainEditor(new Version(0, 0))
 			{
 				Text =
 					"\"levels\": [\n" +
@@ -459,7 +460,7 @@ namespace TombIDE.ScriptingStudio.Settings
 				)
 			);
 
-			editorPreview.SyntaxHighlighting = new SyntaxHighlighting(scheme, false);
+			editorPreview.SyntaxHighlighting = new SyntaxHighlighting(scheme, GameflowSchemaService.Instance);
 		}
 
 		private void ToggleSaveSchemeButton()

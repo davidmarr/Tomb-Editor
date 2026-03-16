@@ -22,6 +22,7 @@ namespace TombLib.Wad
         /****/public static readonly ChunkId TextureIndex = ChunkId.FromString("W2Index");
         /****/public static readonly ChunkId TextureData = ChunkId.FromString("W2TxtData");
         /****/public static readonly ChunkId TextureName = ChunkId.FromString("W2TxtName");
+        /****/public static readonly ChunkId TextureRelativePath = ChunkId.FromString("W2TxtRelPath");
         public static readonly ChunkId Samples = ChunkId.FromString("W2WaveSamples");
         /**/public static readonly ChunkId Sample = ChunkId.FromString("W2Wav");
         /****/public static readonly ChunkId SampleIndex = ChunkId.FromString("W2Index");
@@ -116,12 +117,18 @@ namespace TombLib.Wad
         /********/public static readonly ChunkId AnimationObsolete = ChunkId.FromString("W2Anm");
         /********/public static readonly ChunkId Animation = ChunkId.FromString("W2Ani");
         /********/public static readonly ChunkId Animation2 = ChunkId.FromString("W2Ani2");
+        /********/public static readonly ChunkId Animation3 = ChunkId.FromString("W2Ani3");
         /**********/public static readonly ChunkId AnimationVelocities = ChunkId.FromString("W2AniV");
         /**********/public static readonly ChunkId AnimationName = ChunkId.FromString("W2AnmName");
         /**********/public static readonly ChunkId StateChanges = ChunkId.FromString("W2StChs");
         /************/public static readonly ChunkId StateChange = ChunkId.FromString("W2StCh");
         /**************/public static readonly ChunkId Dispatches = ChunkId.FromString("W2Disps");
         /****************/public static readonly ChunkId Dispatch = ChunkId.FromString("W2Disp");
+        /****************/public static readonly ChunkId Dispatch2 = ChunkId.FromString("W2Disp2");
+        /**********/public static readonly ChunkId CurveStart = ChunkId.FromString("W2CurveStart");
+        /**********/public static readonly ChunkId CurveEnd = ChunkId.FromString("W2CurveEnd");
+        /**********/public static readonly ChunkId CurveStartHandle = ChunkId.FromString("W2CurveHStart");
+        /**********/public static readonly ChunkId CurveEndHandle = ChunkId.FromString("W2CurveHEnd");
         /**********/public static readonly ChunkId KeyFrames = ChunkId.FromString("W2Kfs");
         /************/public static readonly ChunkId KeyFrame = ChunkId.FromString("W2Kf");
         /**************/public static readonly ChunkId KeyFrameBoundingBox = ChunkId.FromString("W2KfBB");

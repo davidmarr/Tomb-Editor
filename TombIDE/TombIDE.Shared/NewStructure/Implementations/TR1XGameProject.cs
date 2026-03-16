@@ -10,27 +10,53 @@ namespace TombIDE.Shared.NewStructure
 {
 	public class TR1XGameProject : GameProjectBase
 	{
-		public const string MainScriptFileNameFilter = "*_gameflow.json5";
+		public const string MainScriptFileNameFilter = "*gameflow.json5";
 		public const string LanguageFileNameFilter = MainScriptFileNameFilter; // Same file as main script file
+
+		/// <summary>
+		/// Version prefix used in TRX engine executables.
+		/// </summary>
+		private const string VersionPrefix = "TRX ";
+
+		/// <summary>
+		/// Legacy version prefix used in older TR1X engine versions (before unification with TR2X).
+		/// </summary>
+		private const string LegacyVersionPrefix = "TR1X ";
+
+		/// <summary>
+		/// Valid executable names for TR1X projects, ordered by priority.
+		/// </summary>
+		private readonly string[] ValidOrderedExecutableNames = new[]
+		{
+			"TRX.exe",
+			"TR1X.exe", // Legacy name (before TR1X and TR2X were unified into TRX)
+			"Tomb1Main.exe" // Very legacy name (before TR1X rebranding)
+		};
 
 		public override TRVersion.Game GameVersion => TRVersion.Game.TR1;
 
 		public override string DataFileExtension => ".phd";
+
 		public override string EngineExecutableFileName
 		{
 			get
 			{
-				string tomb1MainPath = Path.Combine(GetEngineRootDirectoryPath(), "Tomb1Main.exe");
+				string rootDirectory = GetEngineRootDirectoryPath();
 
-				if (File.Exists(tomb1MainPath))
-					return "Tomb1Main.exe";
+				foreach (string exeName in ValidOrderedExecutableNames)
+				{
+					string exePath = Path.Combine(rootDirectory, exeName);
 
-				return "TR1X.exe"; // Default
+					if (File.Exists(exePath))
+						return exeName;
+				}
+
+				return "TRX.exe"; // Default
 			}
 		}
 
 		public override string MainScriptFilePath => Directory
-			.GetFiles(GetScriptRootDirectory(), MainScriptFileNameFilter, SearchOption.TopDirectoryOnly)
+			.GetFiles(GetScriptRootDirectory(), MainScriptFileNameFilter, SearchOption.AllDirectories)
 			.FirstOrDefault();
 
 		public override bool SupportsCustomScriptPaths => false;
@@ -50,7 +76,7 @@ namespace TombIDE.Shared.NewStructure
 			return File.Exists(defaultLanguageFilePath)
 				? defaultLanguageFilePath
 				: throw new FileNotFoundException("The default game language file could not be found.\n" +
-					"Required file not found: ..._gameflow.json5");
+					"Required file not found: gameflow.json5");
 		}
 
 		public override bool IsValid(out string errorMessage)
@@ -79,9 +105,8 @@ namespace TombIDE.Shared.NewStructure
 			{
 				string engineExecutablePath = GetEngineExecutableFilePath();
 				string versionInfo = FileVersionInfo.GetVersionInfo(engineExecutablePath).ProductVersion;
-				versionInfo = versionInfo.Replace("TR1X ", string.Empty);
 
-				return new Version(versionInfo);
+				return GetActualVersion(versionInfo);
 			}
 			catch
 			{
@@ -98,14 +123,14 @@ namespace TombIDE.Shared.NewStructure
 				string enginePresetPath = Path.Combine(DefaultPaths.PresetsDirectory, "TR1.zip");
 
 				using ZipArchive archive = ZipFile.OpenRead(enginePresetPath);
-				ZipArchiveEntry entry = archive.Entries.FirstOrDefault(e => e.Name == "TR1X.exe");
+				ZipArchiveEntry entry = archive.Entries.FirstOrDefault(e => e.Name == "TRX.exe");
 
-				if (entry == null)
+				if (entry is null)
 					return null;
 
 				entry.ExtractToFile(tempFileName, true);
 				string productVersion = FileVersionInfo.GetVersionInfo(tempFileName).ProductVersion;
-				productVersion = productVersion.Replace("TR1X ", string.Empty);
+				productVersion = productVersion.Replace(VersionPrefix, string.Empty);
 
 				return new Version(productVersion);
 			}
@@ -119,5 +144,12 @@ namespace TombIDE.Shared.NewStructure
 					File.Delete(tempFileName);
 			}
 		}
+
+		/// <summary>
+		/// Parses the actual version from a version string, handling legacy version formats.
+		/// </summary>
+		/// <param name="versionString">The version string to parse.</param>
+		private static Version GetActualVersion(string versionString)
+			=> TRXVersionHelper.ParseTRXVersion(versionString, LegacyVersionPrefix);
 	}
 }
