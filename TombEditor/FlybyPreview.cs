@@ -216,7 +216,7 @@ namespace TombEditor
                 // SCF_STOP_MOVEMENT: freeze the camera.
                 if ((flags & FlagStopMovement) != 0 && timer > 0 && !_frozenAtBoundary)
                 {
-                    int gameFrames = Math.Max(0, timer >> 3);
+                    int gameFrames = Math.Max(0, (timer >> 3) - 1);
 
                     if (gameFrames > 0)
                     {
