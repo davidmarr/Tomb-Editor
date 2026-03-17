@@ -1,0 +1,78 @@
+name: Cross repo dependency
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  check-linked-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for dependency and set status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body || "";
+
+            // Look for: Depends on: org/repo#123
+            const match = body.match(/Depends on:\s+([\w-]+)\/([\w-]+)#(\d+)/);
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sha = pr.head.sha;
+
+            if (!match) {
+              // No dependency → pass
+              await github.rest.repos.createCommitStatus({
+                owner,
+                repo,
+                sha,
+                state: "success",
+                context: "cross-repo-dependency",
+                description: "No cross-repo dependency"
+              });
+              return;
+            }
+
+            const depOwner = match[1];
+            const depRepo = match[2];
+            const depNumber = Number(match[3]);
+
+            // Get linked PR
+            const linked = await github.rest.pulls.get({
+              owner: depOwner,
+              repo: depRepo,
+              pull_number: depNumber
+            });
+
+            // Get reviews to see if it has at least one APPROVED
+            const reviews = await github.rest.pulls.listReviews({
+              owner: depOwner,
+              repo: depRepo,
+              pull_number: depNumber
+            });
+
+            const approved = reviews.data.some(r => r.state === "APPROVED");
+
+            // mergeable can be null while GitHub is still calculating; treat that as not ready
+            const mergeable = linked.data.mergeable === true;
+
+            let state = "pending";
+            let description = "Waiting for linked PR to be approved and mergeable";
+
+            if (approved && mergeable) {
+              state = "success";
+              description = `Linked PR ${depOwner}/${depRepo}#${depNumber} is approved and mergeable`;
+            }
+
+            await github.rest.repos.createCommitStatus({
+              owner,
+              repo,
+              sha,
+              state,
+              context: "cross-repo-dependency",
+              description
+            });
