@@ -357,6 +357,9 @@ namespace TombEditor
                 rawSpeed[i] = cam.Speed;
             }
 
+            // Unwrap roll so the spline takes the shortest angular path.
+            UnwrapAngles(rawRoll);
+
             posX = CatmullRomSpline.PadKnots(rawPosX);
             posY = CatmullRomSpline.PadKnots(rawPosY);
             posZ = CatmullRomSpline.PadKnots(rawPosZ);
@@ -366,6 +369,19 @@ namespace TombEditor
             rollKnots = CatmullRomSpline.PadKnots(rawRoll);
             fovKnots = CatmullRomSpline.PadKnots(rawFov);
             speedKnots = CatmullRomSpline.PadKnots(rawSpeed);
+        }
+
+        /// <summary>
+        /// Adjusts consecutive angle values so that each delta is at most 180 degrees,
+        /// preventing the spline from taking the long way around the 360-degree boundary.
+        /// </summary>
+        private static void UnwrapAngles(float[] angles)
+        {
+            for (int i = 1; i < angles.Length; i++)
+            {
+                float delta = angles[i] - angles[i - 1];
+                angles[i] -= (float)Math.Round(delta / 360.0f) * 360.0f;
+            }
         }
 
         #endregion Keyframe building
