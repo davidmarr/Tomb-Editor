@@ -1910,10 +1910,11 @@ namespace TombEditor.Controls.Panel3D
 
             // New rendering setup
             bool useFlybyViewProjection = _editor.CameraPreviewMode
-                && ((_flybyPreview != null && !_flybyPreview.IsFinished) || _flybyStaticFrame.HasValue);
+                && _flybyPreview != null
+                && (_flybyPreview.StaticFrame.HasValue || !_flybyPreview.IsFinished);
 
             _viewProjection = useFlybyViewProjection
-                ? BuildFlybyPreviewViewProjection(ClientSize.Width, ClientSize.Height)
+                ? _flybyPreview.BuildViewProjection(ClientSize.Width, ClientSize.Height, Camera.FieldOfView)
                 : Camera.GetViewProjectionMatrix(ClientSize.Width, ClientSize.Height);
 
             // Determine brush overlay state.
@@ -2079,38 +2080,6 @@ namespace TombEditor.Controls.Panel3D
 
             // At last, construct additional labels and draw all in-game text
             DrawText(roomsToDraw, textToDraw);
-        }
-
-        /// <summary>
-        /// Builds a view-projection matrix with roll support for flyby camera preview.
-        /// </summary>
-        private Matrix4x4 BuildFlybyPreviewViewProjection(float width, float height)
-        {
-            var frame = _flybyStaticFrame ?? _flybyPreview.LastFrame;
-
-            // Build rotation directly from frame values (already in radians)
-            // This bypasses Camera.RotationY which normalizes to [0,2π), undoing our angle unwrapping
-            Matrix4x4 rotation = Matrix4x4.CreateFromYawPitchRoll(frame.RotationY, frame.RotationX, 0);
-
-            Vector3 look = MathC.HomogenousTransform(Vector3.UnitZ, rotation);
-            Vector3 right = MathC.HomogenousTransform(Vector3.UnitX, rotation);
-            Vector3 up = Vector3.Cross(look, right);
-
-            // Apply roll by rotating the up vector around the look direction
-            if (Math.Abs(frame.Roll) > 0.001f)
-            {
-                Matrix4x4 rollMatrix = Matrix4x4.CreateFromAxisAngle(look, frame.Roll);
-                up = Vector3.TransformNormal(up, rollMatrix);
-            }
-
-            Vector3 target = frame.Position + (Level.SectorSizeUnit * look);
-            float fov = frame.Fov > 0.01f ? frame.Fov : Camera.FieldOfView;
-
-            Matrix4x4 view = MathC.Matrix4x4CreateLookAtLH(frame.Position, target, up);
-            float aspectRatio = (height != 0.0f) ? (width / height) : 1.0f;
-            Matrix4x4 projection = MathC.Matrix4x4CreatePerspectiveFieldOfViewLH(fov, aspectRatio, 20.0f, 1000000.0f);
-
-            return view * projection;
         }
     }
 }

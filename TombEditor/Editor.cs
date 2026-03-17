@@ -728,13 +728,13 @@ namespace TombEditor
         {
             public bool PreviewState { get; set; }
             public int FlybySequence { get; set; } = -1;
-            public float SpeedMultiplier { get; set; } = 1.0f;
-            public CameraInstance CameraInstance { get; set; }
+			public PositionAndScriptBasedObjectInstance Camera { get; set; }
+			public CameraInstance CameraInstance { get; set; }
             public FlybyCameraInstance FlybyCameraInstance { get; set; }
         }
-        public void ToggleCameraPreview(bool state, int flybySequence = -1, float speedMultiplier = 1.0f, CameraInstance camera = null, FlybyCameraInstance flybyCamera = null)
+        public void ToggleCameraPreview(bool state, int flybySequence = -1, CameraInstance camera = null, FlybyCameraInstance flybyCamera = null)
         {
-            RaiseEvent(new ToggleCameraPreviewEvent { PreviewState = state, FlybySequence = flybySequence, SpeedMultiplier = speedMultiplier, CameraInstance = camera, FlybyCameraInstance = flybyCamera });
+            RaiseEvent(new ToggleCameraPreviewEvent { PreviewState = state, FlybySequence = flybySequence, CameraInstance = camera, FlybyCameraInstance = flybyCamera });
         }
         public bool CameraPreviewMode { get; set; } = false;
         public bool CameraStaticPreviewMode { get; set; } = false;

@@ -189,7 +189,7 @@ namespace TombEditor.Controls.Panel3D
             _editor.FlyMode = state;
         }
 
-        public void ToggleCameraPreview(bool state, int flybySequence = -1, float speedMultiplier = 1.0f, CameraInstance cameraInstance = null, FlybyCameraInstance flybyCameraInstance = null)
+        public void ToggleCameraPreview(bool state, int flybySequence = -1, CameraInstance cameraInstance = null, FlybyCameraInstance flybyCameraInstance = null)
         {
             if (state)
             {
@@ -200,20 +200,19 @@ namespace TombEditor.Controls.Panel3D
                 // Stop any in-progress camera animation so it doesn't interfere with preview.
                 _movementTimer.Stop(true);
 
-                // Save the current camera state
-                _flybyPreviewOldCamera = Camera;
-
-                // Create a free camera for the preview
+                // Save the current camera before swapping to a free camera for preview.
+                var savedCamera = Camera;
                 Camera = new FreeCamera(
-                    _flybyPreviewOldCamera.GetPosition(),
-                    _flybyPreviewOldCamera.RotationX,
-                    _flybyPreviewOldCamera.RotationY - (float)Math.PI,
+                    savedCamera.GetPosition(),
+                    savedCamera.RotationX,
+                    savedCamera.RotationY - (float)Math.PI,
                     -(float)Math.PI / 2, (float)Math.PI / 2,
-                    _flybyPreviewOldCamera.FieldOfView);
+                    savedCamera.FieldOfView);
 
                 if (flybyCameraInstance != null)
                 {
-                    ApplyFlybyCameraFrame(flybyCameraInstance);
+                    _flybyPreview = new FlybyPreview(savedCamera);
+                    _flybyPreview.ApplyStaticCameraFrame(Camera, flybyCameraInstance);
 
                     _editor.CameraPreviewMode = true;
                     _editor.CameraStaticPreviewMode = true;
@@ -223,6 +222,8 @@ namespace TombEditor.Controls.Panel3D
                 }
                 else if (cameraInstance != null)
                 {
+                    _flybyPreview = new FlybyPreview(savedCamera);
+
                     // Static camera preview: position the camera at the instance's world position
                     // and orient it towards the trigger-defined target or Lara.
                     Camera.Position = cameraInstance.WorldPosition;
@@ -250,44 +251,39 @@ namespace TombEditor.Controls.Panel3D
                 else if (flybySequence >= 0)
                 {
                     // Flyby sequence preview
-                    _flybyPreview = new FlybyPreview(_editor.Level, flybySequence, speedMultiplier);
+                    _flybyPreview = new FlybyPreview(_editor.Level, flybySequence, savedCamera);
 
                     if (_flybyPreview.IsFinished)
                     {
                         // Restore camera - not enough cameras to preview
-                        Camera = _flybyPreviewOldCamera;
-                        _flybyPreviewOldCamera = null;
+                        Camera = savedCamera;
+                        _flybyPreview.Dispose();
                         _flybyPreview = null;
                         _editor.SendMessage("Flyby sequence needs at least 2 cameras to preview.", PopupType.Info);
 
                         return;
                     }
 
-                    _flybyPreview.Start();
-                    _flybyPreviewTimer.Start();
+                    _flybyPreview.BeginSequence(FlybyPreviewTimer_Tick);
                     _editor.CameraPreviewMode = true;
                     _editor.CameraStaticPreviewMode = false;
                     _editor.SendMessage("Flyby preview playing... Press ESC or click to stop.", PopupType.Info);
                 }
+                else
+                {
+                    // No valid preview target - restore camera.
+                    Camera = savedCamera;
+                }
             }
             else
             {
-                _flybyPreviewTimer.Stop();
-
                 if (_flybyPreview != null)
                 {
-                    _flybyPreview.Stop();
+                    Camera = _flybyPreview.SavedCamera;
+                    _flybyPreview.Dispose();
                     _flybyPreview = null;
                 }
 
-                // Restore the original camera
-                if (_flybyPreviewOldCamera != null)
-                {
-                    Camera = _flybyPreviewOldCamera;
-                    _flybyPreviewOldCamera = null;
-                }
-
-                _flybyStaticFrame = null;
                 _editor.CameraPreviewMode = false;
                 _editor.CameraStaticPreviewMode = false;
                 _editor.SendMessage("Camera preview ended.", PopupType.Info);
@@ -296,31 +292,12 @@ namespace TombEditor.Controls.Panel3D
             }
         }
 
-        /// <summary>
-        /// Applies a flyby camera's current properties to the preview camera.
-        /// </summary>
-        private void ApplyFlybyCameraFrame(FlybyCameraInstance flybyCamera)
-        {
-            var frame = FlybyPreview.GetFrameForCamera(flybyCamera);
-
-            Camera.Position = frame.Position;
-            Camera.RotationY = frame.RotationY;
-            Camera.RotationX = frame.RotationX;
-            Camera.FieldOfView = frame.Fov;
-
-            var rotation = Matrix4x4.CreateFromYawPitchRoll(frame.RotationY, frame.RotationX, 0);
-            var look = MathC.HomogenousTransform(Vector3.UnitZ, rotation);
-            Camera.Target = frame.Position + (Level.SectorSizeUnit * look);
-
-            _flybyStaticFrame = frame;
-        }
-
         public void UpdateFlybyCameraPreview(FlybyCameraInstance flybyCamera)
         {
-            if (!_editor.CameraPreviewMode || !_editor.CameraStaticPreviewMode)
+            if (!_editor.CameraPreviewMode || !_editor.CameraStaticPreviewMode || _flybyPreview == null)
                 return;
 
-            ApplyFlybyCameraFrame(flybyCamera);
+            _flybyPreview.ApplyStaticCameraFrame(Camera, flybyCamera);
             Invalidate();
         }
 
@@ -348,17 +325,8 @@ namespace TombEditor.Controls.Panel3D
                 return;
             }
 
-            // Apply the frame state to the camera
-            Camera.Position = frame.Position;
-            Camera.RotationY = frame.RotationY;
-            Camera.RotationX = frame.RotationX;
-            Camera.FieldOfView = frame.Fov;
-
-            // Update camera target explicitly to prevent portal culling issues during flyby preview
-            var rotation = Matrix4x4.CreateFromYawPitchRoll(frame.RotationY, frame.RotationX, 0);
-            var look = MathC.HomogenousTransform(Vector3.UnitZ, rotation);
-            Camera.Target = frame.Position + (Level.SectorSizeUnit * look);
-
+            // Apply frame to camera, updating target to prevent portal culling issues.
+            _flybyPreview.ApplyFrameToCamera(Camera, frame);
             Invalidate();
         }
 

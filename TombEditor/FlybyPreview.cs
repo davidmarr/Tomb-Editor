@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
+using System.Windows.Forms;
+using TombLib;
+using TombLib.Graphics;
 using TombLib.LevelData;
 using TombLib.Utils;
 
@@ -31,31 +34,29 @@ namespace TombEditor
             EaseOut,
             Hold,
             EaseIn
-        }
+		}
 
-        private const float DegToRad = (float)(Math.PI / 180.0);
+		/// <summary>
+		/// The game logic runs at 30 ticks per second.
+		/// </summary>
+		private const float GameTickRate = 30.0f;
 
-        /// <summary>
-        /// Speed conversion matching the game engine.
-        /// Editor Speed S is compiled as S * 655. The game advances CurrentSplinePosition (0–65536)
-        /// by that amount per frame at 30fps. So segments/second = S * 655 * 30 / 65536.
-        /// </summary>
-        private const float SpeedScale = 655.0f * 30.0f / 65536.0f;
+		/// <summary>
+		/// Speed conversion matching the game engine.
+		/// Editor Speed S is compiled as S * 655. The game advances CurrentSplinePosition (0–65536)
+		/// by that amount per frame at 30fps. So segments/second = S * 655 * 30 / 65536.
+		/// </summary>
+		private const float SpeedScale = (float)(ushort.MaxValue / 100) * GameTickRate / (float)ushort.MaxValue;
 
         /// <summary>
         /// Distance from camera to target point, matching the level compiler's convention.
         /// Target = Position + Direction * TargetDistance.
         /// </summary>
-        private const float TargetDistance = 1024.0f;
+        private const float TargetDistance = Level.SectorSizeUnit;
 
-        /// <summary>
-        /// The game logic runs at 30 ticks per second.
-        /// </summary>
-        private const float GameTickRate = 30.0f;
-
-        // SCF flag bits
+        // SCF flag bits.
         private const int FlagStopMovement = 1 << 8;
-        private const int FlagCutToCam = 1 << 7;
+        private const int FlagCutToCam =     1 << 7;
 
         // TombEngine smooth pause constants.
         private const float EaseDistance = 0.15f;
@@ -95,15 +96,23 @@ namespace TombEditor
         private readonly Stopwatch _stopwatch = new();
         private double _lastElapsed;
 
+        private Camera _savedCamera;
+        private FrameState? _staticFrame;
+        private Timer _sequenceTimer;
+
         public bool IsFinished { get; private set; }
         public int SequenceId { get; }
         public FrameState LastFrame { get; private set; }
+        public Camera SavedCamera => _savedCamera;
+        public FrameState? StaticFrame => _staticFrame;
 
-        public FlybyPreview(Level level, int sequence, float speedMultiplier = 1.0f)
+        public FlybyPreview(Level level, int sequence, Camera savedCamera, float speedMultiplier = 1.0f)
         {
             SequenceId = sequence;
+            _savedCamera = savedCamera;
             _speedMultiplier = speedMultiplier;
             _useSmoothPause = level.Settings.GameVersion == TRVersion.Game.TombEngine;
+            _sequenceTimer = new Timer { Interval = 16 };
 
             var flybyCameras = level.ExistingRooms
                 .SelectMany(r => r.Objects.OfType<FlybyCameraInstance>())
@@ -143,6 +152,18 @@ namespace TombEditor
             LastFrame = GetFrameAtT(0);
         }
 
+        /// <summary>
+        /// Creates a preview session for a static single camera without spline interpolation.
+        /// </summary>
+        public FlybyPreview(Camera savedCamera)
+        {
+            _savedCamera = savedCamera;
+            IsFinished = true;
+            _posX = _posY = _posZ = Array.Empty<float>();
+            _tgtX = _tgtY = _tgtZ = Array.Empty<float>();
+            _rollKnots = _fovKnots = _speedKnots = Array.Empty<float>();
+        }
+
         public void Start()
         {
             _stopwatch.Restart();
@@ -153,6 +174,19 @@ namespace TombEditor
         {
             _stopwatch.Stop();
             IsFinished = true;
+        }
+
+        public void BeginSequence(EventHandler timerTick)
+        {
+            Start();
+            _sequenceTimer.Tick += timerTick;
+            _sequenceTimer.Start();
+        }
+
+        public void Dispose()
+        {
+            Stop();
+            _sequenceTimer?.Dispose();
         }
 
         public FrameState Update()
@@ -175,18 +209,71 @@ namespace TombEditor
         {
             var worldPos = camera.Position + camera.Room.WorldPos;
 
-            float yawRad = camera.RotationY * DegToRad;
-            float pitchRad = camera.RotationX * DegToRad;
+            float yawRad = MathC.DegToRad(camera.RotationY);
+            float pitchRad = MathC.DegToRad(camera.RotationX);
 
             return new FrameState
             {
                 Position = worldPos,
                 RotationY = yawRad,
                 RotationX = -pitchRad,
-                Roll = -camera.Roll * DegToRad,
-                Fov = camera.Fov * DegToRad,
+                Roll = -MathC.DegToRad(camera.Roll),
+                Fov = MathC.DegToRad(camera.Fov),
                 Finished = false
             };
+        }
+
+        /// <summary>
+        /// Applies a pre-computed frame state to the given camera.
+        /// </summary>
+        public void ApplyFrameToCamera(Camera camera, FrameState frame)
+        {
+            camera.Position = frame.Position;
+            camera.RotationY = frame.RotationY;
+            camera.RotationX = frame.RotationX;
+            camera.FieldOfView = frame.Fov;
+
+            var rotation = Matrix4x4.CreateFromYawPitchRoll(frame.RotationY, frame.RotationX, 0);
+            var look = MathC.HomogenousTransform(Vector3.UnitZ, rotation);
+            camera.Target = frame.Position + (Level.SectorSizeUnit * look);
+        }
+
+        /// <summary>
+        /// Computes the frame for a flyby camera instance, stores it as the static frame, and applies it to the given camera.
+        /// </summary>
+        public void ApplyStaticCameraFrame(Camera camera, FlybyCameraInstance flybyCamera)
+        {
+            _staticFrame = GetFrameForCamera(flybyCamera);
+            ApplyFrameToCamera(camera, _staticFrame.Value);
+        }
+
+        /// <summary>
+        /// Builds a view-projection matrix with roll support for the current preview frame.
+        /// </summary>
+        public Matrix4x4 BuildViewProjection(float width, float height, float defaultFov)
+        {
+            var frame = _staticFrame ?? LastFrame;
+
+            // Build rotation from raw frame angles to preserve spline angle unwrapping.
+            var rotation = Matrix4x4.CreateFromYawPitchRoll(frame.RotationY, frame.RotationX, 0);
+            var look = MathC.HomogenousTransform(Vector3.UnitZ, rotation);
+            var right = MathC.HomogenousTransform(Vector3.UnitX, rotation);
+            var up = Vector3.Cross(look, right);
+
+            if (Math.Abs(frame.Roll) > 0.001f)
+            {
+                var rollMatrix = Matrix4x4.CreateFromAxisAngle(look, frame.Roll);
+                up = Vector3.TransformNormal(up, rollMatrix);
+            }
+
+            var target = frame.Position + (Level.SectorSizeUnit * look);
+            float fov = frame.Fov > 0.01f ? frame.Fov : defaultFov;
+
+            var view = MathC.Matrix4x4CreateLookAtLH(frame.Position, target, up);
+            float aspectRatio = height != 0.0f ? width / height : 1.0f;
+            var projection = MathC.Matrix4x4CreatePerspectiveFieldOfViewLH(fov, aspectRatio, 20.0f, 1000000.0f);
+
+            return view * projection;
         }
 
         #region Update helpers
@@ -520,8 +607,8 @@ namespace TombEditor
                 Position = new Vector3(px, py, pz),
                 RotationY = yaw,
                 RotationX = pitch,
-                Roll = -roll * DegToRad,
-                Fov = fov * DegToRad,
+                Roll = -MathC.DegToRad(roll),
+                Fov = MathC.DegToRad(fov),
                 Finished = IsFinished
             };
         }
@@ -557,8 +644,8 @@ namespace TombEditor
                 var worldPos = cam.Position + cam.Room.WorldPos;
 
                 // Direction from rotation angles (same formula the level compiler uses)
-                float yawRad = cam.RotationY * DegToRad;
-                float pitchRad = cam.RotationX * DegToRad;
+                float yawRad = MathC.DegToRad(cam.RotationY);
+                float pitchRad = MathC.DegToRad(cam.RotationX);
                 float cosPitch = (float)Math.Cos(pitchRad);
                 float dirX = cosPitch * (float)Math.Sin(yawRad);
                 float dirY = (float)Math.Sin(pitchRad);

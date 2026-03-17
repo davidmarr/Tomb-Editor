@@ -1,4 +1,4 @@
-using SharpDX.Toolkit.Graphics;
+﻿using SharpDX.Toolkit.Graphics;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -108,9 +108,6 @@ namespace TombEditor.Controls.Panel3D
 
         // Flyby preview state
         private FlybyPreview _flybyPreview;
-        private FlybyPreview.FrameState? _flybyStaticFrame;
-        private readonly Timer _flybyPreviewTimer;
-        private Camera _flybyPreviewOldCamera;
 
         // Mouse interaction state
         private Point _lastMousePosition;
@@ -207,9 +204,6 @@ namespace TombEditor.Controls.Panel3D
                 _flyModeTimer = new Timer { Interval = 1 };
                 _flyModeTimer.Tick += FlyModeTimer_Tick;
 
-                _flybyPreviewTimer = new Timer { Interval = 16 }; // ~60fps
-                _flybyPreviewTimer.Tick += FlybyPreviewTimer_Tick;
-
                 _renderingCachedRooms = new Cache<Room, RenderingDrawingRoom>(1024, CacheRoom);
             }
 
@@ -234,7 +228,7 @@ namespace TombEditor.Controls.Panel3D
                 _littleSphere?.Dispose();
                 _movementTimer?.Dispose();
                 _flyModeTimer?.Dispose();
-                _flybyPreviewTimer?.Dispose();
+                _flybyPreview?.Dispose();
                 _rasterizerStateDepthBias?.Dispose();
                 _currentContextMenu?.Dispose();
                 _wadRenderer?.Dispose();
@@ -361,7 +355,7 @@ namespace TombEditor.Controls.Panel3D
 
             // Toggle camera preview
             if (obj is Editor.ToggleCameraPreviewEvent previewEvt)
-                ToggleCameraPreview(previewEvt.PreviewState, previewEvt.FlybySequence, previewEvt.SpeedMultiplier, previewEvt.CameraInstance, previewEvt.FlybyCameraInstance);
+                ToggleCameraPreview(previewEvt.PreviewState, previewEvt.FlybySequence, previewEvt.CameraInstance, previewEvt.FlybyCameraInstance);
 
             // Update flyby camera preview from dialog.
             if (obj is Editor.FlybyCameraPreviewUpdatedEvent flybyUpdateEvt)
