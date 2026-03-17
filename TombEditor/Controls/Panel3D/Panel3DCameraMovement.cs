@@ -315,6 +315,11 @@ namespace TombEditor.Controls.Panel3D
             Camera.RotationX = frame.RotationX;
             Camera.FieldOfView = frame.Fov;
 
+            // Update camera target explicitly to prevent portal culling issues during flyby preview
+            var rotation = Matrix4x4.CreateFromYawPitchRoll(frame.RotationY, frame.RotationX, 0);
+            var look = MathC.HomogenousTransform(Vector3.UnitZ, rotation);
+            Camera.Target = frame.Position + (Level.SectorSizeUnit * look);
+
             Invalidate();
         }
 
