@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 
-namespace TombEditor
+namespace TombLib.Utils
 {
     /// <summary>
     /// Catmull-Rom spline evaluation matching TEN's Spline() function (spotcam.cpp).

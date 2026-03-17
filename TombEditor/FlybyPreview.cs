@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using TombLib.LevelData;
+using TombLib.Utils;
 
 namespace TombEditor
 {
