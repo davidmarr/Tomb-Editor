@@ -12,77 +12,68 @@ using TombLib.Utils;
 namespace TombEditor
 {
     /// <summary>
-    /// Handles flyby camera sequence preview by interpolating position, target, FOV, roll, and speed using a Catmull-Rom spline.
+    /// Handles camera preview by interpolating position, target, FOV, roll, and speed
+    /// using a Catmull-Rom spline for sequence playback, or by providing a static frame
+    /// for single-camera preview.
     /// </summary>
-    public class FlybyPreview
+    public class CameraPreview
     {
-        /// <summary> State of a single interpolated frame. </summary>
         public struct FrameState
         {
             public Vector3 Position;
-            public float RotationY; // Yaw in radians    (FreeCamera convention)
-            public float RotationX; // Pitch in radians  (FreeCamera convention: positive = look down)
-            public float Roll;      // Roll in radians
-            public float Fov;       // FOV in radians
+            public float RotationY;
+            public float RotationX;
+            public float Roll;
+            public float Fov;
             public bool Finished;
         }
 
-        /// <summary> TombEngine smooth pause phases for SCF_STOP_MOVEMENT. </summary>
         private enum PausePhase
-        {
-            None,
-            EaseOut,
-            Hold,
+        { 
+            None, 
+            EaseOut, 
+            Hold, 
             EaseIn
-		}
+        }
 
-		/// <summary>
-		/// The game logic runs at 30 ticks per second.
-		/// </summary>
-		private const float GameTickRate = 30.0f;
+        // The game logic runs at 30 ticks per second.
+        private const float GameTickRate = 30.0f;
 
-		/// <summary>
-		/// Speed conversion matching the game engine.
-		/// Editor Speed S is compiled as S * 655. The game advances CurrentSplinePosition (0–65536)
-		/// by that amount per frame at 30fps. So segments/second = S * 655 * 30 / 65536.
-		/// </summary>
-		private const float SpeedScale = (float)(ushort.MaxValue / 100) * GameTickRate / (float)ushort.MaxValue;
+        // Speed conversion: editor speed S is compiled as S * 655, game advances
+        // CurrentSplinePosition (0-65536) by that per frame at 30 fps.
+        private const float SpeedScale = (float)(ushort.MaxValue / 100) * GameTickRate / (float)ushort.MaxValue;
 
-        /// <summary>
-        /// Distance from camera to target point, matching the level compiler's convention.
-        /// Target = Position + Direction * TargetDistance.
-        /// </summary>
+        // Distance from camera to target point, matching the level compiler.
         private const float TargetDistance = Level.SectorSizeUnit;
 
         // SCF flag bits.
         private const int FlagStopMovement = 1 << 8;
-        private const int FlagCutToCam =     1 << 7;
+        private const int FlagCutToCam     = 1 << 7;
 
         // TombEngine smooth pause constants.
         private const float EaseDistance = 0.15f;
         private const float MinSpeed = 0.001f;
 
-        // Catmull-Rom knot arrays (padded via CatmullRomSpline.PadKnots)
+        // Catmull-Rom knot arrays (padded via CatmullRomSpline.PadKnots).
         private readonly float[] _posX, _posY, _posZ;
         private readonly float[] _tgtX, _tgtY, _tgtZ;
         private readonly float[] _rollKnots, _fovKnots, _speedKnots;
 
-        // Per-camera flags and timers
-        private readonly List<ushort> _cameraFlags = new();
-        private readonly List<short> _cameraTimers = new();
+        // Per-camera flags and timers.
+        private readonly ushort[] _cameraFlags;
+        private readonly short[] _cameraTimers;
         private readonly int _numCameras;
-        private readonly int _numSegments; // = _numCameras - 1
-
+        private readonly int _numSegments;
         private readonly float _speedMultiplier;
         private readonly bool _useSmoothPause;
 
-        // Current spline parameter: t in [0, _numSegments].
+        // Spline parameter: t in [0, _numSegments].
         private float _currentT;
+        private int _currentSegment;
 
-        // Freeze state (SCF_STOP_MOVEMENT) for legacy game versions.
+        // Legacy freeze state (SCF_STOP_MOVEMENT).
         private float _freezeRemaining;
         private bool _frozenAtBoundary;
-        private int _currentSegment;
 
         // TombEngine smooth pause state machine.
         private PausePhase _pausePhase;
@@ -94,25 +85,22 @@ namespace TombEditor
         private bool _isPauseComplete;
 
         private readonly Stopwatch _stopwatch = new();
+        private Timer _sequenceTimer;
         private double _lastElapsed;
 
-        private Camera _savedCamera;
-        private FrameState? _staticFrame;
-        private Timer _sequenceTimer;
-
         public bool IsFinished { get; private set; }
-        public int SequenceId { get; }
         public FrameState LastFrame { get; private set; }
-        public Camera SavedCamera => _savedCamera;
-        public FrameState? StaticFrame => _staticFrame;
+        public Camera SavedCamera { get; }
+        public FrameState? StaticFrame { get; private set; }
 
-        public FlybyPreview(Level level, int sequence, Camera savedCamera, float speedMultiplier = 1.0f)
+        /// <summary>
+        /// Creates a sequence preview for the given flyby sequence.
+        /// </summary>
+        public CameraPreview(Level level, int sequence, Camera savedCamera, float speedMultiplier = 1.0f)
         {
-            SequenceId = sequence;
-            _savedCamera = savedCamera;
+            SavedCamera = savedCamera;
             _speedMultiplier = speedMultiplier;
             _useSmoothPause = level.Settings.GameVersion == TRVersion.Game.TombEngine;
-            _sequenceTimer = new Timer { Interval = 16 };
 
             var flybyCameras = level.ExistingRooms
                 .SelectMany(r => r.Objects.OfType<FlybyCameraInstance>())
@@ -126,6 +114,8 @@ namespace TombEditor
                 _posX = _posY = _posZ = Array.Empty<float>();
                 _tgtX = _tgtY = _tgtZ = Array.Empty<float>();
                 _rollKnots = _fovKnots = _speedKnots = Array.Empty<float>();
+                _cameraFlags = Array.Empty<ushort>();
+                _cameraTimers = Array.Empty<short>();
 
                 return;
             }
@@ -138,49 +128,46 @@ namespace TombEditor
                 out _tgtX, out _tgtY, out _tgtZ,
                 out _rollKnots, out _fovKnots, out _speedKnots);
 
+            _cameraFlags = new ushort[_numCameras];
+            _cameraTimers = new short[_numCameras];
+
             for (int i = 0; i < _numCameras; i++)
             {
-                _cameraFlags.Add(flybyCameras[i].Flags);
-                _cameraTimers.Add(flybyCameras[i].Timer);
+                _cameraFlags[i] = flybyCameras[i].Flags;
+                _cameraTimers[i] = flybyCameras[i].Timer;
             }
 
-            _currentT = 0;
-            _currentSegment = 0;
-            IsFinished = false;
-
-            // Initialize LastFrame so rendering is consistent before the first Update().
-            LastFrame = GetFrameAtT(0);
+            LastFrame = GetFrameAtTimePoint(0);
         }
 
         /// <summary>
-        /// Creates a preview session for a static single camera without spline interpolation.
+        /// Creates a static preview session without spline interpolation.
         /// </summary>
-        public FlybyPreview(Camera savedCamera)
+        public CameraPreview(Camera savedCamera)
         {
-            _savedCamera = savedCamera;
+            SavedCamera = savedCamera;
             IsFinished = true;
             _posX = _posY = _posZ = Array.Empty<float>();
             _tgtX = _tgtY = _tgtZ = Array.Empty<float>();
             _rollKnots = _fovKnots = _speedKnots = Array.Empty<float>();
+            _cameraFlags = Array.Empty<ushort>();
+            _cameraTimers = Array.Empty<short>();
         }
 
-        public void Start()
+        public void BeginSequence(EventHandler timerTick)
         {
             _stopwatch.Restart();
             _lastElapsed = 0;
+            _sequenceTimer = new Timer { Interval = 16 };
+            _sequenceTimer.Tick += timerTick;
+            _sequenceTimer.Start();
         }
 
         public void Stop()
         {
             _stopwatch.Stop();
+            _sequenceTimer?.Stop();
             IsFinished = true;
-        }
-
-        public void BeginSequence(EventHandler timerTick)
-        {
-            Start();
-            _sequenceTimer.Tick += timerTick;
-            _sequenceTimer.Start();
         }
 
         public void Dispose()
@@ -209,24 +196,20 @@ namespace TombEditor
         {
             var worldPos = camera.Position + camera.Room.WorldPos;
 
-            float yawRad = MathC.DegToRad(camera.RotationY);
-            float pitchRad = MathC.DegToRad(camera.RotationX);
-
             return new FrameState
             {
                 Position = worldPos,
-                RotationY = yawRad,
-                RotationX = -pitchRad,
+                RotationY = MathC.DegToRad(camera.RotationY),
+                RotationX = -MathC.DegToRad(camera.RotationX),
                 Roll = -MathC.DegToRad(camera.Roll),
-                Fov = MathC.DegToRad(camera.Fov),
-                Finished = false
+                Fov = MathC.DegToRad(camera.Fov)
             };
         }
 
         /// <summary>
-        /// Applies a pre-computed frame state to the given camera.
+        /// Applies a frame state to the given camera, updating position, rotation, FOV and target.
         /// </summary>
-        public void ApplyFrameToCamera(Camera camera, FrameState frame)
+        public static void ApplyFrameToCamera(Camera camera, FrameState frame)
         {
             camera.Position = frame.Position;
             camera.RotationY = frame.RotationY;
@@ -239,12 +222,12 @@ namespace TombEditor
         }
 
         /// <summary>
-        /// Computes the frame for a flyby camera instance, stores it as the static frame, and applies it to the given camera.
+        /// Computes and stores the static frame for a flyby camera, then applies it to the given camera.
         /// </summary>
         public void ApplyStaticCameraFrame(Camera camera, FlybyCameraInstance flybyCamera)
         {
-            _staticFrame = GetFrameForCamera(flybyCamera);
-            ApplyFrameToCamera(camera, _staticFrame.Value);
+            StaticFrame = GetFrameForCamera(flybyCamera);
+            ApplyFrameToCamera(camera, StaticFrame.Value);
         }
 
         /// <summary>
@@ -252,9 +235,8 @@ namespace TombEditor
         /// </summary>
         public Matrix4x4 BuildViewProjection(float width, float height, float defaultFov)
         {
-            var frame = _staticFrame ?? LastFrame;
+            var frame = StaticFrame ?? LastFrame;
 
-            // Build rotation from raw frame angles to preserve spline angle unwrapping.
             var rotation = Matrix4x4.CreateFromYawPitchRoll(frame.RotationY, frame.RotationX, 0);
             var look = MathC.HomogenousTransform(Vector3.UnitZ, rotation);
             var right = MathC.HomogenousTransform(Vector3.UnitX, rotation);
@@ -282,15 +264,11 @@ namespace TombEditor
         {
             double currentElapsed = _stopwatch.Elapsed.TotalSeconds;
             float deltaTime = (float)(currentElapsed - _lastElapsed);
-
             _lastElapsed = currentElapsed;
 
             return deltaTime;
         }
 
-        /// <summary>
-        /// Legacy pause: abrupt freeze at segment boundaries.
-        /// </summary>
         private FrameState UpdateWithLegacyPause(float deltaTime)
         {
             if (TryHandleLegacyFreeze(deltaTime, out var frozenFrame))
@@ -304,9 +282,6 @@ namespace TombEditor
             return FinishOrEmit();
         }
 
-        /// <summary>
-        /// Counts down the legacy freeze timer. Returns <see langword="true"/> if still frozen.
-        /// </summary>
         private bool TryHandleLegacyFreeze(float deltaTime, out FrameState frame)
         {
             frame = default;
@@ -337,15 +312,13 @@ namespace TombEditor
             while (_currentSegment <= maxSegment && loopGuard-- > 0)
             {
                 int nextCamera = _currentSegment + 1;
-                float boundaryT = nextCamera;
 
-                if (_currentT < boundaryT)
+                if (_currentT < nextCamera)
                     break;
 
                 ushort flags = _cameraFlags[nextCamera];
                 short timer = _cameraTimers[nextCamera];
 
-                // SCF_STOP_MOVEMENT: freeze the camera.
                 if ((flags & FlagStopMovement) != 0 && timer > 0 && !_frozenAtBoundary)
                 {
                     int gameFrames = Math.Max(0, (timer >> 3) - 1);
@@ -353,7 +326,7 @@ namespace TombEditor
                     if (gameFrames > 0)
                     {
                         _freezeRemaining = gameFrames / GameTickRate;
-                        _currentT = boundaryT;
+                        _currentT = nextCamera;
                         frame = EmitFrame();
                         return true;
                     }
@@ -372,9 +345,6 @@ namespace TombEditor
             return false;
         }
 
-        /// <summary>
-        /// TombEngine smooth pause: quadratic ease-out, hold, ease-in around segment boundaries.
-        /// </summary>
         private FrameState UpdateWithSmoothPause(float deltaTime)
         {
             float currentSpeed = CatmullRomSpline.Evaluate(_currentT, _speedKnots);
@@ -409,9 +379,6 @@ namespace TombEditor
             return FinishOrEmit();
         }
 
-        /// <summary>
-        /// Triggers the ease-out phase when the camera is within <see cref="EaseDistance"/> of the segment end.
-        /// </summary>
         private void TriggerSmoothPauseIfNeeded(float localAlpha, float speedPerSec)
         {
             if (_pausePhase != PausePhase.None)
@@ -457,9 +424,6 @@ namespace TombEditor
             }
         }
 
-        /// <summary>
-        /// Holds the camera still. Returns <see langword="true"/> if still holding.
-        /// </summary>
         private bool AdvanceSmoothHold(float deltaTime)
         {
             _pauseHoldTimer -= (int)Math.Ceiling(deltaTime * GameTickRate);
@@ -471,7 +435,6 @@ namespace TombEditor
             _pauseSpeedFactor = 0.0f;
             _pausePhase = PausePhase.EaseIn;
 
-            // Advance to next segment.
             _currentSegment++;
             _currentT = _currentSegment;
             _isPauseComplete = false;
@@ -529,9 +492,6 @@ namespace TombEditor
             _currentT += currentSpeed * _speedMultiplier * deltaTime * SpeedScale * speedFactor;
         }
 
-        /// <summary>
-        /// Handles SCF_CUT_TO_CAM flag. Returns <see langword="true"/> if the sequence ended.
-        /// </summary>
         private bool ProcessCutToCam(ushort flags, short timer)
         {
             if ((flags & FlagCutToCam) == 0)
@@ -565,7 +525,7 @@ namespace TombEditor
 
         private FrameState EmitFrame()
         {
-            var frame = GetFrameAtT(_currentT);
+            var frame = GetFrameAtTimePoint(_currentT);
             LastFrame = frame;
             return frame;
         }
@@ -574,21 +534,20 @@ namespace TombEditor
 
         #region Frame interpolation
 
-        private FrameState GetFrameAtT(float t)
+        private FrameState GetFrameAtTimePoint(float t)
         {
             t = Math.Clamp(t, 0, _numSegments);
 
-            float px = CatmullRomSpline.Evaluate(t, _posX);
-            float py = CatmullRomSpline.Evaluate(t, _posY);
-            float pz = CatmullRomSpline.Evaluate(t, _posZ);
-            float tx = CatmullRomSpline.Evaluate(t, _tgtX);
-            float ty = CatmullRomSpline.Evaluate(t, _tgtY);
-            float tz = CatmullRomSpline.Evaluate(t, _tgtZ);
+            float px   = CatmullRomSpline.Evaluate(t, _posX);
+            float py   = CatmullRomSpline.Evaluate(t, _posY);
+            float pz   = CatmullRomSpline.Evaluate(t, _posZ);
+            float tx   = CatmullRomSpline.Evaluate(t, _tgtX);
+            float ty   = CatmullRomSpline.Evaluate(t, _tgtY);
+            float tz   = CatmullRomSpline.Evaluate(t, _tgtZ);
             float roll = CatmullRomSpline.Evaluate(t, _rollKnots);
-            float fov = CatmullRomSpline.Evaluate(t, _fovKnots);
+            float fov  = CatmullRomSpline.Evaluate(t, _fovKnots);
 
-            // Derive yaw and pitch from interpolated camera-to-target direction,
-            // matching the game's LookAt() approach.
+            // Derive yaw and pitch from interpolated camera-to-target direction.
             float dx = tx - px;
             float dy = ty - py;
             float dz = tz - pz;
@@ -617,9 +576,6 @@ namespace TombEditor
 
         #region Keyframe building
 
-        /// <summary>
-        /// Builds padded Catmull-Rom knot arrays from flyby cameras.
-        /// </summary>
         private static void BuildKnotArrays(
             IList<FlybyCameraInstance> cameras,
             out float[] posX, out float[] posY, out float[] posZ,
@@ -628,14 +584,14 @@ namespace TombEditor
         {
             int n = cameras.Count;
 
-            var rawPosX = new float[n];
-            var rawPosY = new float[n];
-            var rawPosZ = new float[n];
-            var rawTgtX = new float[n];
-            var rawTgtY = new float[n];
-            var rawTgtZ = new float[n];
-            var rawRoll = new float[n];
-            var rawFov = new float[n];
+            var rawPosX  = new float[n];
+            var rawPosY  = new float[n];
+            var rawPosZ  = new float[n];
+            var rawTgtX  = new float[n];
+            var rawTgtY  = new float[n];
+            var rawTgtZ  = new float[n];
+            var rawRoll  = new float[n];
+            var rawFov   = new float[n];
             var rawSpeed = new float[n];
 
             for (int i = 0; i < n; i++)
@@ -643,26 +599,21 @@ namespace TombEditor
                 var cam = cameras[i];
                 var worldPos = cam.Position + cam.Room.WorldPos;
 
-                // Direction from rotation angles (same formula the level compiler uses)
                 float yawRad = MathC.DegToRad(cam.RotationY);
                 float pitchRad = MathC.DegToRad(cam.RotationX);
                 float cosPitch = (float)Math.Cos(pitchRad);
-                float dirX = cosPitch * (float)Math.Sin(yawRad);
-                float dirY = (float)Math.Sin(pitchRad);
-                float dirZ = cosPitch * (float)Math.Cos(yawRad);
 
-                rawPosX[i] = worldPos.X;
-                rawPosY[i] = worldPos.Y;
-                rawPosZ[i] = worldPos.Z;
-                rawTgtX[i] = worldPos.X + (TargetDistance * dirX);
-                rawTgtY[i] = worldPos.Y + (TargetDistance * dirY);
-                rawTgtZ[i] = worldPos.Z + (TargetDistance * dirZ);
-                rawRoll[i] = cam.Roll;
-                rawFov[i] = cam.Fov;
+                rawPosX[i]  = worldPos.X;
+                rawPosY[i]  = worldPos.Y;
+                rawPosZ[i]  = worldPos.Z;
+                rawTgtX[i]  = worldPos.X + (TargetDistance * cosPitch * (float)Math.Sin(yawRad));
+                rawTgtY[i]  = worldPos.Y + (TargetDistance * (float)Math.Sin(pitchRad));
+                rawTgtZ[i]  = worldPos.Z + (TargetDistance * cosPitch * (float)Math.Cos(yawRad));
+                rawRoll[i]  = cam.Roll;
+                rawFov[i]   = cam.Fov;
                 rawSpeed[i] = cam.Speed;
             }
 
-            // Unwrap roll so the spline takes the shortest angular path.
             UnwrapAngles(rawRoll);
 
             posX = CatmullRomSpline.PadKnots(rawPosX);

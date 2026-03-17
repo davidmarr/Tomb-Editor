@@ -1172,14 +1172,14 @@ namespace TombEditor
                     return;
                 }
 
-                // Determine which preview to start from selected object
+                // Determine which preview to start from selected object.
                 if (args.Editor.SelectedObject is FlybyCameraInstance flyby)
                 {
-                    args.Editor.ToggleCameraPreview(true, flybySequence: flyby.Sequence);
+                    args.Editor.ToggleCameraPreview(true, flyby);
                 }
                 else if (args.Editor.SelectedObject is CameraInstance cam)
                 {
-                    args.Editor.ToggleCameraPreview(true, camera: cam);
+                    args.Editor.ToggleCameraPreview(true, cam);
                 }
                 else
                 {

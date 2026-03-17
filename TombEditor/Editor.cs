@@ -723,30 +723,27 @@ namespace TombEditor
         }
         public bool FlyMode { get; set; } = false;
 
-        // Toggle camera preview (flyby sequence or static camera)
+        // Toggle camera preview (flyby sequence or static camera).
         public class ToggleCameraPreviewEvent : IEditorCameraEvent
         {
             public bool PreviewState { get; set; }
-            public int FlybySequence { get; set; } = -1;
-			public PositionAndScriptBasedObjectInstance Camera { get; set; }
-			public CameraInstance CameraInstance { get; set; }
-            public FlybyCameraInstance FlybyCameraInstance { get; set; }
+            public PositionBasedObjectInstance Object { get; set; }
         }
-        public void ToggleCameraPreview(bool state, int flybySequence = -1, CameraInstance camera = null, FlybyCameraInstance flybyCamera = null)
+        public void ToggleCameraPreview(bool state, PositionBasedObjectInstance obj = null)
         {
-            RaiseEvent(new ToggleCameraPreviewEvent { PreviewState = state, FlybySequence = flybySequence, CameraInstance = camera, FlybyCameraInstance = flybyCamera });
+            RaiseEvent(new ToggleCameraPreviewEvent { PreviewState = state, Object = obj });
         }
         public bool CameraPreviewMode { get; set; } = false;
         public bool CameraStaticPreviewMode { get; set; } = false;
 
-        // Flyby camera preview updated (live editing from dialog).
-        public class FlybyCameraPreviewUpdatedEvent : IEditorCameraEvent
+        // Camera preview updated (live editing from dialog).
+        public class CameraPreviewUpdatedEvent : IEditorCameraEvent
         {
             public FlybyCameraInstance FlybyCameraInstance { get; set; }
         }
-        public void FlybyCameraPreviewUpdated(FlybyCameraInstance flybyCamera)
+        public void CameraPreviewUpdated(FlybyCameraInstance flybyCamera)
         {
-            RaiseEvent(new FlybyCameraPreviewUpdatedEvent { FlybyCameraInstance = flybyCamera });
+            RaiseEvent(new CameraPreviewUpdatedEvent { FlybyCameraInstance = flybyCamera });
         }
 
         // Toggle hidden selection (during color picking)

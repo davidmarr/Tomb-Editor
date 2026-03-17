@@ -1,4 +1,4 @@
-﻿using SharpDX.Toolkit.Graphics;
+using SharpDX.Toolkit.Graphics;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -107,7 +107,7 @@ namespace TombEditor.Controls.Panel3D
         private Matrix4x4 _viewProjection;
 
         // Flyby preview state
-        private FlybyPreview _flybyPreview;
+        private CameraPreview _cameraPreview;
 
         // Mouse interaction state
         private Point _lastMousePosition;
@@ -228,7 +228,7 @@ namespace TombEditor.Controls.Panel3D
                 _littleSphere?.Dispose();
                 _movementTimer?.Dispose();
                 _flyModeTimer?.Dispose();
-                _flybyPreview?.Dispose();
+                _cameraPreview?.Dispose();
                 _rasterizerStateDepthBias?.Dispose();
                 _currentContextMenu?.Dispose();
                 _wadRenderer?.Dispose();
@@ -355,11 +355,11 @@ namespace TombEditor.Controls.Panel3D
 
             // Toggle camera preview
             if (obj is Editor.ToggleCameraPreviewEvent previewEvt)
-                ToggleCameraPreview(previewEvt.PreviewState, previewEvt.FlybySequence, previewEvt.CameraInstance, previewEvt.FlybyCameraInstance);
+                ToggleCameraPreview(previewEvt.PreviewState, previewEvt.Object);
 
-            // Update flyby camera preview from dialog.
-            if (obj is Editor.FlybyCameraPreviewUpdatedEvent flybyUpdateEvt)
-                UpdateFlybyCameraPreview(flybyUpdateEvt.FlybyCameraInstance);
+            // Update camera preview from dialog.
+            if (obj is Editor.CameraPreviewUpdatedEvent flybyUpdateEvt)
+                UpdateStaticCameraPreview(flybyUpdateEvt.FlybyCameraInstance);
 
             // Stop camera animation if level is changing
             if (obj is Editor.LevelChangedEvent)

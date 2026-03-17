@@ -45,7 +45,7 @@ namespace TombEditor.Controls.ContextMenus
             {
                 Items.Add(new ToolStripMenuItem("Preview flyby sequence", Properties.Resources.objects_movie_projector_16, (o, e) =>
                 {
-                    editor.ToggleCameraPreview(true, flybySequence: flybyTarget.Sequence);
+                    editor.ToggleCameraPreview(true, flybyTarget);
                 }));
             }
 
@@ -53,7 +53,7 @@ namespace TombEditor.Controls.ContextMenus
             {
                 Items.Add(new ToolStripMenuItem("Preview camera", Properties.Resources.objects_movie_projector_16, (o, e) =>
                 {
-                    editor.ToggleCameraPreview(true, camera: cameraTarget);
+                    editor.ToggleCameraPreview(true, cameraTarget);
                 }));
             }
 

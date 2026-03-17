@@ -94,7 +94,10 @@ namespace TombEditor.Forms
 
             // Start live camera preview.
             if (!_editor.FlyMode)
-                _editor.ToggleCameraPreview(true, flybyCamera: _flyByCamera);
+            {
+                _editor.ToggleCameraPreview(true);
+                _editor.CameraPreviewUpdated(_flyByCamera);
+            }
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
@@ -115,7 +118,7 @@ namespace TombEditor.Forms
             _flyByCamera.RotationX = (float)numRotationX.Value;
             _flyByCamera.RotationY = (float)numRotationY.Value;
 
-            _editor.FlybyCameraPreviewUpdated(_flyByCamera);
+            _editor.CameraPreviewUpdated(_flyByCamera);
         }
 
         private void butOK_Click(object sender, EventArgs e)
