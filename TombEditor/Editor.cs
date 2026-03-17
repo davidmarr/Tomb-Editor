@@ -730,13 +730,24 @@ namespace TombEditor
             public int FlybySequence { get; set; } = -1;
             public float SpeedMultiplier { get; set; } = 1.0f;
             public CameraInstance CameraInstance { get; set; }
+            public FlybyCameraInstance FlybyCameraInstance { get; set; }
         }
-        public void ToggleCameraPreview(bool state, int flybySequence = -1, float speedMultiplier = 1.0f, CameraInstance camera = null)
+        public void ToggleCameraPreview(bool state, int flybySequence = -1, float speedMultiplier = 1.0f, CameraInstance camera = null, FlybyCameraInstance flybyCamera = null)
         {
-            RaiseEvent(new ToggleCameraPreviewEvent { PreviewState = state, FlybySequence = flybySequence, SpeedMultiplier = speedMultiplier, CameraInstance = camera });
+            RaiseEvent(new ToggleCameraPreviewEvent { PreviewState = state, FlybySequence = flybySequence, SpeedMultiplier = speedMultiplier, CameraInstance = camera, FlybyCameraInstance = flybyCamera });
         }
         public bool CameraPreviewMode { get; set; } = false;
         public bool CameraStaticPreviewMode { get; set; } = false;
+
+        // Flyby camera preview updated (live editing from dialog).
+        public class FlybyCameraPreviewUpdatedEvent : IEditorCameraEvent
+        {
+            public FlybyCameraInstance FlybyCameraInstance { get; set; }
+        }
+        public void FlybyCameraPreviewUpdated(FlybyCameraInstance flybyCamera)
+        {
+            RaiseEvent(new FlybyCameraPreviewUpdatedEvent { FlybyCameraInstance = flybyCamera });
+        }
 
         // Toggle hidden selection (during color picking)
         public class HideSelectionEvent : IEditorEvent

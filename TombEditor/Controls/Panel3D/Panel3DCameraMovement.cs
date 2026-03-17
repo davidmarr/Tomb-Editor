@@ -189,7 +189,7 @@ namespace TombEditor.Controls.Panel3D
             _editor.FlyMode = state;
         }
 
-        public void ToggleCameraPreview(bool state, int flybySequence = -1, float speedMultiplier = 1.0f, CameraInstance cameraInstance = null)
+        public void ToggleCameraPreview(bool state, int flybySequence = -1, float speedMultiplier = 1.0f, CameraInstance cameraInstance = null, FlybyCameraInstance flybyCameraInstance = null)
         {
             if (state)
             {
@@ -211,7 +211,17 @@ namespace TombEditor.Controls.Panel3D
                     -(float)Math.PI / 2, (float)Math.PI / 2,
                     _flybyPreviewOldCamera.FieldOfView);
 
-                if (cameraInstance != null)
+                if (flybyCameraInstance != null)
+                {
+                    ApplyFlybyCameraFrame(flybyCameraInstance);
+
+                    _editor.CameraPreviewMode = true;
+                    _editor.CameraStaticPreviewMode = true;
+                    _editor.SendMessage("Camera preview active. Change parameters to update.", PopupType.Info);
+
+                    Invalidate();
+                }
+                else if (cameraInstance != null)
                 {
                     // Static camera preview: position the camera at the instance's world position
                     // and orient it towards the trigger-defined target or Lara.
@@ -277,12 +287,41 @@ namespace TombEditor.Controls.Panel3D
                     _flybyPreviewOldCamera = null;
                 }
 
+                _flybyStaticFrame = null;
                 _editor.CameraPreviewMode = false;
                 _editor.CameraStaticPreviewMode = false;
                 _editor.SendMessage("Camera preview ended.", PopupType.Info);
 
                 Invalidate();
             }
+        }
+
+        /// <summary>
+        /// Applies a flyby camera's current properties to the preview camera.
+        /// </summary>
+        private void ApplyFlybyCameraFrame(FlybyCameraInstance flybyCamera)
+        {
+            var frame = FlybyPreview.GetFrameForCamera(flybyCamera);
+
+            Camera.Position = frame.Position;
+            Camera.RotationY = frame.RotationY;
+            Camera.RotationX = frame.RotationX;
+            Camera.FieldOfView = frame.Fov;
+
+            var rotation = Matrix4x4.CreateFromYawPitchRoll(frame.RotationY, frame.RotationX, 0);
+            var look = MathC.HomogenousTransform(Vector3.UnitZ, rotation);
+            Camera.Target = frame.Position + (Level.SectorSizeUnit * look);
+
+            _flybyStaticFrame = frame;
+        }
+
+        public void UpdateFlybyCameraPreview(FlybyCameraInstance flybyCamera)
+        {
+            if (!_editor.CameraPreviewMode || !_editor.CameraStaticPreviewMode)
+                return;
+
+            ApplyFlybyCameraFrame(flybyCamera);
+            Invalidate();
         }
 
         private void FlybyPreviewTimer_Tick(object sender, EventArgs e)

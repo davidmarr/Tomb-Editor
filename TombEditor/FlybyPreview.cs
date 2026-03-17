@@ -24,6 +24,15 @@ namespace TombEditor
             public bool Finished;
         }
 
+        /// <summary> TombEngine smooth pause phases for SCF_STOP_MOVEMENT. </summary>
+        private enum PausePhase
+        {
+            None,
+            EaseOut,
+            Hold,
+            EaseIn
+        }
+
         private const float DegToRad = (float)(Math.PI / 180.0);
 
         /// <summary>
@@ -48,6 +57,10 @@ namespace TombEditor
         private const int FlagStopMovement = 1 << 8;
         private const int FlagCutToCam = 1 << 7;
 
+        // TombEngine smooth pause constants.
+        private const float EaseDistance = 0.15f;
+        private const float MinSpeed = 0.001f;
+
         // Catmull-Rom knot arrays (padded via CatmullRomSpline.PadKnots)
         private readonly float[] _posX, _posY, _posZ;
         private readonly float[] _tgtX, _tgtY, _tgtZ;
@@ -60,14 +73,24 @@ namespace TombEditor
         private readonly int _numSegments; // = _numCameras - 1
 
         private readonly float _speedMultiplier;
+        private readonly bool _useSmoothPause;
 
-        // Current spline parameter: t ∈ [0, _numSegments]
+        // Current spline parameter: t in [0, _numSegments].
         private float _currentT;
 
-        // Freeze state (SCF_STOP_MOVEMENT)
+        // Freeze state (SCF_STOP_MOVEMENT) for legacy game versions.
         private float _freezeRemaining;
         private bool _frozenAtBoundary;
         private int _currentSegment;
+
+        // TombEngine smooth pause state machine.
+        private PausePhase _pausePhase;
+        private float _pauseEaseStartAlpha;
+        private float _pauseEaseProgress;
+        private float _pauseEaseStep;
+        private float _pauseSpeedFactor = 1.0f;
+        private int _pauseHoldTimer;
+        private bool _isPauseComplete;
 
         private readonly Stopwatch _stopwatch = new();
         private double _lastElapsed;
@@ -80,6 +103,7 @@ namespace TombEditor
         {
             SequenceId = sequence;
             _speedMultiplier = speedMultiplier;
+            _useSmoothPause = level.Settings.GameVersion == TRVersion.Game.TombEngine;
 
             var flybyCameras = level.ExistingRooms
                 .SelectMany(r => r.Objects.OfType<FlybyCameraInstance>())
@@ -138,21 +162,31 @@ namespace TombEditor
 
             float deltaTime = ComputeDeltaTime();
 
-            if (TryHandleFreeze(deltaTime, out var frozenFrame))
-                return frozenFrame;
+            if (_useSmoothPause)
+                return UpdateWithSmoothPause(deltaTime);
 
-            AdvancePosition(deltaTime);
+            return UpdateWithLegacyPause(deltaTime);
+        }
 
-            if (ProcessBoundaries(out var boundaryFrame))
-                return boundaryFrame;
+        /// <summary>
+        /// Computes a single-camera <see cref="FrameState"/> from a flyby camera's current properties.
+        /// </summary>
+        public static FrameState GetFrameForCamera(FlybyCameraInstance camera)
+        {
+            var worldPos = camera.Position + camera.Room.WorldPos;
 
-            if (_currentT >= _numSegments)
+            float yawRad = camera.RotationY * DegToRad;
+            float pitchRad = camera.RotationX * DegToRad;
+
+            return new FrameState
             {
-                _currentT = _numSegments;
-                IsFinished = true;
-            }
-
-            return EmitFrame();
+                Position = worldPos,
+                RotationY = yawRad,
+                RotationX = -pitchRad,
+                Roll = -camera.Roll * DegToRad,
+                Fov = camera.Fov * DegToRad,
+                Finished = false
+            };
         }
 
         #region Update helpers
@@ -168,9 +202,25 @@ namespace TombEditor
         }
 
         /// <summary>
-        /// Counts down the freeze timer. Returns <see langword="true"/> if still frozen.
+        /// Legacy pause: abrupt freeze at segment boundaries.
         /// </summary>
-        private bool TryHandleFreeze(float deltaTime, out FrameState frame)
+        private FrameState UpdateWithLegacyPause(float deltaTime)
+        {
+            if (TryHandleLegacyFreeze(deltaTime, out var frozenFrame))
+                return frozenFrame;
+
+            AdvancePosition(deltaTime, 1.0f);
+
+            if (ProcessLegacyBoundaries(out var boundaryFrame))
+                return boundaryFrame;
+
+            return FinishOrEmit();
+        }
+
+        /// <summary>
+        /// Counts down the legacy freeze timer. Returns <see langword="true"/> if still frozen.
+        /// </summary>
+        private bool TryHandleLegacyFreeze(float deltaTime, out FrameState frame)
         {
             frame = default;
 
@@ -191,13 +241,7 @@ namespace TombEditor
             return false;
         }
 
-        private void AdvancePosition(float deltaTime)
-        {
-            float currentSpeed = CatmullRomSpline.Evaluate(_currentT, _speedKnots);
-            _currentT += currentSpeed * _speedMultiplier * deltaTime * SpeedScale;
-        }
-
-        private bool ProcessBoundaries(out FrameState frame)
+        private bool ProcessLegacyBoundaries(out FrameState frame)
         {
             frame = default;
             int maxSegment = _numSegments - 1;
@@ -232,30 +276,204 @@ namespace TombEditor
 
                 _frozenAtBoundary = false;
 
-                // SCF_CUT_TO_CAM: jump to another camera.
-                if ((flags & FlagCutToCam) != 0)
-                {
-                    int targetCam = Math.Clamp(timer, 0, _numCameras - 1);
-
-                    _currentT = targetCam;
-                    _currentSegment = targetCam;
-                    _frozenAtBoundary = false;
-
-                    if (targetCam >= _numCameras - 1)
-                    {
-                        _currentT = _numSegments;
-                        IsFinished = true;
-
-                        break;
-                    }
-
-                    continue;
-                }
+                if (ProcessCutToCam(flags, timer))
+                    break;
 
                 _currentSegment = nextCamera;
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// TombEngine smooth pause: quadratic ease-out, hold, ease-in around segment boundaries.
+        /// </summary>
+        private FrameState UpdateWithSmoothPause(float deltaTime)
+        {
+            float currentSpeed = CatmullRomSpline.Evaluate(_currentT, _speedKnots);
+            float speedPerSec = currentSpeed * _speedMultiplier * SpeedScale;
+            float localAlpha = _currentT - _currentSegment;
+
+            TriggerSmoothPauseIfNeeded(localAlpha, speedPerSec);
+
+            switch (_pausePhase)
+            {
+                case PausePhase.EaseOut:
+                    AdvanceSmoothEaseOut(deltaTime);
+                    return EmitFrame();
+
+                case PausePhase.Hold:
+                    if (AdvanceSmoothHold(deltaTime))
+                        return EmitFrame();
+                    break;
+
+                case PausePhase.EaseIn:
+                    AdvanceSmoothEaseIn(deltaTime, speedPerSec);
+                    return EmitFrame();
+
+                default:
+                    AdvancePosition(deltaTime, 1.0f);
+                    break;
+            }
+
+            if (ProcessSmoothBoundaries())
+                return EmitFrame();
+
+            return FinishOrEmit();
+        }
+
+        /// <summary>
+        /// Triggers the ease-out phase when the camera is within <see cref="EaseDistance"/> of the segment end.
+        /// </summary>
+        private void TriggerSmoothPauseIfNeeded(float localAlpha, float speedPerSec)
+        {
+            if (_pausePhase != PausePhase.None)
+                return;
+
+            int nextCamera = _currentSegment + 1;
+
+            if (nextCamera >= _numCameras)
+                return;
+
+            bool hasPause = _cameraTimers[nextCamera] > 0
+                && (_cameraFlags[nextCamera] & FlagStopMovement) != 0
+                && !_isPauseComplete;
+
+            if (!hasPause || (1.0f - localAlpha) > EaseDistance)
+                return;
+
+            _pauseEaseStartAlpha = localAlpha;
+            _pauseEaseProgress = 0.0f;
+            _isPauseComplete = true;
+
+            float remainingAlpha = Math.Max(1.0f - localAlpha, MinSpeed);
+            float clampedSpeed = Math.Max(speedPerSec, MinSpeed);
+
+            _pauseEaseStep = clampedSpeed / (2.0f * remainingAlpha);
+            _pausePhase = PausePhase.EaseOut;
+        }
+
+        private void AdvanceSmoothEaseOut(float deltaTime)
+        {
+            _pauseEaseProgress = Math.Min(_pauseEaseProgress + _pauseEaseStep * deltaTime, 1.0f);
+
+            float progress = _pauseEaseProgress;
+            float localAlpha = _pauseEaseStartAlpha + (1.0f - _pauseEaseStartAlpha) * progress * (2.0f - progress);
+
+            _currentT = _currentSegment + Math.Min(localAlpha, 1.0f);
+
+            if (_pauseEaseProgress >= 1.0f)
+            {
+                _pauseSpeedFactor = 0.0f;
+                _pauseHoldTimer = _cameraTimers[_currentSegment + 1] >> 3;
+                _pausePhase = PausePhase.Hold;
+            }
+        }
+
+        /// <summary>
+        /// Holds the camera still. Returns <see langword="true"/> if still holding.
+        /// </summary>
+        private bool AdvanceSmoothHold(float deltaTime)
+        {
+            _pauseHoldTimer -= (int)Math.Ceiling(deltaTime * GameTickRate);
+
+            if (_pauseHoldTimer > 0)
+                return true;
+
+            _pauseEaseProgress = 0.0f;
+            _pauseSpeedFactor = 0.0f;
+            _pausePhase = PausePhase.EaseIn;
+
+            // Advance to next segment.
+            _currentSegment++;
+            _currentT = _currentSegment;
+            _isPauseComplete = false;
+
+            return false;
+        }
+
+        private void AdvanceSmoothEaseIn(float deltaTime, float speedPerSec)
+        {
+            _pauseEaseProgress = Math.Min(_pauseEaseProgress + _pauseEaseStep * deltaTime, 1.0f);
+            _pauseSpeedFactor = _pauseEaseProgress * _pauseEaseProgress;
+
+            if (_pauseEaseProgress >= 1.0f)
+            {
+                _pauseSpeedFactor = 1.0f;
+                _pauseEaseProgress = 0.0f;
+                _isPauseComplete = false;
+                _pausePhase = PausePhase.None;
+            }
+
+            _currentT += speedPerSec * _pauseSpeedFactor * deltaTime;
+        }
+
+        private bool ProcessSmoothBoundaries()
+        {
+            if (_pausePhase != PausePhase.None)
+                return false;
+
+            int maxSegment = _numSegments - 1;
+            int loopGuard = _numCameras + 1;
+
+            while (_currentSegment <= maxSegment && loopGuard-- > 0)
+            {
+                int nextCamera = _currentSegment + 1;
+
+                if (_currentT < nextCamera)
+                    break;
+
+                ushort flags = _cameraFlags[nextCamera];
+                short timer = _cameraTimers[nextCamera];
+
+                if (ProcessCutToCam(flags, timer))
+                    return true;
+
+                _currentSegment = nextCamera;
+                _isPauseComplete = false;
+            }
+
+            return false;
+        }
+
+        private void AdvancePosition(float deltaTime, float speedFactor)
+        {
+            float currentSpeed = CatmullRomSpline.Evaluate(_currentT, _speedKnots);
+            _currentT += currentSpeed * _speedMultiplier * deltaTime * SpeedScale * speedFactor;
+        }
+
+        /// <summary>
+        /// Handles SCF_CUT_TO_CAM flag. Returns <see langword="true"/> if the sequence ended.
+        /// </summary>
+        private bool ProcessCutToCam(ushort flags, short timer)
+        {
+            if ((flags & FlagCutToCam) == 0)
+                return false;
+
+            int targetCam = Math.Clamp(timer, 0, _numCameras - 1);
+
+            _currentT = targetCam;
+            _currentSegment = targetCam;
+            _frozenAtBoundary = false;
+
+            if (targetCam >= _numCameras - 1)
+            {
+                _currentT = _numSegments;
+                IsFinished = true;
+            }
+
+            return true;
+        }
+
+        private FrameState FinishOrEmit()
+        {
+            if (_currentT >= _numSegments)
+            {
+                _currentT = _numSegments;
+                IsFinished = true;
+            }
+
+            return EmitFrame();
         }
 
         private FrameState EmitFrame()

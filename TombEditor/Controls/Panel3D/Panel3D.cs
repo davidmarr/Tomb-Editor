@@ -108,6 +108,7 @@ namespace TombEditor.Controls.Panel3D
 
         // Flyby preview state
         private FlybyPreview _flybyPreview;
+        private FlybyPreview.FrameState? _flybyStaticFrame;
         private readonly Timer _flybyPreviewTimer;
         private Camera _flybyPreviewOldCamera;
 
@@ -360,7 +361,11 @@ namespace TombEditor.Controls.Panel3D
 
             // Toggle camera preview
             if (obj is Editor.ToggleCameraPreviewEvent previewEvt)
-                ToggleCameraPreview(previewEvt.PreviewState, previewEvt.FlybySequence, previewEvt.SpeedMultiplier, previewEvt.CameraInstance);
+                ToggleCameraPreview(previewEvt.PreviewState, previewEvt.FlybySequence, previewEvt.SpeedMultiplier, previewEvt.CameraInstance, previewEvt.FlybyCameraInstance);
+
+            // Update flyby camera preview from dialog.
+            if (obj is Editor.FlybyCameraPreviewUpdatedEvent flybyUpdateEvt)
+                UpdateFlybyCameraPreview(flybyUpdateEvt.FlybyCameraInstance);
 
             // Stop camera animation if level is changing
             if (obj is Editor.LevelChangedEvent)

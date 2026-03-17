@@ -1909,7 +1909,10 @@ namespace TombEditor.Controls.Panel3D
             }
 
             // New rendering setup
-            _viewProjection = (_editor.CameraPreviewMode && _flybyPreview != null && !_flybyPreview.IsFinished)
+            bool useFlybyViewProjection = _editor.CameraPreviewMode
+                && ((_flybyPreview != null && !_flybyPreview.IsFinished) || _flybyStaticFrame.HasValue);
+
+            _viewProjection = useFlybyViewProjection
                 ? BuildFlybyPreviewViewProjection(ClientSize.Width, ClientSize.Height)
                 : Camera.GetViewProjectionMatrix(ClientSize.Width, ClientSize.Height);
 
@@ -2083,7 +2086,7 @@ namespace TombEditor.Controls.Panel3D
         /// </summary>
         private Matrix4x4 BuildFlybyPreviewViewProjection(float width, float height)
         {
-            var frame = _flybyPreview.LastFrame;
+            var frame = _flybyStaticFrame ?? _flybyPreview.LastFrame;
 
             // Build rotation directly from frame values (already in radians)
             // This bypasses Camera.RotationY which normalizes to [0,2π), undoing our angle unwrapping

@@ -12,6 +12,19 @@ namespace TombEditor.Forms
         private readonly FlybyCameraInstance _flyByCamera;
         private readonly Editor _editor;
 
+        // Original values for restoring on Cancel.
+        private ushort _originalFlags;
+        private ushort _originalSequence;
+        private ushort _originalNumber;
+        private short _originalTimer;
+        private float _originalSpeed;
+        private float _originalFov;
+        private float _originalRoll;
+        private float _originalRotationX;
+        private float _originalRotationY;
+
+        private bool _isLoading;
+
         public FormFlybyCamera(FlybyCameraInstance flyByCamera)
         {
             _flyByCamera = flyByCamera;
@@ -22,12 +35,17 @@ namespace TombEditor.Forms
 
         private void butCancel_Click(object sender, EventArgs e)
         {
+            RestoreOriginalValues();
             DialogResult = DialogResult.Cancel;
             Close();
         }
 
         private void FormFlybyCamera_Load(object sender, EventArgs e)
         {
+            SaveOriginalValues();
+
+            _isLoading = true;
+
             cbBit0.Checked = (_flyByCamera.Flags & (1 << 0)) != 0;
             cbBit1.Checked = (_flyByCamera.Flags & (1 << 1)) != 0;
             cbBit2.Checked = (_flyByCamera.Flags & (1 << 2)) != 0;
@@ -65,9 +83,84 @@ namespace TombEditor.Forms
             {
                 Size = new System.Drawing.Size(205, 319);
             }
+
+            _isLoading = false;
+
+            // Subscribe to value changes for live preview.
+            numFOV.ValueChanged += PreviewParameter_Changed;
+            numRoll.ValueChanged += PreviewParameter_Changed;
+            numRotationX.ValueChanged += PreviewParameter_Changed;
+            numRotationY.ValueChanged += PreviewParameter_Changed;
+
+            // Start live camera preview.
+            if (!_editor.FlyMode)
+                _editor.ToggleCameraPreview(true, flybyCamera: _flyByCamera);
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            if (_editor.CameraPreviewMode)
+                _editor.ToggleCameraPreview(false);
+
+            base.OnFormClosed(e);
+        }
+
+        private void PreviewParameter_Changed(object sender, EventArgs e)
+        {
+            if (_isLoading)
+                return;
+
+            _flyByCamera.Fov = (float)numFOV.Value;
+            _flyByCamera.Roll = (float)numRoll.Value;
+            _flyByCamera.RotationX = (float)numRotationX.Value;
+            _flyByCamera.RotationY = (float)numRotationY.Value;
+
+            _editor.FlybyCameraPreviewUpdated(_flyByCamera);
         }
 
         private void butOK_Click(object sender, EventArgs e)
+        {
+            _flyByCamera.Flags = CollectFlags();
+            _flyByCamera.Sequence = (ushort)numSequence.Value;
+            _flyByCamera.Number = (ushort)numNumber.Value;
+            _flyByCamera.Timer = (short)numTimer.Value;
+            _flyByCamera.Speed = (float)numSpeed.Value;
+            _flyByCamera.Fov = (float)numFOV.Value;
+            _flyByCamera.Roll = (float)numRoll.Value;
+            _flyByCamera.RotationX = (float)numRotationX.Value;
+            _flyByCamera.RotationY = (float)numRotationY.Value;
+
+            DialogResult = DialogResult.OK;
+            Close();
+        }
+
+        private void SaveOriginalValues()
+        {
+            _originalFlags = _flyByCamera.Flags;
+            _originalSequence = _flyByCamera.Sequence;
+            _originalNumber = _flyByCamera.Number;
+            _originalTimer = _flyByCamera.Timer;
+            _originalSpeed = _flyByCamera.Speed;
+            _originalFov = _flyByCamera.Fov;
+            _originalRoll = _flyByCamera.Roll;
+            _originalRotationX = _flyByCamera.RotationX;
+            _originalRotationY = _flyByCamera.RotationY;
+        }
+
+        private void RestoreOriginalValues()
+        {
+            _flyByCamera.Flags = _originalFlags;
+            _flyByCamera.Sequence = _originalSequence;
+            _flyByCamera.Number = _originalNumber;
+            _flyByCamera.Timer = _originalTimer;
+            _flyByCamera.Speed = _originalSpeed;
+            _flyByCamera.Fov = _originalFov;
+            _flyByCamera.Roll = _originalRoll;
+            _flyByCamera.RotationX = _originalRotationX;
+            _flyByCamera.RotationY = _originalRotationY;
+        }
+
+        private ushort CollectFlags()
         {
             ushort flags = 0;
             flags |= (ushort)(cbBit0.Checked ? 1 << 0 : 0);
@@ -86,19 +179,7 @@ namespace TombEditor.Forms
             flags |= (ushort)(cbBit13.Checked ? 1 << 13 : 0);
             flags |= (ushort)(cbBit14.Checked ? 1 << 14 : 0);
             flags |= (ushort)(cbBit15.Checked ? 1 << 15 : 0);
-            _flyByCamera.Flags = flags;
-
-            _flyByCamera.Sequence = (ushort)numSequence.Value;
-            _flyByCamera.Number = (ushort)numNumber.Value;
-            _flyByCamera.Timer = (short)numTimer.Value;
-            _flyByCamera.Speed = (float)numSpeed.Value;
-            _flyByCamera.Fov = (float)numFOV.Value;
-            _flyByCamera.Roll = (float)numRoll.Value;
-            _flyByCamera.RotationX = (float)numRotationX.Value;
-            _flyByCamera.RotationY = (float)numRotationY.Value;
-
-            DialogResult = DialogResult.OK;
-            Close();
+            return flags;
         }
     }
 }
