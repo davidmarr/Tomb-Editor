@@ -31,6 +31,9 @@ namespace TombEditor.Forms
             _editor = Editor.Instance;
 
             InitializeComponent();
+
+            // Set window property handlers.
+            Configuration.ConfigureWindow(this, _editor.Configuration);
         }
 
         private void butCancel_Click(object sender, EventArgs e)
