@@ -226,8 +226,7 @@ namespace TombEditor.Controls.Panel3D
                     }
 
                     _flybyPreview.BeginSequence(PreviewTimer_Tick);
-                    _editor.CameraPreviewMode = true;
-                    _editor.CameraStaticPreviewMode = false;
+                    _editor.CameraPreviewMode = CameraPreviewType.Sequence;
                     _editor.SendMessage("Flyby preview playing... Press ESC or click to stop.", PopupType.Info);
                 }
                 else if (obj is CameraInstance cam)
@@ -247,8 +246,7 @@ namespace TombEditor.Controls.Panel3D
                     Camera.RotationY = (float)Math.Atan2(direction.X, direction.Z);
                     Camera.RotationX = (float)Math.Asin(-direction.Y);
 
-                    _editor.CameraPreviewMode = true;
-                    _editor.CameraStaticPreviewMode = true;
+                    _editor.CameraPreviewMode = CameraPreviewType.Static;
                     _editor.SendMessage("Camera preview active. Press ESC or click to exit.", PopupType.Info);
 
                     Invalidate();
@@ -258,8 +256,7 @@ namespace TombEditor.Controls.Panel3D
                     // No specific object - enter static preview mode for external control (e.g. FormFlybyCamera).
                     _flybyPreview = new FlybyPreview(savedCamera);
 
-                    _editor.CameraPreviewMode = true;
-                    _editor.CameraStaticPreviewMode = true;
+                    _editor.CameraPreviewMode = CameraPreviewType.Static;
                     _editor.SendMessage("Camera preview active. Change parameters to update.", PopupType.Info);
 
                     Invalidate();
@@ -274,17 +271,16 @@ namespace TombEditor.Controls.Panel3D
                     _flybyPreview = null;
                 }
 
-                _editor.CameraPreviewMode = false;
-                _editor.CameraStaticPreviewMode = false;
+                _editor.CameraPreviewMode = CameraPreviewType.None;
                 _editor.SendMessage("Camera preview ended.", PopupType.Info);
 
                 Invalidate();
             }
         }
 
-        public void UpdateFlybyFramePreview(FlybyCameraInstance flybyCamera)
+        public void UpdateFlybyPreview(FlybyCameraInstance flybyCamera)
         {
-            if (!_editor.CameraPreviewMode || !_editor.CameraStaticPreviewMode || _flybyPreview == null)
+            if (_editor.CameraPreviewMode == CameraPreviewType.None || _flybyPreview == null)
                 return;
 
             _flybyPreview.ApplyStaticFrame(Camera, flybyCamera);

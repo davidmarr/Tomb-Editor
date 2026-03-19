@@ -105,7 +105,7 @@ namespace TombEditor.Forms
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            if (_editor.CameraPreviewMode)
+            if (_editor.CameraPreviewMode != CameraPreviewType.None)
                 _editor.ToggleCameraPreview(false);
 
             base.OnFormClosed(e);

@@ -1174,7 +1174,7 @@ namespace TombEditor
 
             AddCommand("PreviewCamera", "Preview camera or flyby sequence", CommandType.View, delegate (CommandArgs args)
             {
-                if (args.Editor.CameraPreviewMode)
+                if (args.Editor.CameraPreviewMode != CameraPreviewType.None)
                 {
                     args.Editor.ToggleCameraPreview(false);
                     return;

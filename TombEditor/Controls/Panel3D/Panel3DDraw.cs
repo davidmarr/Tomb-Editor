@@ -1079,7 +1079,7 @@ namespace TombEditor.Controls.Panel3D
                         }
                     }
 
-                if (group.Key == typeof(CameraInstance) && !_editor.CameraPreviewMode)
+                if (group.Key == typeof(CameraInstance) && _editor.CameraPreviewMode == CameraPreviewType.None)
                     foreach (CameraInstance instance in group)
                     {
                         _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullBack);
@@ -1107,7 +1107,7 @@ namespace TombEditor.Controls.Panel3D
                         DrawOrQueueServiceObject(instance, _littleCube, color, effect, sprites);
                     }
 
-                if (group.Key == typeof(FlybyCameraInstance) && !_editor.CameraPreviewMode)
+                if (group.Key == typeof(FlybyCameraInstance) && _editor.CameraPreviewMode == CameraPreviewType.None)
                     foreach (FlybyCameraInstance instance in group)
                     {
                         _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullBack);
@@ -1302,7 +1302,7 @@ namespace TombEditor.Controls.Panel3D
             }
 
             // Draw extra flyby cones (hidden during flyby preview)
-            if (!_editor.CameraPreviewMode)
+            if (_editor.CameraPreviewMode == CameraPreviewType.None)
             {
                 _legacyDevice.SetVertexBuffer(_cone.VertexBuffer);
                 _legacyDevice.SetVertexInputLayout(_cone.InputLayout);
@@ -1909,7 +1909,7 @@ namespace TombEditor.Controls.Panel3D
             }
 
             // New rendering setup
-            bool useFlybyViewProjection = _editor.CameraPreviewMode && _flybyPreview != null && (_flybyPreview.StaticFrame.HasValue || !_flybyPreview.IsFinished);
+            bool useFlybyViewProjection = _editor.CameraPreviewMode != CameraPreviewType.None && _flybyPreview != null && (_flybyPreview.StaticFrame.HasValue || !_flybyPreview.IsFinished);
 
             _viewProjection = useFlybyViewProjection
                 ? _flybyPreview.BuildViewProjection(ClientSize.Width, ClientSize.Height, Camera.FieldOfView)
@@ -2018,7 +2018,7 @@ namespace TombEditor.Controls.Panel3D
                 // Draw light objects and bounding volumes
                 DrawLights(effect, roomsToDraw, textToDraw, spritesToDraw);
                 // Draw flyby path (hidden during flyby preview)
-                if (!_editor.CameraPreviewMode)
+                if (_editor.CameraPreviewMode == CameraPreviewType.None)
                     DrawFlybyPath(effect);
                 // Draw sector split highlights
                 DrawSectorSplitHighlights(effect);
@@ -2060,7 +2060,7 @@ namespace TombEditor.Controls.Panel3D
             ((TombLib.Rendering.DirectX11.Dx11RenderingDevice)Device).ResetState();
 
             // Draw the gizmo (hidden during camera preview)
-            if (!_editor.CameraPreviewMode)
+            if (_editor.CameraPreviewMode == CameraPreviewType.None)
             {
                 SwapChain.ClearDepth();
                 _gizmo.Draw(_viewProjection);

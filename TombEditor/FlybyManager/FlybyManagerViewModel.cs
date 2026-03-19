@@ -762,7 +762,7 @@ public partial class FlybyManagerViewModel : ObservableObject
         }
 
         // Detect external preview exit (ESC key in Panel3D).
-        if (obj is Editor.ToggleCameraPreviewEvent tpe && !tpe.PreviewState)
+        if (obj is Editor.ToggleCameraPreviewEvent previewEvent && !previewEvent.PreviewState)
             _preview.OnExternalPreviewExit();
 
         // Selection changed in editor - sync to flyby manager.

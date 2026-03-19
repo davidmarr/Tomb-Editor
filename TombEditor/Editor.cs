@@ -45,6 +45,13 @@ namespace TombEditor
         SpatialObject
     }
 
+	public enum CameraPreviewType
+	{
+		None,
+		Static,
+		Sequence
+	}
+
     public interface IEditorObjectChangedEvent : IEditorEventCausesUnsavedChanges
     {
         Room Room { get; }
@@ -734,11 +741,7 @@ namespace TombEditor
         {
             RaiseEvent(new ToggleCameraPreviewEvent { PreviewState = state, Object = obj });
         }
-        public bool CameraPreviewMode { get; set; } = false;
-        public bool CameraStaticPreviewMode { get; set; } = false;
-
-        // Provides access to the current 3D viewport camera. Set by Panel3D on init.
-        public Func<Camera> GetViewportCamera { get; set; }
+        public CameraPreviewType CameraPreviewMode { get; set; } = CameraPreviewType.None;
 
         // Camera preview updated (live editing from dialog).
         public class CameraPreviewUpdatedEvent : IEditorCameraEvent
@@ -759,6 +762,9 @@ namespace TombEditor
         {
             RaiseEvent(new CameraPreviewScrubEvent { Frame = frame });
         }
+
+        // Provides access to the current 3D viewport camera. Set by Panel3D on init.
+        public Func<Camera> GetViewportCamera { get; set; }
 
         // Toggle hidden selection (during color picking)
         public class HideSelectionEvent : IEditorEvent

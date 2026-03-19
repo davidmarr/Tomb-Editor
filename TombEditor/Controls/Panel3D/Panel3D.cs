@@ -356,17 +356,17 @@ namespace TombEditor.Controls.Panel3D
                 ToggleFlyMode(((Editor.ToggleFlyModeEvent)obj).FlyModeState);
 
             // Toggle camera preview
-            if (obj is Editor.ToggleCameraPreviewEvent previewEvt)
-                ToggleCameraPreview(previewEvt.PreviewState, previewEvt.Object);
+            if (obj is Editor.ToggleCameraPreviewEvent previewEvent)
+                ToggleCameraPreview(previewEvent.PreviewState, previewEvent.Object);
 
             // Update camera preview from dialog.
-            if (obj is Editor.CameraPreviewUpdatedEvent flybyUpdateEvt)
-                UpdateFlybyFramePreview(flybyUpdateEvt.FlybyCameraInstance);
+            if (obj is Editor.CameraPreviewUpdatedEvent flybyUpdateEvent)
+                UpdateFlybyPreview(flybyUpdateEvent.FlybyCameraInstance);
 
             // Scrub camera preview to an interpolated frame.
             if (obj is Editor.CameraPreviewScrubEvent scrubEvt)
             {
-                if (_editor.CameraPreviewMode && _editor.CameraStaticPreviewMode && _flybyPreview != null)
+                if (_editor.CameraPreviewMode == CameraPreviewType.Static && _flybyPreview != null)
                 {
                     _flybyPreview.SetStaticFrame(Camera, scrubEvt.Frame);
                     Invalidate();
@@ -378,7 +378,7 @@ namespace TombEditor.Controls.Panel3D
             {
                 _movementTimer.Stop(true);
 
-                if (_editor.CameraPreviewMode)
+                if (_editor.CameraPreviewMode != CameraPreviewType.None)
                     ToggleCameraPreview(false);
             }
 
@@ -411,7 +411,7 @@ namespace TombEditor.Controls.Panel3D
             base.OnPreviewKeyDown(e);
 
             // Block keyboard input during camera preview (except ESC)
-            if (_editor.CameraPreviewMode)
+            if (_editor.CameraPreviewMode != CameraPreviewType.None)
             {
                 if (e.KeyCode == Keys.Escape)
                     ToggleCameraPreview(false);

@@ -227,7 +227,7 @@ public class FlybyPreviewController : IDisposable
         }
 
         // Detect external preview exit.
-        if (!_editor.CameraPreviewMode)
+        if (_editor.CameraPreviewMode == CameraPreviewType.None)
         {
             OnExternalPreviewExit();
             return;

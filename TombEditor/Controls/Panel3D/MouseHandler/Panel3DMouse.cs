@@ -62,7 +62,7 @@ namespace TombEditor.Controls.Panel3D
                 return;
 
             // End camera preview on any mouse click
-            if (_editor.CameraPreviewMode)
+            if (_editor.CameraPreviewMode != CameraPreviewType.None)
             {
                 ToggleCameraPreview(false);
                 return;
@@ -89,7 +89,7 @@ namespace TombEditor.Controls.Panel3D
 
         private void OnMouseMoved(MouseButtons button, Point location)
         {
-            if (_editor.FlyMode || _editor.CameraPreviewMode)
+            if (_editor.FlyMode || _editor.CameraPreviewMode != CameraPreviewType.None)
                 return;
 
             // Reset internal bool for deselection
@@ -151,7 +151,7 @@ namespace TombEditor.Controls.Panel3D
 
         private void OnMouseWheelScroll(int delta, Point location)
         {
-            if (_editor.CameraPreviewMode)
+            if (_editor.CameraPreviewMode != CameraPreviewType.None)
                 return;
 
             if (_movementTimer.Animating)
