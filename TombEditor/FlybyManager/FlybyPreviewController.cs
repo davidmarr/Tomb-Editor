@@ -244,6 +244,23 @@ public class FlybyPreviewController : IDisposable
             return;
         }
 
+        // Handle camera cut: if current camera has cut flag, jump to target camera.
+        int currentIndex = FlybySequenceData.FindCameraIndexAtTime(cameras, elapsed);
+
+        if (currentIndex >= 0 && currentIndex < cameras.Count &&
+            (cameras[currentIndex].Flags & FlybySequenceData.FlagCameraCut) != 0)
+        {
+            int targetIndex = cameras[currentIndex].Timer;
+
+            if (targetIndex >= 0 && targetIndex < cameras.Count && targetIndex != currentIndex)
+            {
+                float targetTime = FlybySequenceData.GetTimecodeForCamera(cameras, targetIndex);
+                elapsed = targetTime;
+                _playbackStartOffset = targetTime;
+                _playbackStartTime = DateTime.UtcNow;
+            }
+        }
+
         float progress = FlybySequenceData.TimeToProgress(cameras, elapsed);
         var frame = _scrubPreview.GetFrameAtProgress(progress);
         _editor.CameraPreviewScrub(frame);

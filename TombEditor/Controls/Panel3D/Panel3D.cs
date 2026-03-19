@@ -359,16 +359,14 @@ namespace TombEditor.Controls.Panel3D
             if (obj is Editor.ToggleCameraPreviewEvent previewEvent)
                 ToggleCameraPreview(previewEvent.PreviewState, previewEvent.Object);
 
-            // Update camera preview from dialog.
-            if (obj is Editor.CameraPreviewUpdatedEvent flybyUpdateEvent)
-                UpdateFlybyPreview(flybyUpdateEvent.FlybyCameraInstance);
-
-            // Scrub camera preview to an interpolated frame.
-            if (obj is Editor.CameraPreviewScrubEvent scrubEvt)
+            // Update camera preview from dialog or timeline scrub.
+            if (obj is Editor.CameraPreviewFrameEvent frameEvent)
             {
-                if (_editor.CameraPreviewMode == CameraPreviewType.Static && _flybyPreview != null)
+                if (frameEvent.FlybyCameraInstance != null)
+                    UpdateFlybyFramePreview(frameEvent.FlybyCameraInstance);
+                else if (frameEvent.Frame.HasValue && _editor.CameraPreviewMode == CameraPreviewType.Static && _flybyPreview != null)
                 {
-                    _flybyPreview.SetStaticFrame(Camera, scrubEvt.Frame);
+                    _flybyPreview.SetStaticFrame(Camera, frameEvent.Frame.Value);
                     Invalidate();
                 }
             }

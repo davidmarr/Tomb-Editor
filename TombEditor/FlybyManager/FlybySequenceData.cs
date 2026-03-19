@@ -16,6 +16,7 @@ namespace TombEditor.FlybyManager;
 public static class FlybySequenceData
 {
     public const float GameTickRate = 30.0f;
+    public const int FlagCameraCut = 1 << 7;
     public const int FlagFreezeCamera = 1 << 8;
 
     public static List<FlybyCameraInstance> GetCameras(Level level, ushort sequence)

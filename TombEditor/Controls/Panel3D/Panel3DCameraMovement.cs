@@ -278,9 +278,9 @@ namespace TombEditor.Controls.Panel3D
             }
         }
 
-        public void UpdateFlybyPreview(FlybyCameraInstance flybyCamera)
+        public void UpdateFlybyFramePreview(FlybyCameraInstance flybyCamera)
         {
-            if (_editor.CameraPreviewMode == CameraPreviewType.None || _flybyPreview == null)
+            if (_editor.CameraPreviewMode != CameraPreviewType.Static || _flybyPreview == null)
                 return;
 
             _flybyPreview.ApplyStaticFrame(Camera, flybyCamera);

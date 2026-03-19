@@ -189,6 +189,7 @@ namespace TombEditor
         // User interface options
 
         public bool UI_ShowStats { get; set; } = true;
+        public bool UI_ShowFlybyTimeline { get; set; } = true;
         public bool UI_AutoFillTriggerTypesForSwitchAndKey { get; set; } = true;
         public bool UI_AutoSwitchRoomToOutsideOnAppliedInvisibleTexture { get; set; } = false;
         public bool UI_DiscardSelectionOnModeSwitch { get; set; } = false;

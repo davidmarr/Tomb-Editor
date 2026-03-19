@@ -1117,6 +1117,12 @@ namespace TombEditor.Controls.Panel3D
                         if (_editor.SelectedObject is FlybyCameraInstance && (_editor.SelectedObject as FlybyCameraInstance).Sequence == instance.Sequence)
                             color = MathC.GetRandomColorByIndex(instance.Sequence, 32, 0.7f);
 
+                        // Apply distance-based fade for nearby flyby cameras.
+                        float distance = Vector3.Distance(instance.WorldPosition, Camera.GetPosition());
+
+                        if (distance < 256.0f)
+                            color.W *= distance / 256.0f;
+
                         if (_highlightedObjects.Contains(instance))
                         {
                             color = _editor.Configuration.UI_ColorScheme.ColorSelection;

@@ -15,27 +15,30 @@ namespace TombEditor.FlybyManager;
 /// </summary>
 public class FlybyTimelineControl : Control
 {
-    private const double HeaderHeight = 20.0;
-    private const double MarkerRadius = 5.0;
+    private const double MarkerRadius = 7.5;
     private const double MinTickSpacing = 40.0;
     private const double TimeRulerHeight = 20.0;
-    private const double TrackHeight = 24.0;
+    private const double TrackHeight = 30.0;
+    private const double LabelHeight = 14.0;
 
     private static readonly Brush BackgroundBrush = new SolidColorBrush(Color.FromRgb(43, 43, 43));
     private static readonly Brush RulerBrush = new SolidColorBrush(Color.FromRgb(55, 55, 55));
     private static readonly Brush GridLineBrush = new SolidColorBrush(Color.FromRgb(65, 65, 65));
-    private static readonly Brush TextBrush = new SolidColorBrush(Color.FromRgb(180, 180, 180));
-    private static readonly Brush MarkerBrush = new SolidColorBrush(Color.FromRgb(90, 160, 230));
+    private static readonly Brush RulerTextBrush = new SolidColorBrush(Color.FromRgb(180, 180, 180));
+    private static readonly Brush LabelBrush = new SolidColorBrush(Color.FromRgb(120, 120, 120));
+    private static readonly Brush MarkerBrush = new SolidColorBrush(Color.FromRgb(104, 151, 187));
     private static readonly Brush MarkerSelectedBrush = new SolidColorBrush(Color.FromRgb(230, 180, 60));
     private static readonly Brush MarkerErrorBrush = new SolidColorBrush(Color.FromRgb(230, 80, 80));
-    private static readonly Brush TrackBrush = new SolidColorBrush(Color.FromRgb(50, 50, 50));
-    private static readonly Brush CursorLineBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200));
-    private static readonly Brush PlayheadBrush = new SolidColorBrush(Color.FromRgb(230, 120, 50));
+    private static readonly Brush TrackBrush = new SolidColorBrush(Color.FromRgb(49, 51, 53));
+    private static readonly Brush FreezeBrush = new SolidColorBrush(Color.FromArgb(100, 70, 70, 70));
     private static readonly Brush SelectionBrush;
+    private static readonly Brush PlayheadBrush;
+
     private static readonly Pen GridLinePen = new(GridLineBrush, 1.0);
-    private static readonly Pen MarkerOutlinePen = new(Brushes.Black, 1.0);
-    private static readonly Pen CursorLinePen = new(CursorLineBrush, 1.0);
-    private static readonly Pen PlayheadPen = new(PlayheadBrush, 2.0);
+    private static readonly Pen MarkerOutlinePen = new(new SolidColorBrush(Color.FromRgb(178, 178, 178)), 2.0);
+    private static readonly Pen CursorLinePen = new(new SolidColorBrush(Color.FromArgb(100, 178, 178, 178)), 1.0);
+    private static readonly Pen PlayheadPen;
+    private static readonly Pen CameraCutPen;
 
     private static readonly Typeface DefaultTypeface = new("Segoe UI");
 
@@ -78,9 +81,19 @@ public class FlybyTimelineControl : Control
             typeof(FlybyTimelineControl),
             new FrameworkPropertyMetadata(typeof(FlybyTimelineControl)));
 
-        var selBrush = new SolidColorBrush(Color.FromArgb(60, 90, 160, 230));
+        var selBrush = new SolidColorBrush(Color.FromArgb(60, 104, 151, 187));
         selBrush.Freeze();
         SelectionBrush = selBrush;
+
+        var phBrush = new SolidColorBrush(Color.FromArgb(153, 178, 178, 178));
+        phBrush.Freeze();
+        PlayheadBrush = phBrush;
+        PlayheadPen = new Pen(phBrush, 2.0);
+        PlayheadPen.Freeze();
+
+        // Diagonal hatch pen for camera cuts.
+        CameraCutPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 230, 80, 80)), 1.0);
+        CameraCutPen.Freeze();
     }
 
     public FlybyTimelineControl()
@@ -94,6 +107,10 @@ public class FlybyTimelineControl : Control
         public float TimeSeconds;
         public bool IsDuplicate;
         public bool IsSelected;
+        public bool HasCameraCut;
+        public bool IsFrozen;
+        public float FreezeDuration;
+        public float SegmentDuration;
     }
 
     /// <summary>
@@ -140,7 +157,11 @@ public class FlybyTimelineControl : Control
 
         // Track area.
         double trackY = TimeRulerHeight;
-        dc.DrawRectangle(TrackBrush, null, new Rect(0, trackY, w, TrackHeight));
+        double totalTrackHeight = TrackHeight + LabelHeight;
+        dc.DrawRectangle(TrackBrush, null, new Rect(0, trackY, w, totalTrackHeight));
+
+        // Draw segment regions (freeze and camera cut indicators).
+        DrawSegmentRegions(dc, w, trackY);
 
         // Draw markers.
         DrawMarkers(dc, w, trackY);
@@ -155,9 +176,7 @@ public class FlybyTimelineControl : Control
 
         // Draw cursor line at mouse position.
         if (_isMouseOver && _mouseX >= 0 && _mouseX <= w)
-        {
-            dc.DrawLine(CursorLinePen, new Point(_mouseX, 0), new Point(_mouseX, TimeRulerHeight + TrackHeight));
-        }
+            dc.DrawLine(CursorLinePen, new Point(_mouseX, 0), new Point(_mouseX, trackY + totalTrackHeight));
 
         // Draw playhead line.
         if (_playheadSeconds >= 0)
@@ -165,7 +184,7 @@ public class FlybyTimelineControl : Control
             double phX = TimeToPixel(_playheadSeconds, w);
 
             if (phX >= 0 && phX <= w)
-                dc.DrawLine(PlayheadPen, new Point(phX, 0), new Point(phX, TimeRulerHeight + TrackHeight));
+                dc.DrawLine(PlayheadPen, new Point(phX, 0), new Point(phX, trackY + totalTrackHeight));
         }
     }
 
@@ -199,15 +218,67 @@ public class FlybyTimelineControl : Control
             string label = FormatRulerLabel(t);
             var formattedText = new FormattedText(
                 label, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                DefaultTypeface, 9, TextBrush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+                DefaultTypeface, 9, RulerTextBrush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
             dc.DrawText(formattedText, new Point(x + 2, 2));
         }
     }
 
+    private void DrawSegmentRegions(DrawingContext dc, double width, double trackY)
+    {
+        double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+
+        for (int i = 0; i < _markers.Count - 1; i++)
+        {
+            var marker = _markers[i];
+            double startX = TimeToPixel(marker.TimeSeconds, width);
+            double endX = TimeToPixel(marker.TimeSeconds + marker.SegmentDuration, width);
+
+            // Draw freeze region as solid dark gray immediately after the marker.
+            if (marker.IsFrozen && marker.FreezeDuration > 0)
+            {
+                double freezeEndX = TimeToPixel(marker.TimeSeconds + marker.FreezeDuration, width);
+                double fLeft = Math.Max(0, startX);
+                double fRight = Math.Min(width, freezeEndX);
+
+                if (fRight > fLeft)
+                    dc.DrawRectangle(FreezeBrush, null, new Rect(fLeft, trackY, fRight - fLeft, TrackHeight));
+            }
+
+            // Draw camera cut region as diagonal hatch lines.
+            if (marker.HasCameraCut)
+            {
+                double cutLeft = Math.Max(0, startX);
+                double cutRight = Math.Min(width, endX);
+
+                if (cutRight > cutLeft)
+                    DrawDiagonalHatch(dc, cutLeft, trackY, cutRight - cutLeft, TrackHeight);
+            }
+        }
+    }
+
+    private void DrawDiagonalHatch(DrawingContext dc, double x, double y, double w, double h)
+    {
+        double spacing = 6.0;
+        var clip = new RectangleGeometry(new Rect(x, y, w, h));
+
+        dc.PushClip(clip);
+
+        for (double offset = -h; offset < w + h; offset += spacing)
+        {
+            dc.DrawLine(CameraCutPen,
+                new Point(x + offset, y + h),
+                new Point(x + offset + h, y));
+        }
+
+        dc.Pop();
+    }
+
     private void DrawMarkers(DrawingContext dc, double width, double trackY)
     {
         double centerY = trackY + TrackHeight / 2.0;
+        double labelY = trackY + TrackHeight + 1.0;
+        double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
 
         for (int i = 0; i < _markers.Count; i++)
         {
@@ -240,12 +311,12 @@ public class FlybyTimelineControl : Control
             geometry.Freeze();
             dc.DrawGeometry(fill, MarkerOutlinePen, geometry);
 
-            // Draw index label below.
+            // Draw index label in lower label region.
             var indexText = new FormattedText(
                 i.ToString(), CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                DefaultTypeface, 9, TextBrush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+                DefaultTypeface, 9, LabelBrush, dpi);
 
-            dc.DrawText(indexText, new Point(x - indexText.Width / 2, centerY + MarkerRadius + 2));
+            dc.DrawText(indexText, new Point(x - indexText.Width / 2.0, labelY));
         }
     }
 
@@ -402,9 +473,12 @@ public class FlybyTimelineControl : Control
         double leftX = Math.Min(_rangeStartX, _rangeEndX);
         double rightX = Math.Max(_rangeStartX, _rangeEndX);
 
-        // Only commit if the drag distance is meaningful.
+        // Treat a tiny drag as a click on empty space (deselect).
         if (rightX - leftX < 3)
+        {
+            RangeSelected?.Invoke(new List<int>());
             return;
+        }
 
         var selected = new List<int>();
 
@@ -448,8 +522,8 @@ public class FlybyTimelineControl : Control
         double trackY = TimeRulerHeight;
         double centerY = trackY + TrackHeight / 2.0;
 
-        // Only hit-test within the track area.
-        if (pos.Y < trackY - 4 || pos.Y > trackY + TrackHeight + 4)
+        // Only hit-test within the track and label area.
+        if (pos.Y < trackY - 4 || pos.Y > trackY + TrackHeight + LabelHeight)
             return -1;
 
         double closestDist = double.MaxValue;

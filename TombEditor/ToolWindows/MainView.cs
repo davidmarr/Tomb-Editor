@@ -1,4 +1,4 @@
-﻿using DarkUI.Controls;
+using DarkUI.Controls;
 using DarkUI.Docking;
 using System;
 using System.Numerics;
@@ -39,6 +39,8 @@ namespace TombEditor.ToolWindows
             UpdateToolStripLayout();
             RefreshControls(_editor.Configuration);
             UpdateStatistics();
+
+            flybyTimelineView.Initialize(_editor);
         }
 
         public void InitializeRendering(RenderingDevice device)
@@ -92,6 +94,7 @@ namespace TombEditor.ToolWindows
             {
                 _editor.EditorEventRaised -= EditorEventRaised;
                 ClipboardEvents.ClipboardChanged -= ClipboardEvents_ClipboardChanged;
+                flybyTimelineView.Cleanup();
             }
             if (disposing && components != null)
                 components.Dispose();
@@ -275,7 +278,9 @@ namespace TombEditor.ToolWindows
 
             panel3D.Invalidate();
 
-            panelStats.Visible = settings.UI_ShowStats;
+            panelBottom.Visible = settings.UI_ShowStats || settings.UI_ShowFlybyTimeline;
+            panelFlybyTimeline.Visible = settings.UI_ShowFlybyTimeline;
+            tbStats.Visible = settings.UI_ShowStats;
         }
 
         private void UpdateToolStripLayout()

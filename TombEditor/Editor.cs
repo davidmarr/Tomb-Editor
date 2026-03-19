@@ -743,24 +743,19 @@ namespace TombEditor
         }
         public CameraPreviewType CameraPreviewMode { get; set; } = CameraPreviewType.None;
 
-        // Camera preview updated (live editing from dialog).
-        public class CameraPreviewUpdatedEvent : IEditorCameraEvent
+        // Camera preview frame updated (live editing or scrub playback).
+        public class CameraPreviewFrameEvent : IEditorCameraEvent
         {
             public FlybyCameraInstance FlybyCameraInstance { get; set; }
+            public FlybyPreview.FrameState? Frame { get; set; }
         }
         public void CameraPreviewUpdated(FlybyCameraInstance flybyCamera)
         {
-            RaiseEvent(new CameraPreviewUpdatedEvent { FlybyCameraInstance = flybyCamera });
-        }
-
-        // Camera preview scrubbed to an interpolated frame.
-        public class CameraPreviewScrubEvent : IEditorCameraEvent
-        {
-            public FlybyPreview.FrameState Frame { get; set; }
+            RaiseEvent(new CameraPreviewFrameEvent { FlybyCameraInstance = flybyCamera });
         }
         public void CameraPreviewScrub(FlybyPreview.FrameState frame)
         {
-            RaiseEvent(new CameraPreviewScrubEvent { Frame = frame });
+            RaiseEvent(new CameraPreviewFrameEvent { Frame = frame });
         }
 
         // Provides access to the current 3D viewport camera. Set by Panel3D on init.

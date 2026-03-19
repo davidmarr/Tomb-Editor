@@ -223,6 +223,12 @@ public partial class FlybyManagerViewModel : ObservableObject
 
             if (insertIndex < cameras.Count)
             {
+                // Inherit the speed from the segment being split so total duration stays the same.
+                int prevIndex = insertIndex - 1;
+
+                if (prevIndex >= 0 && prevIndex < cameras.Count)
+                    cam.Speed = cameras[prevIndex].Speed;
+
                 cam.Number = (ushort)insertIndex;
                 ApplyCameraPositionAtCursor(cam, cameras, seq, cursorTime, room, out room);
 
@@ -560,6 +566,33 @@ public partial class FlybyManagerViewModel : ObservableObject
     public float GetDisplayDuration()
     {
         return FlybySequenceData.GetDisplayDuration(GetCamerasAsList());
+    }
+
+    /// <summary>
+    /// Returns true if the camera at the given index has the camera cut flag (bit 7) set.
+    /// </summary>
+    public bool GetCameraCutFlag(int index)
+    {
+        if (index < 0 || index >= CameraList.Count)
+            return false;
+
+        return (CameraList[index].Camera.Flags & FlybySequenceData.FlagCameraCut) != 0;
+    }
+
+    /// <summary>
+    /// Returns true if the camera at the given index has the freeze flag (bit 8) and a valid timer.
+    /// Outputs the freeze duration in seconds.
+    /// </summary>
+    public bool GetCameraFreezeInfo(int index, out float freezeDuration)
+    {
+        freezeDuration = 0;
+
+        if (index < 0 || index >= CameraList.Count)
+            return false;
+
+        var cam = CameraList[index].Camera;
+        freezeDuration = FlybySequenceData.GetFreezeDuration(cam);
+        return (cam.Flags & FlybySequenceData.FlagFreezeCamera) != 0 && cam.Timer > 0;
     }
 
     private void RecalculateTimecodes()
