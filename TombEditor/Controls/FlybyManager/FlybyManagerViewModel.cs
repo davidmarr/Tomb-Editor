@@ -261,7 +261,8 @@ public partial class FlybyManagerViewModel : ObservableObject
                 cam.Speed = 1.0f / (rightDuration * FlybyPreview.SpeedScale);
                 cam.Number = (ushort)insertIndex;
 
-                ApplyCameraPositionAtCursor(cam, cameras, seq, cursorTime, room, out room);
+                // Always place new camera at the current editor viewport position.
+                ApplyEditorCameraPosition(cam, room);
 
                 room.AddObject(_editor.Level, cam);
                 _editor.UndoManager.PushObjectCreated(cam);
