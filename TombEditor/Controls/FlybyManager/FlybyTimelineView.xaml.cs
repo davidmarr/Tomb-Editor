@@ -211,9 +211,6 @@ public partial class FlybyTimelineView : UserControl
 
         _isUpdatingSelection = false;
 
-        // Auto-enter preview to show selected camera in Panel3D.
-        _viewModel.EnsurePreviewActive();
-
         RefreshTimeline();
     }
 
