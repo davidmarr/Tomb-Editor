@@ -266,7 +266,7 @@ public class FlybyPreview
 
 		// Guard against zero or near-zero FOV which would cause a matrix exception.
 		if (fov < 0.01f)
-			fov = 1.3962634f; // ~80 degrees in radians as a safe fallback.
+			fov = MathC.DegToRad(80); // ~80 degrees in radians as a safe fallback.
 
 		var view = MathC.Matrix4x4CreateLookAtLH(frame.Position, target, up);
 		float aspectRatio = height != 0.0f ? width / height : 1.0f;
