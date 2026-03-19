@@ -45,8 +45,7 @@ public partial class FlybyManagerViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(PlayStopIcon))]
     private bool _isPlaying;
 
-    [ObservableProperty]
-    private bool _isPreviewActive;
+    public bool IsPreviewActive => _editor.CameraPreviewMode != CameraPreviewType.None;
 
     // Camera properties for the selected camera.
     [ObservableProperty]
@@ -198,10 +197,6 @@ public partial class FlybyManagerViewModel : ObservableObject
         if (room == null)
             return;
 
-        // Auto-enter preview mode when adding a camera.
-        if (!_preview.IsPreviewActive)
-            _preview.EnterPreview(null);
-
         var cam = new FlybyCameraInstance
         {
             Sequence = seq,
@@ -298,7 +293,7 @@ public partial class FlybyManagerViewModel : ObservableObject
         targetRoom = room;
 
         // Use interpolated spline position when preview is active.
-        if (_preview.IsPreviewActive)
+        if (IsPreviewActive)
         {
             float progress = FlybySequenceData.TimeToProgress(cameras, cursorTime);
             var frame = _preview.GetInterpolatedFrame(sequence, progress);
@@ -586,7 +581,7 @@ public partial class FlybyManagerViewModel : ObservableObject
     /// </summary>
     public void EnsurePreviewActive()
     {
-        if (!_preview.IsPreviewActive)
+        if (!IsPreviewActive)
             _preview.EnterPreview(SelectedCamera?.Camera);
         else if (SelectedCamera != null)
             _preview.ShowCamera(SelectedCamera.Camera);
@@ -818,8 +813,8 @@ public partial class FlybyManagerViewModel : ObservableObject
 
     private void OnPreviewStateChanged()
     {
-        IsPreviewActive = _preview.IsPreviewActive;
         IsPlaying = _preview.IsPlaying;
+        OnPropertyChanged(nameof(IsPreviewActive));
         OnPropertyChanged(nameof(CanEditProperties));
 
         // Show selected camera in static preview after playback stops.
@@ -849,7 +844,7 @@ public partial class FlybyManagerViewModel : ObservableObject
         {
             _preview.StopPlayback();
 
-            if (_preview.IsPreviewActive)
+            if (IsPreviewActive)
                 _preview.ExitPreview();
 
             _userAddedSequences.Clear();

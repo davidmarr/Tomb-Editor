@@ -24,7 +24,7 @@ public class FlybyPreviewController : IDisposable
     private bool _isChangingPreview;
     private int _lastCutCameraIndex = -1;
 
-    public bool IsPreviewActive { get; private set; }
+    public bool IsPreviewActive => _editor.CameraPreviewMode != CameraPreviewType.None;
     public bool IsPlaying { get; private set; }
     public float PlayheadSeconds { get; private set; } = -1.0f;
 
@@ -46,22 +46,11 @@ public class FlybyPreviewController : IDisposable
 
     public void EnterPreview(FlybyCameraInstance? camera)
     {
-        if (_editor.FlyMode)
-            return;
-
-        // Sync state with editor in case Panel3D exited preview without notification.
-        if (IsPreviewActive && _editor.CameraPreviewMode == CameraPreviewType.None)
-        {
-            IsPreviewActive = false;
-            PlayheadSeconds = -1.0f;
-        }
-
-        if (IsPreviewActive)
+        if (_editor.FlyMode || IsPreviewActive)
             return;
 
         _isChangingPreview = true;
         _editor.ToggleCameraPreview(true);
-        IsPreviewActive = true;
         _isChangingPreview = false;
 
         if (camera != null)
@@ -79,7 +68,6 @@ public class FlybyPreviewController : IDisposable
 
         _isChangingPreview = true;
         _editor.ToggleCameraPreview(false);
-        IsPreviewActive = false;
         _isChangingPreview = false;
 
         StateChanged?.Invoke();
@@ -107,18 +95,10 @@ public class FlybyPreviewController : IDisposable
             return;
         }
 
-        // Sync state with editor in case Panel3D exited preview without notification.
-        if (IsPreviewActive && _editor.CameraPreviewMode == CameraPreviewType.None)
-        {
-            IsPreviewActive = false;
-            PlayheadSeconds = -1.0f;
-        }
-
         if (!IsPreviewActive)
         {
             _isChangingPreview = true;
             _editor.ToggleCameraPreview(true);
-            IsPreviewActive = true;
             _isChangingPreview = false;
         }
 
@@ -205,7 +185,6 @@ public class FlybyPreviewController : IDisposable
         }
 
         PlayheadSeconds = -1.0f;
-        IsPreviewActive = false;
 
         StateChanged?.Invoke();
         PlayheadChanged?.Invoke();
@@ -232,7 +211,6 @@ public class FlybyPreviewController : IDisposable
         {
             _isChangingPreview = true;
             _editor.ToggleCameraPreview(false);
-            IsPreviewActive = false;
             _isChangingPreview = false;
         }
     }
