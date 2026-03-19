@@ -489,8 +489,6 @@ public partial class FlybyManagerViewModel : ObservableObject
             CameraRotationY = value.Camera.RotationY;
             CameraTimer = value.Camera.Timer;
             CameraFlags = value.Camera.Flags;
-
-            _preview.ShowCamera(value.Camera);
         }
 
         _isUpdating = false;
@@ -816,10 +814,6 @@ public partial class FlybyManagerViewModel : ObservableObject
         IsPlaying = _preview.IsPlaying;
         OnPropertyChanged(nameof(IsPreviewActive));
         OnPropertyChanged(nameof(CanEditProperties));
-
-        // Show selected camera in static preview after playback stops.
-        if (!IsPlaying && IsPreviewActive && SelectedCamera != null)
-            _preview.ShowCamera(SelectedCamera.Camera);
     }
 
     private void OnPreviewPlayheadChanged()
