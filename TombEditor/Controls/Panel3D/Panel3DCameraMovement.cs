@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
-using TombEditor.FlybyManager;
+using TombEditor.Controls.FlybyManager;
 using TombLib;
 using TombLib.Controls;
 using TombLib.Forms;

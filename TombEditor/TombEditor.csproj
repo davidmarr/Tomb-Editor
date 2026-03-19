@@ -159,6 +159,7 @@
     <Resource Include="Resources\icons_actions\actions_3DView-16.png" />
     <Resource Include="Resources\icons_general\general_plus_math-16.png" />
     <Resource Include="Resources\icons_general\general_trash-16.png" />
+    <Resource Include="Resources\icons_transport\*.png" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />

@@ -1117,12 +1117,6 @@ namespace TombEditor.Controls.Panel3D
                         if (_editor.SelectedObject is FlybyCameraInstance && (_editor.SelectedObject as FlybyCameraInstance).Sequence == instance.Sequence)
                             color = MathC.GetRandomColorByIndex(instance.Sequence, 32, 0.7f);
 
-                        // Apply distance-based fade for nearby flyby cameras.
-                        float distance = Vector3.Distance(instance.WorldPosition, Camera.GetPosition());
-
-                        if (distance < 256.0f)
-                            color.W *= distance / 256.0f;
-
                         if (_highlightedObjects.Contains(instance))
                         {
                             color = _editor.Configuration.UI_ColorScheme.ColorSelection;
@@ -1314,6 +1308,7 @@ namespace TombEditor.Controls.Panel3D
                 _legacyDevice.SetVertexInputLayout(_cone.InputLayout);
                 _legacyDevice.SetIndexBuffer(_cone.IndexBuffer, _cone.IsIndex32Bits);
                 _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullNone);
+                _legacyDevice.SetBlendState(_legacyDevice.BlendStates.AlphaBlend);
 
                 bool wireframe = false;
                 foreach (Room room in roomsWhoseObjectsToDraw)
@@ -1381,6 +1376,11 @@ namespace TombEditor.Controls.Panel3D
                                     wireframe = false;
                                 }
                             }
+
+                            // Apply distance-based fade for nearby flyby cameras.
+                            float distance = Vector3.Distance(instance.WorldPosition, Camera.GetPosition());
+                            if (distance < (_coneRadius * 0.5f))
+                                color.W *= distance / (_coneRadius * 0.5f);
 
                             effect.Parameters["ModelViewProjection"].SetValue((model * _viewProjection).ToSharpDX());
                             effect.Parameters["Color"].SetValue(color);

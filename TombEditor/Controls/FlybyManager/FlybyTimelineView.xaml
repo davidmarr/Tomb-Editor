@@ -1,0 +1,117 @@
+<UserControl
+    x:Class="TombEditor.Controls.FlybyManager.FlybyTimelineView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:DarkUI.WPF.CustomControls;assembly=DarkUI.WPF"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:darkUI="clr-namespace:DarkUI.WPF;assembly=DarkUI.WPF"
+    xmlns:local="clr-namespace:TombEditor.Controls.FlybyManager"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="60"
+    d:DesignWidth="800"
+    Background="{DynamicResource Brush_Background}"
+    mc:Ignorable="d">
+
+    <Grid Margin="4,2">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left side: Sequence selector and add/remove buttons. -->
+        <StackPanel
+            Grid.Column="0"
+            Margin="0,0,4,0"
+            Orientation="Horizontal"
+            VerticalAlignment="Center">
+
+            <Label
+                VerticalAlignment="Center"
+                Content="Seq:"
+                Padding="0,0,4,0" />
+
+            <ComboBox
+                x:Name="comboSequence"
+                Width="56"
+                Height="22"
+                VerticalAlignment="Center"
+                ItemsSource="{Binding AvailableSequences}"
+                SelectedItem="{Binding SelectedSequence}" />
+
+            <Button
+                Width="22"
+                Height="22"
+                Margin="2,0,0,0"
+                VerticalAlignment="Center"
+                Command="{Binding AddSequenceCommand}"
+                Content="+"
+                FontWeight="Bold"
+                ToolTip="Add new sequence" />
+
+            <Button
+                Width="22"
+                Height="22"
+                Margin="2,0,0,0"
+                VerticalAlignment="Center"
+                Command="{Binding RemoveSequenceCommand}"
+                Content="-"
+                FontWeight="Bold"
+                IsEnabled="{Binding HasSequenceSelected}"
+                ToolTip="Remove current sequence" />
+        </StackPanel>
+
+        <!-- Center: Timeline control. -->
+        <Border
+            Grid.Column="1"
+            BorderBrush="{DynamicResource Brush_Border}"
+            BorderThickness="1">
+            <local:FlybyTimelineControl x:Name="timelineControl" />
+        </Border>
+
+        <!-- Right side: Timecode, play/stop, add camera. -->
+        <StackPanel
+            Grid.Column="2"
+            Margin="4,0,0,0"
+            Orientation="Horizontal"
+            VerticalAlignment="Center">
+
+            <TextBlock
+                Width="68"
+                VerticalAlignment="Center"
+                FontFamily="Consolas"
+                FontSize="13"
+                Foreground="#FFB4B4B4"
+                Text="{Binding PlayheadTimecode}"
+                TextAlignment="Center"
+                ToolTip="Playhead timecode (MM:SS.CC)" />
+
+            <Button
+                Width="28"
+                Height="28"
+                Margin="4,0,0,0"
+                VerticalAlignment="Center"
+                Command="{Binding TogglePlayStopCommand}"
+                IsEnabled="{Binding HasSequenceSelected}"
+                ToolTip="Play/Stop sequence">
+                <Image
+                    Width="24"
+                    Height="24"
+                    Source="{Binding PlayStopIcon}"
+                    RenderOptions.BitmapScalingMode="NearestNeighbor" />
+            </Button>
+
+            <Button
+                Width="28"
+                Height="28"
+                Margin="4,0,0,0"
+                VerticalAlignment="Center"
+                Command="{Binding AddCameraCommand}"
+                Content="+"
+                FontSize="16"
+                FontWeight="Bold"
+                IsEnabled="{Binding HasSequenceSelected}"
+                ToolTip="Add camera at current view position" />
+        </StackPanel>
+    </Grid>
+</UserControl>

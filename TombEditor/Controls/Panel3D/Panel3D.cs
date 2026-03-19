@@ -9,7 +9,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using TombEditor.Controls.ContextMenus;
-using TombEditor.FlybyManager;
+using TombEditor.Controls.FlybyManager;
 using TombLib;
 using TombLib.Controls;
 using TombLib.Graphics;

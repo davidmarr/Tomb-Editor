@@ -86,7 +86,7 @@ namespace TombEditor.ToolWindows
 			comboStepHeight = new DarkUI.Controls.DarkComboBox();
 			panelFlybyTimeline = new System.Windows.Forms.Panel();
 			flybyTimelineHost = new System.Windows.Forms.Integration.ElementHost();
-			flybyTimelineView = new FlybyManager.FlybyTimelineView();
+			flybyTimelineView = new Controls.FlybyManager.FlybyTimelineView();
 			panelMainView = new System.Windows.Forms.Panel();
 			toolTip = new System.Windows.Forms.ToolTip(components);
 			butMirror = new System.Windows.Forms.ToolStripButton();
@@ -995,7 +995,7 @@ namespace TombEditor.ToolWindows
         private DarkUI.Controls.DarkComboBox comboStepHeight;
         private System.Windows.Forms.Panel panelFlybyTimeline;
         private System.Windows.Forms.Integration.ElementHost flybyTimelineHost;
-        private FlybyManager.FlybyTimelineView flybyTimelineView;
+        private Controls.FlybyManager.FlybyTimelineView flybyTimelineView;
 		private System.Windows.Forms.ToolStripButton butMirror;
 	}
 }
