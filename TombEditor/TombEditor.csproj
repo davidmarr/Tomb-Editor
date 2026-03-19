@@ -155,6 +155,10 @@
     <Resource Include="Resources\icons_actions\actions_TextureMode-16.png" />
     <Resource Include="Resources\icons_actions\actions_StarOutlined-16.png" />
     <Resource Include="Resources\icons_actions\actions_StarFilled-16.png" />
+    <Resource Include="Resources\icons_actions\actions_play-16.png" />
+    <Resource Include="Resources\icons_actions\actions_3DView-16.png" />
+    <Resource Include="Resources\icons_general\general_plus_math-16.png" />
+    <Resource Include="Resources\icons_general\general_trash-16.png" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />

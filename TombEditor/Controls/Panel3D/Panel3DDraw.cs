@@ -1909,10 +1909,10 @@ namespace TombEditor.Controls.Panel3D
             }
 
             // New rendering setup
-            bool useFlybyViewProjection = _editor.CameraPreviewMode && _cameraPreview != null && (_cameraPreview.StaticFrame.HasValue || !_cameraPreview.IsFinished);
+            bool useFlybyViewProjection = _editor.CameraPreviewMode && _flybyPreview != null && (_flybyPreview.StaticFrame.HasValue || !_flybyPreview.IsFinished);
 
             _viewProjection = useFlybyViewProjection
-                ? _cameraPreview.BuildViewProjection(ClientSize.Width, ClientSize.Height, Camera.FieldOfView)
+                ? _flybyPreview.BuildViewProjection(ClientSize.Width, ClientSize.Height, Camera.FieldOfView)
                 : Camera.GetViewProjectionMatrix(ClientSize.Width, ClientSize.Height);
 
             // Determine brush overlay state.

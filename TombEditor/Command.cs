@@ -935,6 +935,20 @@ namespace TombEditor
                 EditorActions.ReplaceObject(args.Window);
             });
 
+            AddCommand("FlybyManager", "Flyby sequence manager...", CommandType.Edit, delegate (CommandArgs args)
+            {
+                var existingWindow = System.Windows.Application.Current?.Windows.OfType<FlybyManager.FlybyManagerWindow>().FirstOrDefault();
+                if (existingWindow == null)
+                {
+                    var window = new FlybyManager.FlybyManagerWindow(args.Editor);
+                    window.Owner = null;
+                    window.Topmost = true;
+                    window.Show();
+                }
+                else
+                    existingWindow.Activate();
+            });
+
             AddCommand("AddNewRoom", "Add new room", CommandType.Rooms, delegate (CommandArgs args)
             {
                 if (args.Editor.Level.Rooms == null)

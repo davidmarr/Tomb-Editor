@@ -3,11 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using TombEditor.FlybyManager;
 using TombLib;
 using TombLib.Forms;
+using TombLib.Graphics;
 using TombLib.LevelData;
 using TombLib.LevelData.IO;
 using TombLib.Rendering;
@@ -17,7 +18,7 @@ using TombLib.Wad.Catalog;
 
 namespace TombEditor
 {
-    public interface IEditorEvent { }
+	public interface IEditorEvent { }
 
     public interface IEditorPropertyChangedEvent : IEditorEvent { }
 
@@ -736,6 +737,9 @@ namespace TombEditor
         public bool CameraPreviewMode { get; set; } = false;
         public bool CameraStaticPreviewMode { get; set; } = false;
 
+        // Provides access to the current 3D viewport camera. Set by Panel3D on init.
+        public Func<Camera> GetViewportCamera { get; set; }
+
         // Camera preview updated (live editing from dialog).
         public class CameraPreviewUpdatedEvent : IEditorCameraEvent
         {
@@ -744,6 +748,16 @@ namespace TombEditor
         public void CameraPreviewUpdated(FlybyCameraInstance flybyCamera)
         {
             RaiseEvent(new CameraPreviewUpdatedEvent { FlybyCameraInstance = flybyCamera });
+        }
+
+        // Camera preview scrubbed to an interpolated frame.
+        public class CameraPreviewScrubEvent : IEditorCameraEvent
+        {
+            public FlybyPreview.FrameState Frame { get; set; }
+        }
+        public void CameraPreviewScrub(FlybyPreview.FrameState frame)
+        {
+            RaiseEvent(new CameraPreviewScrubEvent { Frame = frame });
         }
 
         // Toggle hidden selection (during color picking)

@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
+using TombEditor.FlybyManager;
 using TombLib;
 using TombLib.Controls;
 using TombLib.Forms;
@@ -212,19 +213,19 @@ namespace TombEditor.Controls.Panel3D
                 if (obj is FlybyCameraInstance flyby)
                 {
                     // Flyby sequence preview - derive sequence from the camera.
-                    _cameraPreview = new CameraPreview(_editor.Level, flyby.Sequence, savedCamera);
+                    _flybyPreview = new FlybyPreview(_editor.Level, flyby.Sequence, savedCamera);
 
-                    if (_cameraPreview.IsFinished)
+                    if (_flybyPreview.IsFinished)
                     {
                         Camera = savedCamera;
-                        _cameraPreview.Dispose();
-                        _cameraPreview = null;
+                        _flybyPreview.Dispose();
+                        _flybyPreview = null;
                         _editor.SendMessage("Flyby sequence needs at least 2 cameras to preview.", PopupType.Info);
 
                         return;
                     }
 
-                    _cameraPreview.BeginSequence(PreviewTimer_Tick);
+                    _flybyPreview.BeginSequence(PreviewTimer_Tick);
                     _editor.CameraPreviewMode = true;
                     _editor.CameraStaticPreviewMode = false;
                     _editor.SendMessage("Flyby preview playing... Press ESC or click to stop.", PopupType.Info);
@@ -233,7 +234,7 @@ namespace TombEditor.Controls.Panel3D
                 {
                     // Static camera preview: position the camera at the instance's world position
                     // and orient it towards the trigger-defined target or Lara.
-                    _cameraPreview = new CameraPreview(savedCamera);
+                    _flybyPreview = new FlybyPreview(savedCamera);
                     Camera.Position = cam.WorldPosition;
 
                     var targetPos = ResolveCameraTarget(cam);
@@ -255,7 +256,7 @@ namespace TombEditor.Controls.Panel3D
                 else
                 {
                     // No specific object - enter static preview mode for external control (e.g. FormFlybyCamera).
-                    _cameraPreview = new CameraPreview(savedCamera);
+                    _flybyPreview = new FlybyPreview(savedCamera);
 
                     _editor.CameraPreviewMode = true;
                     _editor.CameraStaticPreviewMode = true;
@@ -266,11 +267,11 @@ namespace TombEditor.Controls.Panel3D
             }
             else
             {
-                if (_cameraPreview != null)
+                if (_flybyPreview != null)
                 {
-                    Camera = _cameraPreview.SavedCamera;
-                    _cameraPreview.Dispose();
-                    _cameraPreview = null;
+                    Camera = _flybyPreview.SavedCamera;
+                    _flybyPreview.Dispose();
+                    _flybyPreview = null;
                 }
 
                 _editor.CameraPreviewMode = false;
@@ -281,18 +282,18 @@ namespace TombEditor.Controls.Panel3D
             }
         }
 
-        public void UpdateStaticCameraPreview(FlybyCameraInstance flybyCamera)
+        public void UpdateFlybyFramePreview(FlybyCameraInstance flybyCamera)
         {
-            if (!_editor.CameraPreviewMode || !_editor.CameraStaticPreviewMode || _cameraPreview == null)
+            if (!_editor.CameraPreviewMode || !_editor.CameraStaticPreviewMode || _flybyPreview == null)
                 return;
 
-            _cameraPreview.ApplyStaticCameraFrame(Camera, flybyCamera);
+            _flybyPreview.ApplyStaticFrame(Camera, flybyCamera);
             Invalidate();
         }
 
         private void PreviewTimer_Tick(object sender, EventArgs e)
         {
-            if (_cameraPreview == null || _cameraPreview.IsFinished)
+            if (_flybyPreview == null || _flybyPreview.IsFinished)
             {
                 ToggleCameraPreview(false);
                 return;
@@ -306,7 +307,7 @@ namespace TombEditor.Controls.Panel3D
             }
 
             // Update the preview and get the current frame
-            var frame = _cameraPreview.Update();
+            var frame = _flybyPreview.Update();
 
             if (frame.Finished)
             {
@@ -315,7 +316,7 @@ namespace TombEditor.Controls.Panel3D
             }
 
             // Apply frame to camera, updating target to prevent portal culling issues.
-            CameraPreview.ApplyFrameToCamera(Camera, frame);
+            FlybyPreview.ApplyFrame(Camera, frame);
             Invalidate();
         }
 

@@ -9,6 +9,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using TombEditor.Controls.ContextMenus;
+using TombEditor.FlybyManager;
 using TombLib;
 using TombLib.Controls;
 using TombLib.Graphics;
@@ -107,7 +108,7 @@ namespace TombEditor.Controls.Panel3D
         private Matrix4x4 _viewProjection;
 
         // Flyby preview state
-        private CameraPreview _cameraPreview;
+        private FlybyPreview _flybyPreview;
 
         // Mouse interaction state
         private Point _lastMousePosition;
@@ -194,6 +195,7 @@ namespace TombEditor.Controls.Panel3D
             {
                 _editor = Editor.Instance;
                 _editor.EditorEventRaised += EditorEventRaised;
+                _editor.GetViewportCamera = () => Camera;
 
                 _frustum = new Frustum();
                 _viewProjection = Matrix4x4.Identity;
@@ -228,7 +230,7 @@ namespace TombEditor.Controls.Panel3D
                 _littleSphere?.Dispose();
                 _movementTimer?.Dispose();
                 _flyModeTimer?.Dispose();
-                _cameraPreview?.Dispose();
+                _flybyPreview?.Dispose();
                 _rasterizerStateDepthBias?.Dispose();
                 _currentContextMenu?.Dispose();
                 _wadRenderer?.Dispose();
@@ -359,7 +361,17 @@ namespace TombEditor.Controls.Panel3D
 
             // Update camera preview from dialog.
             if (obj is Editor.CameraPreviewUpdatedEvent flybyUpdateEvt)
-                UpdateStaticCameraPreview(flybyUpdateEvt.FlybyCameraInstance);
+                UpdateFlybyFramePreview(flybyUpdateEvt.FlybyCameraInstance);
+
+            // Scrub camera preview to an interpolated frame.
+            if (obj is Editor.CameraPreviewScrubEvent scrubEvt)
+            {
+                if (_editor.CameraPreviewMode && _editor.CameraStaticPreviewMode && _flybyPreview != null)
+                {
+                    _flybyPreview.SetStaticFrame(Camera, scrubEvt.Frame);
+                    Invalidate();
+                }
+            }
 
             // Stop camera animation if level is changing
             if (obj is Editor.LevelChangedEvent)
