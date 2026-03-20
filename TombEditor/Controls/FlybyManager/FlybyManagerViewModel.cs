@@ -100,7 +100,7 @@ public partial class FlybyManagerViewModel : ObservableObject
         _editor = editor;
         _dispatcher = dispatcher;
 
-        _preview = new FlybyPreviewController(editor, dispatcher);
+        _preview = new FlybyPreviewController(editor);
         _preview.StateChanged += OnPreviewStateChanged;
         _preview.PlayheadChanged += OnPreviewPlayheadChanged;
 
@@ -172,7 +172,7 @@ public partial class FlybyManagerViewModel : ObservableObject
     partial void OnSelectedSequenceChanged(ushort? value)
     {
         _preview.StopPlayback();
-        _preview.InvalidateScrubPreview();
+        _preview.InvalidateCache();
 
         RefreshCameraList();
         RecalculateTimecodes();
@@ -295,8 +295,7 @@ public partial class FlybyManagerViewModel : ObservableObject
         // Use interpolated spline position when preview is active.
         if (IsPreviewActive)
         {
-            float progress = FlybySequenceData.TimeToProgress(cameras, cursorTime);
-            var frame = _preview.GetInterpolatedFrame(sequence, progress);
+            var frame = _preview.GetInterpolatedFrameAtTime(cameras, sequence, cursorTime);
 
             if (frame.HasValue)
             {
@@ -326,61 +325,6 @@ public partial class FlybyManagerViewModel : ObservableObject
         {
             cam.Position = room.GetLocalCenter();
         }
-    }
-
-    [RelayCommand]
-    private void DeleteSelectedCameras()
-    {
-        if (_selectedCameras.Count == 0)
-            return;
-
-        var toDelete = _selectedCameras
-            .Select(vm => new { vm.Camera, Room = vm.Camera.Room })
-            .Where(x => x.Room != null)
-            .ToList();
-
-        foreach (var item in toDelete)
-            EditorActions.DeleteObjectWithoutUpdate(item.Camera);
-
-        foreach (var item in toDelete)
-            _editor.ObjectChange(item.Camera, ObjectChangeType.Remove, item.Room);
-
-        SelectedCamera = null;
-        _selectedCameras.Clear();
-
-        OnDataChanged();
-    }
-
-    [RelayCommand]
-    private void MoveCameraUp()
-    {
-        if (SelectedCamera == null)
-            return;
-
-        int index = CameraList.IndexOf(SelectedCamera);
-
-        if (index <= 0)
-            return;
-
-        SwapCameraNumbers(index, index - 1);
-        RefreshCameraList();
-        SelectedCamera = CameraList[index - 1];
-    }
-
-    [RelayCommand]
-    private void MoveCameraDown()
-    {
-        if (SelectedCamera == null)
-            return;
-
-        int index = CameraList.IndexOf(SelectedCamera);
-
-        if (index < 0 || index >= CameraList.Count - 1)
-            return;
-
-        SwapCameraNumbers(index, index + 1);
-        RefreshCameraList();
-        SelectedCamera = CameraList[index + 1];
     }
 
     public void UpdateSelectedCameras(IEnumerable<FlybyCameraItemViewModel> items)
@@ -535,10 +479,13 @@ public partial class FlybyManagerViewModel : ObservableObject
         _editor.ObjectChange(SelectedCamera.Camera, ObjectChangeType.Change);
         _isApplyingProperty = false;
 
-        _preview.InvalidateScrubPreview();
+        _preview.InvalidateCache();
         RecalculateTimecodes();
 
-        _preview.ShowCamera(SelectedCamera.Camera);
+        if (IsPreviewActive && SelectedSequence.HasValue && PlayheadSeconds >= 0)
+            _preview.ScrubToTime(GetCamerasAsList(), SelectedSequence.Value, PlayheadSeconds);
+        else
+            _preview.ShowCamera(SelectedCamera.Camera);
     }
 
     #endregion Camera property editing
@@ -592,14 +539,15 @@ public partial class FlybyManagerViewModel : ObservableObject
             return;
 
         float prevTime = GetTimecodeForCamera(cameraIndex - 1);
-        float gap = Math.Max(newTimeSeconds - prevTime, 0.01f);
+        float freezeAtPrev = GetFreezeDurationSeconds(cameraIndex - 1);
+        float gap = Math.Max(newTimeSeconds - prevTime - freezeAtPrev, 0.01f);
 
         float newSpeed = 1.0f / (gap * FlybyPreview.SpeedScale);
         CameraList[cameraIndex - 1].Camera.Speed = newSpeed;
 
         _editor.ObjectChange(CameraList[cameraIndex - 1].Camera, ObjectChangeType.Change);
 
-        _preview.InvalidateScrubPreview();
+        _preview.InvalidateCache();
         RecalculateTimecodes();
 
         // Update preview to reflect the changed timings.
@@ -637,13 +585,7 @@ public partial class FlybyManagerViewModel : ObservableObject
         if (index < 0 || index >= CameraList.Count)
             return 0;
 
-        var cam = CameraList[index].Camera;
-
-        if ((cam.Flags & FlybySequenceData.FlagFreezeCamera) == 0)
-            return 0;
-
-        int gameFrames = cam.Timer >> 3;
-        return gameFrames > 0 ? gameFrames / FlybySequenceData.GameTickRate : 0;
+        return FlybySequenceData.GetFreezeDuration(CameraList[index].Camera);
     }
 
     /// <summary>
@@ -693,10 +635,13 @@ public partial class FlybyManagerViewModel : ObservableObject
 
     private void OnDataChanged()
     {
-        _preview.InvalidateScrubPreview();
+        _preview.InvalidateCache();
         RefreshCameraList();
         RecalculateTimecodes();
         TimelineRefreshRequested?.Invoke();
+
+        if (IsPreviewActive && SelectedSequence.HasValue && PlayheadSeconds >= 0)
+            _preview.ScrubToTime(GetCamerasAsList(), SelectedSequence.Value, PlayheadSeconds);
     }
 
     private void RequestTimelineRefresh()
@@ -766,17 +711,6 @@ public partial class FlybyManagerViewModel : ObservableObject
         }
 
         AvailableSequences.Insert(insertIndex, sequence);
-    }
-
-    private void SwapCameraNumbers(int indexA, int indexB)
-    {
-        var camA = CameraList[indexA].Camera;
-        var camB = CameraList[indexB].Camera;
-
-        (camA.Number, camB.Number) = (camB.Number, camA.Number);
-
-        _editor.ObjectChange(camA, ObjectChangeType.Change);
-        _editor.ObjectChange(camB, ObjectChangeType.Change);
     }
 
     private void RenumberSequence(ushort sequence, FlybyCameraInstance? excludeFromEvent = null)

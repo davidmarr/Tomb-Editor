@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Windows.Threading;
 using TombLib.Forms;
 using TombLib.LevelData;
@@ -11,22 +10,17 @@ namespace TombEditor.Controls.FlybyManager;
 
 /// <summary>
 /// Manages flyby camera preview and playback lifecycle.
-/// Communicates with Panel3D through Editor events.
+/// Scrubbing and playback are backed by a pre-calculated <see cref="FlybySequenceCache"/>;
+/// all time-to-frame mapping is a simple array lookup with linear interpolation.
 /// </summary>
 public class FlybyPreviewController : IDisposable
 {
     private readonly Editor _editor;
-    private readonly Dispatcher _dispatcher;
 
-    private FlybyPreview? _scrubPreview;
+    private FlybySequenceCache? _cache;
     private FlybyPreview? _playbackPreview;
     private DispatcherTimer? _playbackTimer;
     private bool _isChangingPreview;
-
-    // Wall-clock timing for steady playhead advancement, decoupled from spline parameter.
-    private readonly Stopwatch _playbackClock = new();
-    private float _playbackStartOffset;
-    private IReadOnlyList<FlybyCameraInstance>? _playbackCameras;
 
     public bool IsPreviewActive => _editor.CameraPreviewMode != CameraPreviewType.None;
     public bool IsPlaying { get; private set; }
@@ -42,10 +36,9 @@ public class FlybyPreviewController : IDisposable
     /// </summary>
     public event Action? PlayheadChanged;
 
-    public FlybyPreviewController(Editor editor, Dispatcher dispatcher)
+    public FlybyPreviewController(Editor editor)
     {
         _editor = editor;
-        _dispatcher = dispatcher;
     }
 
     public void EnterPreview(FlybyCameraInstance? camera)
@@ -106,32 +99,21 @@ public class FlybyPreviewController : IDisposable
             _isChangingPreview = false;
         }
 
-        // Create a dedicated playback preview that runs the full spline advance
-        // state machine (including smooth ease-in/out for TombEngine targets).
         var camera = _editor.GetViewportCamera?.Invoke();
 
         if (camera == null)
             return;
 
-        _playbackPreview?.Dispose();
-        _playbackPreview = new FlybyPreview(_editor.Level, sequence, camera);
+        EnsureCache(cameras, sequence);
 
-        if (_playbackPreview.IsFinished)
-        {
-            _playbackPreview.Dispose();
-            _playbackPreview = null;
+        if (_cache == null || !_cache.IsValid)
             return;
-        }
 
-        // Seek to the current playhead position if resuming.
-        if (PlayheadSeconds > 0)
-            _playbackPreview.SeekToTime(cameras, PlayheadSeconds);
+        _playbackPreview?.Dispose();
+        _playbackPreview = new FlybyPreview(_cache, camera);
 
-        _playbackPreview.BeginExternalUpdate();
-
-        _playbackStartOffset = Math.Max(0f, PlayheadSeconds);
-        _playbackCameras = cameras;
-        _playbackClock.Restart();
+        float startOffset = PlayheadSeconds > 0 ? _cache.TimelineToPlaybackTime(PlayheadSeconds) : 0;
+        _playbackPreview.BeginExternalUpdate(startOffset);
 
         IsPlaying = true;
 
@@ -157,9 +139,6 @@ public class FlybyPreviewController : IDisposable
         _playbackPreview?.Dispose();
         _playbackPreview = null;
 
-        _playbackClock.Reset();
-        _playbackCameras = null;
-
         IsPlaying = false;
 
         StateChanged?.Invoke();
@@ -176,14 +155,11 @@ public class FlybyPreviewController : IDisposable
         if (!IsPreviewActive)
             EnterPreview(null);
 
-        EnsureScrubPreview(sequence);
+        EnsureCache(cameras, sequence);
 
-        float totalDuration = FlybySequenceData.GetTotalDuration(cameras);
-
-        if (_scrubPreview != null && totalDuration > 0 && cameras.Count >= 2)
+        if (_cache != null && _cache.IsValid)
         {
-            float progress = Math.Clamp(FlybySequenceData.TimeToProgress(cameras, timeSeconds), 0, 1.0f);
-            var frame = _scrubPreview.GetFrameAtProgress(progress);
+            var frame = _cache.SampleAtTime(timeSeconds);
             _editor.CameraPreviewScrub(frame);
         }
         else if (cameras.Count > 0)
@@ -210,8 +186,6 @@ public class FlybyPreviewController : IDisposable
             _playbackTimer = null;
             _playbackPreview?.Dispose();
             _playbackPreview = null;
-            _playbackClock.Reset();
-            _playbackCameras = null;
             IsPlaying = false;
         }
 
@@ -221,22 +195,25 @@ public class FlybyPreviewController : IDisposable
         PlayheadChanged?.Invoke();
     }
 
-    public void InvalidateScrubPreview()
+    public void InvalidateCache()
     {
-        _scrubPreview?.Dispose();
-        _scrubPreview = null;
+        _cache = null;
     }
 
-    public FlybyPreview.FrameState? GetInterpolatedFrame(ushort sequence, float progress)
+    /// <summary>
+    /// Returns the interpolated frame at the given time in seconds (for camera insertion).
+    /// </summary>
+    public FlybyPreview.FrameState? GetInterpolatedFrameAtTime(
+        IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence, float timeSeconds)
     {
-        EnsureScrubPreview(sequence);
-        return _scrubPreview?.GetFrameAtProgress(progress);
+        EnsureCache(cameras, sequence);
+        return _cache?.SampleAtTime(timeSeconds);
     }
 
     public void Dispose()
     {
         StopPlayback();
-        InvalidateScrubPreview();
+        InvalidateCache();
 
         if (IsPreviewActive)
         {
@@ -254,7 +231,6 @@ public class FlybyPreviewController : IDisposable
             return;
         }
 
-        // Detect external preview exit.
         if (_editor.CameraPreviewMode == CameraPreviewType.None)
         {
             OnExternalPreviewExit();
@@ -263,39 +239,26 @@ public class FlybyPreviewController : IDisposable
 
         var frame = _playbackPreview.Update();
 
-        float elapsed = _playbackStartOffset + (float)_playbackClock.Elapsed.TotalSeconds;
-        float totalDuration = _playbackCameras != null ? FlybySequenceData.GetTotalDuration(_playbackCameras) : 0;
-
-        if (frame.Finished || elapsed >= totalDuration)
+        if (frame.Finished)
         {
             StopPlayback();
-            PlayheadSeconds = totalDuration;
+            PlayheadSeconds = _cache?.TotalDuration ?? 0;
             PlayheadChanged?.Invoke();
             return;
         }
 
         _editor.CameraPreviewScrub(frame);
 
-        PlayheadSeconds = elapsed;
+        PlayheadSeconds = _playbackPreview.GetCurrentTimeSeconds();
         PlayheadChanged?.Invoke();
     }
 
-    private void EnsureScrubPreview(ushort sequence)
+    private void EnsureCache(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence)
     {
-        if (_scrubPreview != null || _editor.Level == null)
+        if (_cache != null || _editor.Level == null)
             return;
 
-        var camera = _editor.GetViewportCamera?.Invoke();
-
-        if (camera == null)
-            return;
-
-        _scrubPreview = new FlybyPreview(_editor.Level, sequence, camera);
-
-        if (_scrubPreview.IsFinished)
-        {
-            _scrubPreview.Dispose();
-            _scrubPreview = null;
-        }
+        bool useSmoothPause = _editor.Level.Settings.GameVersion == TRVersion.Game.TombEngine;
+        _cache = new FlybySequenceCache(cameras, useSmoothPause);
     }
 }

@@ -39,6 +39,19 @@ public static class FlybySequenceData
         return result;
     }
 
+    public static float GetFreezeDuration(FlybyCameraInstance camera)
+    {
+        if ((camera.Flags & FlagFreezeCamera) == 0)
+            return 0;
+
+        // When the cut flag is set, Timer holds the target camera index, not freeze frames.
+        if ((camera.Flags & FlagCameraCut) != 0)
+            return 0;
+
+        int frames = camera.Timer >> 3;
+        return frames > 0 ? frames / GameTickRate : 0;
+    }
+
     public static float GetSegmentDuration(FlybyCameraInstance camera)
     {
         float speed = camera.Speed;
@@ -53,8 +66,13 @@ public static class FlybySequenceData
     {
         float time = 0;
 
-        for (int i = 0; i < index && i < cameras.Count - 1; i++)
-            time += GetSegmentDuration(cameras[i]);
+        for (int i = 0; i < index && i < cameras.Count; i++)
+        {
+            if (i < cameras.Count - 1)
+                time += GetSegmentDuration(cameras[i]);
+
+            time += GetFreezeDuration(cameras[i]);
+        }
 
         return time;
     }
@@ -66,8 +84,13 @@ public static class FlybySequenceData
 
         float total = 0;
 
-        for (int i = 0; i < cameras.Count - 1; i++)
-            total += GetSegmentDuration(cameras[i]);
+        for (int i = 0; i < cameras.Count; i++)
+        {
+            if (i < cameras.Count - 1)
+                total += GetSegmentDuration(cameras[i]);
+
+            total += GetFreezeDuration(cameras[i]);
+        }
 
         return total;
     }
@@ -79,6 +102,7 @@ public static class FlybySequenceData
 
     /// <summary>
     /// Converts a time in seconds to a normalized progress (0-1) on the spline.
+    /// Freeze regions are skipped: scrubbing into a freeze zone maps to the camera boundary.
     /// </summary>
     public static float TimeToProgress(IReadOnlyList<FlybyCameraInstance> cameras, float timeSeconds)
     {
@@ -99,6 +123,14 @@ public static class FlybySequenceData
             }
 
             accumulatedTime += segmentDuration;
+
+            // Skip freeze region at camera i+1.
+            float freeze = GetFreezeDuration(cameras[i + 1]);
+
+            if (accumulatedTime + freeze > timeSeconds)
+                return (float)(i + 1) / segmentCount;
+
+            accumulatedTime += freeze;
         }
 
         return 1.0f;

@@ -123,6 +123,7 @@ public class FlybyTimelineControl : Control
         public bool IsDuplicate;
         public bool IsSelected;
         public bool HasCameraCut;
+        public bool IsInCutBypass;
         public float CutBypassDuration;
         public float SegmentDuration;
         public float RelativeSpeed;
@@ -315,8 +316,24 @@ public class FlybyTimelineControl : Control
         if (timeSeconds < seqStart || timeSeconds > seqEnd)
             return -1;
 
+        // Return no speed for time within any cut bypass region.
+        for (int j = 0; j < _markers.Count; j++)
+        {
+            if (_markers[j].HasCameraCut && _markers[j].CutBypassDuration > 0)
+            {
+                float cutStart = _markers[j].TimeSeconds;
+                float cutEnd = cutStart + _markers[j].CutBypassDuration;
+
+                if (timeSeconds >= cutStart && timeSeconds <= cutEnd)
+                    return -1;
+            }
+        }
+
         for (int i = 0; i < _markers.Count - 1; i++)
         {
+            if (_markers[i].IsInCutBypass)
+                continue;
+
             float segStart = _markers[i].TimeSeconds;
             float segEnd = segStart + _markers[i].SegmentDuration;
 

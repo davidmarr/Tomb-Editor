@@ -173,12 +173,30 @@ public partial class FlybyTimelineView : UserControl
         var selectedIndices = _viewModel.GetSelectedIndices();
         var markers = new List<FlybyTimelineControl.TimelineMarker>();
 
-        // Pre-compute normalized speed range for the speed curve.
+        // Determine which cameras have their outgoing segments bypassed by a cut.
+        var cutBypassed = new HashSet<int>();
+
+        for (int i = 0; i < cameras.Count; i++)
+        {
+            if (_viewModel.GetCameraCutFlag(i))
+            {
+                int target = cameras[i].Camera.Timer;
+
+                for (int j = i; j < target && j < cameras.Count - 1; j++)
+                    cutBypassed.Add(j);
+            }
+        }
+
+        // Pre-compute normalized speed range for the speed curve,
+        // excluding cameras whose outgoing segments are bypassed by cuts.
         float minSpeed = float.MaxValue;
         float maxSpeed = float.MinValue;
 
         for (int i = 0; i < cameras.Count - 1; i++)
         {
+            if (cutBypassed.Contains(i))
+                continue;
+
             float s = cameras[i].Camera.Speed;
 
             if (s < minSpeed)
@@ -186,6 +204,12 @@ public partial class FlybyTimelineView : UserControl
 
             if (s > maxSpeed)
                 maxSpeed = s;
+        }
+
+        if (minSpeed > maxSpeed)
+        {
+            minSpeed = 0;
+            maxSpeed = 0;
         }
 
         float speedRange = cameras.Count > 1 ? maxSpeed - minSpeed : 0;
@@ -204,6 +228,7 @@ public partial class FlybyTimelineView : UserControl
                 IsDuplicate = item.IsDuplicateIndex,
                 IsSelected = selectedIndices.Contains(i),
                 HasCameraCut = _viewModel.GetCameraCutFlag(i),
+                IsInCutBypass = cutBypassed.Contains(i),
                 CutBypassDuration = _viewModel.GetCutBypassDuration(i),
                 SegmentDuration = i < cameras.Count - 1
                     ? FlybySequenceData.GetSegmentDuration(item.Camera)
