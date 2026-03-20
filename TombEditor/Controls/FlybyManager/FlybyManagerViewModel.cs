@@ -614,6 +614,10 @@ public partial class FlybyManagerViewModel : ObservableObject
 
         _preview.InvalidateScrubPreview();
         RecalculateTimecodes();
+
+        // Update preview to reflect the changed timings.
+        if (IsPreviewActive && SelectedSequence.HasValue && PlayheadSeconds >= 0)
+            _preview.ScrubToTime(GetCamerasAsList(), SelectedSequence.Value, PlayheadSeconds);
     }
 
     #endregion Preview and playback

@@ -24,6 +24,7 @@ namespace TombEditor.Forms
         private float _originalRotationY;
 
         private bool _isLoading;
+        private bool _ownedPreview;
 
         public FormFlybyCamera(FlybyCameraInstance flyByCamera)
         {
@@ -95,17 +96,24 @@ namespace TombEditor.Forms
             numRotationX.ValueChanged += PreviewParameter_Changed;
             numRotationY.ValueChanged += PreviewParameter_Changed;
 
-            // Start live camera preview.
+            // Start live camera preview. Only toggle if preview is not already active
+            // (e.g. flyby timeline may have entered preview before this form was opened).
             if (!_editor.FlyMode)
             {
-                _editor.ToggleCameraPreview(true);
+                if (_editor.CameraPreviewMode == CameraPreviewType.None)
+                {
+                    _editor.ToggleCameraPreview(true);
+                    _ownedPreview = true;
+                }
+
                 _editor.CameraPreviewUpdated(_flyByCamera);
             }
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            if (_editor.CameraPreviewMode != CameraPreviewType.None)
+            // Only exit the preview mode if we were the one who entered it.
+            if (_ownedPreview && _editor.CameraPreviewMode != CameraPreviewType.None)
                 _editor.ToggleCameraPreview(false);
 
             base.OnFormClosed(e);
