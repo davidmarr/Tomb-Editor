@@ -76,6 +76,7 @@ public class FlybyTimelineControl : Control
     public event Action<int>? MarkerDoubleClicked;
     public event Action<List<int>>? RangeSelected;
     public event Action<float>? ScrubRequested;
+    public event Action? PlayStopRequested;
 
     static FlybyTimelineControl()
     {
@@ -110,6 +111,7 @@ public class FlybyTimelineControl : Control
         public bool IsDuplicate;
         public bool IsSelected;
         public bool HasCameraCut;
+        public float CutBypassDuration;
         public bool IsFrozen;
         public float FreezeDuration;
         public float SegmentDuration;
@@ -250,8 +252,12 @@ public class FlybyTimelineControl : Control
             // Draw camera cut region as diagonal hatch lines.
             if (marker.HasCameraCut)
             {
+                float bypassEnd = marker.CutBypassDuration > 0
+                    ? marker.TimeSeconds + marker.CutBypassDuration
+                    : marker.TimeSeconds + marker.SegmentDuration;
+
                 double cutLeft = Math.Max(0, startX);
-                double cutRight = Math.Min(width, endX);
+                double cutRight = Math.Min(width, TimeToPixel(bypassEnd, width));
 
                 if (cutRight > cutLeft)
                     DrawDiagonalHatch(dc, cutLeft, trackY, cutRight - cutLeft, TrackHeight);
@@ -463,6 +469,17 @@ public class FlybyTimelineControl : Control
         _visibleEndSeconds = _totalDurationSeconds * 1.1;
 
         InvalidateVisual();
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+
+        if (e.Key == Key.Space)
+        {
+            PlayStopRequested?.Invoke();
+            e.Handled = true;
+        }
     }
 
     #endregion Input handling

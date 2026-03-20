@@ -45,6 +45,7 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.MarkerDragged += OnTimelineMarkerDragged;
         timelineControl.RangeSelected += OnTimelineRangeSelected;
         timelineControl.ScrubRequested += OnTimelineScrubRequested;
+        timelineControl.PlayStopRequested += OnTimelinePlayStopRequested;
 
         editor.EditorEventRaised += OnEditorEventRaised;
 
@@ -67,6 +68,7 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.MarkerDragged -= OnTimelineMarkerDragged;
         timelineControl.RangeSelected -= OnTimelineRangeSelected;
         timelineControl.ScrubRequested -= OnTimelineScrubRequested;
+        timelineControl.PlayStopRequested -= OnTimelinePlayStopRequested;
 
         _viewModel.Cleanup();
         _viewModel = null;
@@ -182,6 +184,7 @@ public partial class FlybyTimelineView : UserControl
                 IsDuplicate = item.IsDuplicateIndex,
                 IsSelected = selectedIndices.Contains(i),
                 HasCameraCut = _viewModel.GetCameraCutFlag(i),
+                CutBypassDuration = _viewModel.GetCutBypassDuration(i),
                 IsFrozen = _viewModel.GetCameraFreezeInfo(i, out float freezeDuration),
                 FreezeDuration = freezeDuration,
                 SegmentDuration = i < cameras.Count - 1
@@ -276,6 +279,12 @@ public partial class FlybyTimelineView : UserControl
     private void OnTimelineScrubRequested(float timeSeconds)
     {
         _viewModel?.ScrubToTime(timeSeconds);
+    }
+
+    private void OnTimelinePlayStopRequested()
+    {
+        if (_viewModel?.IsPreviewActive == true)
+            _viewModel.TogglePlayStopCommand.Execute(null);
     }
 
     #endregion Timeline event handlers

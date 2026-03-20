@@ -80,7 +80,7 @@
                 Width="68"
                 VerticalAlignment="Center"
                 FontFamily="Consolas"
-                FontSize="16"
+                FontSize="14"
                 Foreground="#FFB4B4B4"
                 Text="{Binding PlayheadTimecode}"
                 TextAlignment="Center"

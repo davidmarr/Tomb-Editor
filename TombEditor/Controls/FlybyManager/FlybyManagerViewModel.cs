@@ -646,6 +646,32 @@ public partial class FlybyManagerViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Returns the duration (in seconds) of the bypassed region for a camera cut at the given index.
+    /// When the camera cut flag is set, Timer holds the target camera index. The bypassed region spans
+    /// from the cut camera's timecode to the target camera's timecode.
+    /// </summary>
+    public float GetCutBypassDuration(int index)
+    {
+        if (index < 0 || index >= CameraList.Count)
+            return 0;
+
+        var cam = CameraList[index].Camera;
+
+        if ((cam.Flags & FlybySequenceData.FlagCameraCut) == 0)
+            return 0;
+
+        int targetIndex = cam.Timer;
+
+        if (targetIndex <= index || targetIndex >= CameraList.Count)
+            return 0;
+
+        var cameras = GetCamerasAsList();
+        float fromTime = FlybySequenceData.GetTimecodeForCamera(cameras, index);
+        float toTime = FlybySequenceData.GetTimecodeForCamera(cameras, targetIndex);
+        return Math.Max(0, toTime - fromTime);
+    }
+
+    /// <summary>
     /// Returns true if the camera at the given index has the freeze flag (bit 8) and a valid timer.
     /// Outputs the freeze duration in seconds.
     /// </summary>
