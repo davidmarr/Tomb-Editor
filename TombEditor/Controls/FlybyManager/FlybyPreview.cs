@@ -67,6 +67,10 @@ public class FlybyPreview
 	private readonly float _speedMultiplier;
 	private readonly bool _useSmoothPause;
 
+	// Per-segment timing for playhead conversion.
+	private readonly float[] _segmentDurations;
+	private readonly float[] _segmentStartTimes;
+
 	// Spline parameter: t in [0, _numSegments].
 	private float _currentT;
 	private int _currentSegment;
@@ -116,6 +120,8 @@ public class FlybyPreview
 			_rollKnots = _fovKnots = _speedKnots = Array.Empty<float>();
 			_cameraFlags = Array.Empty<ushort>();
 			_cameraTimers = Array.Empty<short>();
+			_segmentDurations = Array.Empty<float>();
+			_segmentStartTimes = Array.Empty<float>();
 
 			return;
 		}
@@ -137,6 +143,22 @@ public class FlybyPreview
 			_cameraTimers[i] = flybyCameras[i].Timer;
 		}
 
+		_segmentDurations = new float[_numSegments];
+		_segmentStartTimes = new float[_numCameras];
+		float accTime = 0;
+
+		for (int i = 0; i < _numCameras; i++)
+		{
+			_segmentStartTimes[i] = accTime;
+
+			if (i < _numSegments)
+			{
+				float speed = Math.Max(flybyCameras[i].Speed, 0.001f);
+				_segmentDurations[i] = 1.0f / (speed * SpeedScale);
+				accTime += _segmentDurations[i];
+			}
+		}
+
 		LastFrame = GetFrameAtTimePoint(0);
 	}
 
@@ -152,6 +174,8 @@ public class FlybyPreview
 		_rollKnots = _fovKnots = _speedKnots = Array.Empty<float>();
 		_cameraFlags = Array.Empty<ushort>();
 		_cameraTimers = Array.Empty<short>();
+		_segmentDurations = Array.Empty<float>();
+		_segmentStartTimes = Array.Empty<float>();
 	}
 
 	public void BeginSequence(EventHandler timerTick)
@@ -161,6 +185,49 @@ public class FlybyPreview
 		_sequenceTimer = new Timer { Interval = 16 };
 		_sequenceTimer.Tick += timerTick;
 		_sequenceTimer.Start();
+	}
+
+	/// <summary>
+	/// Starts the internal stopwatch for external update ticking (without creating a timer).
+	/// </summary>
+	public void BeginExternalUpdate()
+	{
+		_stopwatch.Restart();
+		_lastElapsed = 0;
+	}
+
+	/// <summary>
+	/// Seeks to a specific time position on the timeline (in seconds) and resets pause state.
+	/// </summary>
+	public void SeekToTime(IReadOnlyList<FlybyCameraInstance> cameras, float timeSeconds)
+	{
+		if (_numSegments <= 0)
+			return;
+
+		float progress = FlybySequenceData.TimeToProgress(cameras, timeSeconds);
+		_currentT = Math.Clamp(progress, 0, 1) * _numSegments;
+		_currentSegment = Math.Min((int)_currentT, _numSegments - 1);
+
+		_pausePhase = PausePhase.None;
+		_pauseSpeedFactor = 1.0f;
+		_pauseEaseProgress = 0;
+		_isPauseComplete = false;
+		_freezeRemaining = 0;
+		_frozenAtBoundary = false;
+	}
+
+	/// <summary>
+	/// Returns the approximate timeline time in seconds corresponding to the current spline position.
+	/// </summary>
+	public float GetCurrentTimeSeconds()
+	{
+		if (_numSegments <= 0)
+			return 0;
+
+		int seg = Math.Clamp((int)_currentT, 0, _numSegments - 1);
+		float localT = Math.Clamp(_currentT - seg, 0, 1);
+
+		return _segmentStartTimes[seg] + localT * _segmentDurations[seg];
 	}
 
 	public void Stop()
@@ -364,8 +431,10 @@ public class FlybyPreview
 
 	private FrameState UpdateWithSmoothPause(float deltaTime)
 	{
-		float currentSpeed = CatmullRomSpline.Evaluate(_currentT, _speedKnots);
-		float speedPerSec = currentSpeed * _speedMultiplier * SpeedScale;
+		float segRate = _currentSegment < _segmentDurations.Length && _segmentDurations[_currentSegment] > 0
+			? 1.0f / _segmentDurations[_currentSegment]
+			: 0;
+		float speedPerSec = segRate * _speedMultiplier;
 		float localAlpha = _currentT - _currentSegment;
 
 		TriggerSmoothPauseIfNeeded(localAlpha, speedPerSec);
@@ -505,8 +574,10 @@ public class FlybyPreview
 
 	private void AdvancePosition(float deltaTime, float speedFactor)
 	{
-		float currentSpeed = CatmullRomSpline.Evaluate(_currentT, _speedKnots);
-		_currentT += currentSpeed * _speedMultiplier * deltaTime * SpeedScale * speedFactor;
+		if (_currentSegment >= _segmentDurations.Length || _segmentDurations[_currentSegment] <= 0)
+			return;
+
+		_currentT += _speedMultiplier * deltaTime * speedFactor / _segmentDurations[_currentSegment];
 	}
 
 	private bool ProcessCutToCam(ushort flags, short timer)

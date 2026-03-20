@@ -49,24 +49,12 @@ public static class FlybySequenceData
         return 1.0f / (speed * FlybyPreview.SpeedScale);
     }
 
-    public static float GetFreezeDuration(FlybyCameraInstance camera)
-    {
-        if ((camera.Flags & FlagFreezeCamera) == 0 || camera.Timer <= 0)
-            return 0;
-
-        int gameFrames = Math.Max(0, camera.Timer >> 3);
-        return gameFrames / GameTickRate;
-    }
-
     public static float GetTimecodeForCamera(IReadOnlyList<FlybyCameraInstance> cameras, int index)
     {
         float time = 0;
 
         for (int i = 0; i < index && i < cameras.Count - 1; i++)
-        {
             time += GetSegmentDuration(cameras[i]);
-            time += GetFreezeDuration(cameras[i]);
-        }
 
         return time;
     }
@@ -79,10 +67,7 @@ public static class FlybySequenceData
         float total = 0;
 
         for (int i = 0; i < cameras.Count - 1; i++)
-        {
             total += GetSegmentDuration(cameras[i]);
-            total += GetFreezeDuration(cameras[i]);
-        }
 
         return total;
     }
@@ -105,18 +90,6 @@ public static class FlybySequenceData
 
         for (int i = 0; i < segmentCount; i++)
         {
-            // Process freeze at camera i (camera pauses at its own position).
-            float freezeSeconds = GetFreezeDuration(cameras[i]);
-
-            if (freezeSeconds > 0)
-            {
-                if (accumulatedTime + freezeSeconds > timeSeconds)
-                    return (float)i / segmentCount;
-
-                accumulatedTime += freezeSeconds;
-            }
-
-            // Traverse segment from camera i to camera i+1.
             float segmentDuration = GetSegmentDuration(cameras[i]);
 
             if (accumulatedTime + segmentDuration > timeSeconds)

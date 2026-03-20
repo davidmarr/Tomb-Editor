@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Windows.Threading;
 using TombLib.Forms;
 using TombLib.LevelData;
@@ -18,11 +19,14 @@ public class FlybyPreviewController : IDisposable
     private readonly Dispatcher _dispatcher;
 
     private FlybyPreview? _scrubPreview;
+    private FlybyPreview? _playbackPreview;
     private DispatcherTimer? _playbackTimer;
-    private DateTime _playbackStartTime;
-    private float _playbackStartOffset;
     private bool _isChangingPreview;
-    private int _lastCutCameraIndex = -1;
+
+    // Wall-clock timing for steady playhead advancement, decoupled from spline parameter.
+    private readonly Stopwatch _playbackClock = new();
+    private float _playbackStartOffset;
+    private IReadOnlyList<FlybyCameraInstance>? _playbackCameras;
 
     public bool IsPreviewActive => _editor.CameraPreviewMode != CameraPreviewType.None;
     public bool IsPlaying { get; private set; }
@@ -102,25 +106,41 @@ public class FlybyPreviewController : IDisposable
             _isChangingPreview = false;
         }
 
-        EnsureScrubPreview(sequence);
+        // Create a dedicated playback preview that runs the full spline advance
+        // state machine (including smooth ease-in/out for TombEngine targets).
+        var camera = _editor.GetViewportCamera?.Invoke();
 
-        if (_scrubPreview == null)
+        if (camera == null)
             return;
 
-        IsPlaying = true;
-        _playbackStartOffset = PlayheadSeconds > 0 ? PlayheadSeconds : 0;
-        _playbackStartTime = DateTime.UtcNow;
-        _lastCutCameraIndex = -1;
+        _playbackPreview?.Dispose();
+        _playbackPreview = new FlybyPreview(_editor.Level, sequence, camera);
 
-        // Capture cameras for the playback tick closure.
-        var playbackCameras = cameras;
+        if (_playbackPreview.IsFinished)
+        {
+            _playbackPreview.Dispose();
+            _playbackPreview = null;
+            return;
+        }
+
+        // Seek to the current playhead position if resuming.
+        if (PlayheadSeconds > 0)
+            _playbackPreview.SeekToTime(cameras, PlayheadSeconds);
+
+        _playbackPreview.BeginExternalUpdate();
+
+        _playbackStartOffset = Math.Max(0f, PlayheadSeconds);
+        _playbackCameras = cameras;
+        _playbackClock.Restart();
+
+        IsPlaying = true;
 
         _playbackTimer = new DispatcherTimer(DispatcherPriority.Render)
         {
             Interval = TimeSpan.FromMilliseconds(16)
         };
 
-        _playbackTimer.Tick += (s, e) => OnPlaybackTick(playbackCameras);
+        _playbackTimer.Tick += (s, e) => OnPlaybackTick();
         _playbackTimer.Start();
 
         StateChanged?.Invoke();
@@ -133,6 +153,13 @@ public class FlybyPreviewController : IDisposable
 
         _playbackTimer?.Stop();
         _playbackTimer = null;
+
+        _playbackPreview?.Dispose();
+        _playbackPreview = null;
+
+        _playbackClock.Reset();
+        _playbackCameras = null;
+
         IsPlaying = false;
 
         StateChanged?.Invoke();
@@ -181,6 +208,10 @@ public class FlybyPreviewController : IDisposable
         {
             _playbackTimer?.Stop();
             _playbackTimer = null;
+            _playbackPreview?.Dispose();
+            _playbackPreview = null;
+            _playbackClock.Reset();
+            _playbackCameras = null;
             IsPlaying = false;
         }
 
@@ -215,9 +246,9 @@ public class FlybyPreviewController : IDisposable
         }
     }
 
-    private void OnPlaybackTick(IReadOnlyList<FlybyCameraInstance> cameras)
+    private void OnPlaybackTick()
     {
-        if (_scrubPreview == null)
+        if (_playbackPreview == null)
         {
             StopPlayback();
             return;
@@ -230,10 +261,12 @@ public class FlybyPreviewController : IDisposable
             return;
         }
 
-        float elapsed = _playbackStartOffset + (float)(DateTime.UtcNow - _playbackStartTime).TotalSeconds;
-        float totalDuration = FlybySequenceData.GetTotalDuration(cameras);
+        var frame = _playbackPreview.Update();
 
-        if (elapsed >= totalDuration)
+        float elapsed = _playbackStartOffset + (float)_playbackClock.Elapsed.TotalSeconds;
+        float totalDuration = _playbackCameras != null ? FlybySequenceData.GetTotalDuration(_playbackCameras) : 0;
+
+        if (frame.Finished || elapsed >= totalDuration)
         {
             StopPlayback();
             PlayheadSeconds = totalDuration;
@@ -241,30 +274,6 @@ public class FlybyPreviewController : IDisposable
             return;
         }
 
-        // Handle camera cut: detect when elapsed crosses a camera boundary with CUT flag.
-        for (int i = 1; i < cameras.Count; i++)
-        {
-            float camTime = FlybySequenceData.GetTimecodeForCamera(cameras, i);
-
-            if (elapsed >= camTime && i != _lastCutCameraIndex &&
-                (cameras[i].Flags & FlybySequenceData.FlagCameraCut) != 0)
-            {
-                int targetIndex = cameras[i].Timer;
-
-                if (targetIndex >= 0 && targetIndex < cameras.Count)
-                {
-                    _lastCutCameraIndex = i;
-                    float targetTime = FlybySequenceData.GetTimecodeForCamera(cameras, targetIndex);
-                    elapsed = targetTime;
-                    _playbackStartOffset = targetTime;
-                    _playbackStartTime = DateTime.UtcNow;
-                    break;
-                }
-            }
-        }
-
-        float progress = FlybySequenceData.TimeToProgress(cameras, elapsed);
-        var frame = _scrubPreview.GetFrameAtProgress(progress);
         _editor.CameraPreviewScrub(frame);
 
         PlayheadSeconds = elapsed;

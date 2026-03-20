@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using TombLib.Utils;
 
 namespace TombEditor.Controls.FlybyManager;
 
@@ -31,20 +32,23 @@ public class FlybyTimelineControl : Control
     private static readonly Brush MarkerSelectedBrush = new SolidColorBrush(Color.FromRgb(230, 180, 60));
     private static readonly Brush MarkerErrorBrush = new SolidColorBrush(Color.FromRgb(230, 80, 80));
     private static readonly Brush TrackBrush = new SolidColorBrush(Color.FromRgb(49, 51, 53));
-    private static readonly Brush FreezeBrush = new SolidColorBrush(Color.FromArgb(100, 70, 70, 70));
     private static readonly Brush SelectionBrush;
     private static readonly Brush PlayheadBrush;
 
     private static readonly Pen GridLinePen = new(GridLineBrush, 1.0);
     private static readonly Pen MarkerOutlinePen = new(new SolidColorBrush(Color.FromRgb(178, 178, 178)), 2.0);
     private static readonly Pen CursorLinePen = new(new SolidColorBrush(Color.FromArgb(100, 178, 178, 178)), 1.0);
+    private static readonly Brush SpeedCurveFillBrush;
     private static readonly Pen PlayheadPen;
     private static readonly Pen CameraCutPen;
+    private static readonly Brush FreezeBrush;
 
     private static readonly Typeface DefaultTypeface = new("Segoe UI");
 
     // Timeline data: list of (timecodeSeconds, isDuplicate, isSelected) per camera.
     private List<TimelineMarker> _markers = new();
+
+
 
     // Zoom and scroll state.
     private double _visibleStartSeconds;
@@ -94,9 +98,17 @@ public class FlybyTimelineControl : Control
         PlayheadPen = new Pen(phBrush, 2.0);
         PlayheadPen.Freeze();
 
+        var scBrush = new SolidColorBrush(Color.FromArgb(64, 104, 151, 187));
+        scBrush.Freeze();
+        SpeedCurveFillBrush = scBrush;
+
         // Diagonal hatch pen for camera cuts.
         CameraCutPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 230, 80, 80)), 1.0);
         CameraCutPen.Freeze();
+
+        var freezeBrush = new SolidColorBrush(Color.FromArgb(64, 160, 160, 160));
+        freezeBrush.Freeze();
+        FreezeBrush = freezeBrush;
     }
 
     public FlybyTimelineControl()
@@ -112,9 +124,9 @@ public class FlybyTimelineControl : Control
         public bool IsSelected;
         public bool HasCameraCut;
         public float CutBypassDuration;
-        public bool IsFrozen;
-        public float FreezeDuration;
         public float SegmentDuration;
+        public float RelativeSpeed;
+        public float FreezeDurationSeconds;
     }
 
     /// <summary>
@@ -166,6 +178,9 @@ public class FlybyTimelineControl : Control
 
         // Draw segment regions (freeze and camera cut indicators).
         DrawSegmentRegions(dc, w, trackY);
+
+        // Draw relative speed curve behind markers.
+        DrawSpeedCurve(dc, w, trackY);
 
         // Draw markers.
         DrawMarkers(dc, w, trackY);
@@ -238,17 +253,6 @@ public class FlybyTimelineControl : Control
             double startX = TimeToPixel(marker.TimeSeconds, width);
             double endX = TimeToPixel(marker.TimeSeconds + marker.SegmentDuration, width);
 
-            // Draw freeze region as solid dark gray immediately after the marker.
-            if (marker.IsFrozen && marker.FreezeDuration > 0)
-            {
-                double freezeEndX = TimeToPixel(marker.TimeSeconds + marker.FreezeDuration, width);
-                double fLeft = Math.Max(0, startX);
-                double fRight = Math.Min(width, freezeEndX);
-
-                if (fRight > fLeft)
-                    dc.DrawRectangle(FreezeBrush, null, new Rect(fLeft, trackY, fRight - fLeft, TrackHeight));
-            }
-
             // Draw camera cut region as diagonal hatch lines.
             if (marker.HasCameraCut)
             {
@@ -260,12 +264,26 @@ public class FlybyTimelineControl : Control
                 double cutRight = Math.Min(width, TimeToPixel(bypassEnd, width));
 
                 if (cutRight > cutLeft)
-                    DrawDiagonalHatch(dc, cutLeft, trackY, cutRight - cutLeft, TrackHeight);
+                    DrawDiagonalHatch(dc, cutLeft, trackY, cutRight - cutLeft, TrackHeight, CameraCutPen);
             }
+        }
+
+        // Draw freeze region as a solid semi-transparent gray rectangle starting at each
+        // frozen camera's timecode and extending for the freeze duration.
+        for (int i = 0; i < _markers.Count; i++)
+        {
+            if (_markers[i].FreezeDurationSeconds <= 0)
+                continue;
+
+            double left = Math.Max(0, TimeToPixel(_markers[i].TimeSeconds, width));
+            double right = Math.Min(width, TimeToPixel(_markers[i].TimeSeconds + _markers[i].FreezeDurationSeconds, width));
+
+            if (right > left)
+                dc.DrawRectangle(FreezeBrush, null, new Rect(left, trackY, right - left, TrackHeight));
         }
     }
 
-    private void DrawDiagonalHatch(DrawingContext dc, double x, double y, double w, double h)
+    private void DrawDiagonalHatch(DrawingContext dc, double x, double y, double w, double h, Pen pen)
     {
         double spacing = 6.0;
         var clip = new RectangleGeometry(new Rect(x, y, w, h));
@@ -274,12 +292,125 @@ public class FlybyTimelineControl : Control
 
         for (double offset = -h; offset < w + h; offset += spacing)
         {
-            dc.DrawLine(CameraCutPen,
+            dc.DrawLine(pen,
                 new Point(x + offset, y + h),
                 new Point(x + offset + h, y));
         }
 
         dc.Pop();
+    }
+
+    // Returns the smoothstep-interpolated relative speed (0-1) for a given timeline time.
+    // Within each segment, speed is blended between the two endpoint camera speeds.
+    // Returns negative when the time is outside all movement spans.
+    private double GetSpeedAtTime(double timeSeconds)
+    {
+        if (_markers.Count < 2)
+            return -1;
+
+        float seqStart = _markers[0].TimeSeconds;
+        var lastSeg = _markers[_markers.Count - 2];
+        float seqEnd = lastSeg.TimeSeconds + lastSeg.SegmentDuration;
+
+        if (timeSeconds < seqStart || timeSeconds > seqEnd)
+            return -1;
+
+        for (int i = 0; i < _markers.Count - 1; i++)
+        {
+            float segStart = _markers[i].TimeSeconds;
+            float segEnd = segStart + _markers[i].SegmentDuration;
+
+            if (timeSeconds <= segEnd || i == _markers.Count - 2)
+            {
+                float duration = segEnd - segStart;
+                float t = duration > 0 ? (float)((timeSeconds - segStart) / duration) : 0;
+                t = Math.Clamp(t, 0, 1);
+                float smooth = t * t * (3 - 2 * t);
+                float speedA = _markers[i].RelativeSpeed;
+                float speedB = _markers[i + 1].RelativeSpeed;
+                return speedA + (speedB - speedA) * smooth;
+            }
+        }
+
+        return -1;
+    }
+
+    // Draws a filled speed waveform centred at the track's vertical midpoint.
+    // The fill is semi-transparent and mirrors above and below the centre line.
+    private void DrawSpeedCurve(DrawingContext dc, double width, double trackY)
+    {
+        if (_markers.Count < 2)
+            return;
+
+        const double MaxHalfAmplitude = TrackHeight / 2.0 - 1.5;
+        double centerY = trackY + TrackHeight / 2.0;
+        int sampleCount = Math.Max(2, (int)(width / 2.0));
+
+        // Collect visible sample spans (skipping gaps outside the sequence).
+        var spans = new List<(int Start, int End)>();
+        int spanStart = -1;
+
+        for (int i = 0; i <= sampleCount; i++)
+        {
+            double x = width * i / sampleCount;
+            double speed = GetSpeedAtTime(PixelToTime(x, width));
+
+            if (speed >= 0)
+            {
+                if (spanStart < 0)
+                    spanStart = i;
+            }
+            else if (spanStart >= 0)
+            {
+                spans.Add((spanStart, i - 1));
+                spanStart = -1;
+            }
+        }
+
+        if (spanStart >= 0)
+            spans.Add((spanStart, sampleCount));
+
+        if (spans.Count == 0)
+            return;
+
+        var geometry = new StreamGeometry();
+
+        using (var ctx = geometry.Open())
+        {
+            foreach (var (start, end) in spans)
+                DrawFilledWaveformSpan(ctx, width, centerY, sampleCount, start, end, MaxHalfAmplitude);
+        }
+
+        geometry.Freeze();
+        dc.DrawGeometry(SpeedCurveFillBrush, null, geometry);
+    }
+
+    private void DrawFilledWaveformSpan(StreamGeometryContext ctx, double width, double centerY,
+        int sampleCount, int start, int end, double maxHalf)
+    {
+        int count = end - start + 1;
+        var upper = new Point[count];
+        var lower = new Point[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            int step = start + i;
+            double x = width * step / sampleCount;
+            double speed = Math.Max(0, GetSpeedAtTime(PixelToTime(x, width)));
+            double half = Math.Max(1.0, speed * maxHalf);
+            upper[i] = new Point(x, centerY - half);
+            lower[i] = new Point(x, centerY + half);
+        }
+
+        // Begin at the first upper point, trace upper edge left-to-right,
+        // then lower edge right-to-left, forming a closed filled shape.
+        ctx.BeginFigure(upper[0], true, true);
+
+        for (int i = 1; i < count; i++)
+            ctx.LineTo(upper[i], true, false);
+
+        for (int i = count - 1; i >= 0; i--)
+            ctx.LineTo(lower[i], true, false);
     }
 
     private void DrawMarkers(DrawingContext dc, double width, double trackY)

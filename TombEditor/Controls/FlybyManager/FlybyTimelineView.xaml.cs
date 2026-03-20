@@ -173,10 +173,30 @@ public partial class FlybyTimelineView : UserControl
         var selectedIndices = _viewModel.GetSelectedIndices();
         var markers = new List<FlybyTimelineControl.TimelineMarker>();
 
+        // Pre-compute normalized speed range for the speed curve.
+        float minSpeed = float.MaxValue;
+        float maxSpeed = float.MinValue;
+
+        for (int i = 0; i < cameras.Count - 1; i++)
+        {
+            float s = cameras[i].Camera.Speed;
+
+            if (s < minSpeed)
+                minSpeed = s;
+
+            if (s > maxSpeed)
+                maxSpeed = s;
+        }
+
+        float speedRange = cameras.Count > 1 ? maxSpeed - minSpeed : 0;
+
         for (int i = 0; i < cameras.Count; i++)
         {
             var item = cameras[i];
             float timeSeconds = _viewModel.GetTimecodeForCamera(i);
+            float relativeSpeed = speedRange > 0.001f
+                ? (item.Camera.Speed - minSpeed) / speedRange
+                : 1.0f;
 
             markers.Add(new FlybyTimelineControl.TimelineMarker
             {
@@ -185,11 +205,11 @@ public partial class FlybyTimelineView : UserControl
                 IsSelected = selectedIndices.Contains(i),
                 HasCameraCut = _viewModel.GetCameraCutFlag(i),
                 CutBypassDuration = _viewModel.GetCutBypassDuration(i),
-                IsFrozen = _viewModel.GetCameraFreezeInfo(i, out float freezeDuration),
-                FreezeDuration = freezeDuration,
                 SegmentDuration = i < cameras.Count - 1
                     ? FlybySequenceData.GetSegmentDuration(item.Camera)
-                    : 0
+                    : 0,
+                RelativeSpeed = relativeSpeed,
+                FreezeDurationSeconds = _viewModel.GetFreezeDurationSeconds(i)
             });
         }
 

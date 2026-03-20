@@ -511,22 +511,9 @@ public partial class FlybyManagerViewModel : ObservableObject
     partial void OnCameraRotationXChanged(float value) => ApplyPropertyToCamera(c => c.RotationX = value);
     partial void OnCameraRotationYChanged(float value) => ApplyPropertyToCamera(c => c.RotationY = value);
 
-    partial void OnCameraTimerChanged(short value)
-    {
-        ApplyPropertyToCamera(c => c.Timer = value);
+    partial void OnCameraTimerChanged(short value) => ApplyPropertyToCamera(c => c.Timer = value);
 
-        // Timer affects duration when freeze camera flag is set.
-        if ((CameraFlags & FlybySequenceData.FlagFreezeCamera) != 0)
-            RequestTimelineRefresh();
-    }
-
-    partial void OnCameraFlagsChanged(ushort value)
-    {
-        ApplyPropertyToCamera(c => c.Flags = value);
-
-        if ((value & FlybySequenceData.FlagFreezeCamera) != 0 && CameraTimer > 0)
-            RequestTimelineRefresh();
-    }
+    partial void OnCameraFlagsChanged(ushort value) => ApplyPropertyToCamera(c => c.Flags = value);
 
     public bool GetFlag(int bit) => (CameraFlags & (1 << bit)) != 0;
 
@@ -645,6 +632,20 @@ public partial class FlybyManagerViewModel : ObservableObject
         return (CameraList[index].Camera.Flags & FlybySequenceData.FlagCameraCut) != 0;
     }
 
+    public float GetFreezeDurationSeconds(int index)
+    {
+        if (index < 0 || index >= CameraList.Count)
+            return 0;
+
+        var cam = CameraList[index].Camera;
+
+        if ((cam.Flags & FlybySequenceData.FlagFreezeCamera) == 0)
+            return 0;
+
+        int gameFrames = cam.Timer >> 3;
+        return gameFrames > 0 ? gameFrames / FlybySequenceData.GameTickRate : 0;
+    }
+
     /// <summary>
     /// Returns the duration (in seconds) of the bypassed region for a camera cut at the given index.
     /// When the camera cut flag is set, Timer holds the target camera index. The bypassed region spans
@@ -669,22 +670,6 @@ public partial class FlybyManagerViewModel : ObservableObject
         float fromTime = FlybySequenceData.GetTimecodeForCamera(cameras, index);
         float toTime = FlybySequenceData.GetTimecodeForCamera(cameras, targetIndex);
         return Math.Max(0, toTime - fromTime);
-    }
-
-    /// <summary>
-    /// Returns true if the camera at the given index has the freeze flag (bit 8) and a valid timer.
-    /// Outputs the freeze duration in seconds.
-    /// </summary>
-    public bool GetCameraFreezeInfo(int index, out float freezeDuration)
-    {
-        freezeDuration = 0;
-
-        if (index < 0 || index >= CameraList.Count)
-            return false;
-
-        var cam = CameraList[index].Camera;
-        freezeDuration = FlybySequenceData.GetFreezeDuration(cam);
-        return (cam.Flags & FlybySequenceData.FlagFreezeCamera) != 0 && cam.Timer > 0;
     }
 
     private void RecalculateTimecodes()
