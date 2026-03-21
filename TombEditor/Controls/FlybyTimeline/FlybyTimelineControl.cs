@@ -18,7 +18,6 @@ public class FlybyTimelineControl : Control
     private const double MarkerRadius = 6.375;
     private const double MinTickSpacing = 40.0;
     private const double TimeRulerHeight = 20.0;
-    private const double TrackPadding = 3.0;
 
     private static readonly Brush BackgroundBrush = new SolidColorBrush(Color.FromRgb(43, 43, 43));
     private static readonly Brush RulerBrush = new SolidColorBrush(Color.FromRgb(55, 55, 55));

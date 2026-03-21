@@ -16,7 +16,9 @@ namespace TombEditor.Controls.FlybyTimeline;
 public static class FlybySequenceHelper
 {
     public const float GameTickRate = 30.0f;
-    public const int FlagCameraCut = 1 << 7;
+    public const float SpeedScale   = ushort.MaxValue / 100 * GameTickRate / ushort.MaxValue;
+
+    public const int FlagCameraCut    = 1 << 7;
     public const int FlagFreezeCamera = 1 << 8;
 
     public static List<FlybyCameraInstance> GetCameras(Level level, ushort sequence)
@@ -59,7 +61,7 @@ public static class FlybySequenceHelper
         if (speed <= 0.001f)
             speed = 0.001f;
 
-        return 1.0f / (speed * FlybyPreview.SpeedScale);
+        return 1.0f / (speed * SpeedScale);
     }
 
     public static float GetTimecodeForCamera(IReadOnlyList<FlybyCameraInstance> cameras, int index)

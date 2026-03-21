@@ -26,9 +26,6 @@ public class FlybyPreview
 		public bool Finished;
 	}
 
-	// Speed conversion constant used by other modules.
-	public const float SpeedScale = ushort.MaxValue / 100 * 30.0f / ushort.MaxValue;
-
 	private readonly FlybySequenceCache _cache;
 	private readonly Stopwatch _stopwatch = new();
 	private Timer _sequenceTimer;

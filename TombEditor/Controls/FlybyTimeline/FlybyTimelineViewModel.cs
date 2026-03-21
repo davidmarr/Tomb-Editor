@@ -220,7 +220,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
                 if (gap < 0.1f)
                     gap = 1.0f;
 
-                cam.Speed = 1.0f / (gap * FlybyPreview.SpeedScale);
+                cam.Speed = 1.0f / (gap * FlybySequenceHelper.SpeedScale);
                 cam.Number = (ushort)cameras.Count;
 
                 // Use editor camera view for cameras appended beyond existing spline.
@@ -249,11 +249,11 @@ public partial class FlybyTimelineViewModel : ObservableObject
                 float rightDuration = Math.Max(segEnd - cursorTime, 0.01f);
 
                 // Adjust the previous camera's speed for the left portion.
-                cameras[prevIndex].Speed = 1.0f / (leftDuration * FlybyPreview.SpeedScale);
+                cameras[prevIndex].Speed = 1.0f / (leftDuration * FlybySequenceHelper.SpeedScale);
                 _editor.ObjectChange(cameras[prevIndex], ObjectChangeType.Change);
 
                 // Set new camera speed for the right portion.
-                cam.Speed = 1.0f / (rightDuration * FlybyPreview.SpeedScale);
+                cam.Speed = 1.0f / (rightDuration * FlybySequenceHelper.SpeedScale);
                 cam.Number = (ushort)insertIndex;
 
                 // Always place new camera at the current editor viewport position.
@@ -542,7 +542,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         float freezeAtPrev = GetFreezeDurationSeconds(cameraIndex - 1);
         float gap = Math.Max(newTimeSeconds - prevTime - freezeAtPrev, 0.01f);
 
-        float newSpeed = 1.0f / (gap * FlybyPreview.SpeedScale);
+        float newSpeed = 1.0f / (gap * FlybySequenceHelper.SpeedScale);
         CameraList[cameraIndex - 1].Camera.Speed = newSpeed;
 
         _editor.ObjectChange(CameraList[cameraIndex - 1].Camera, ObjectChangeType.Change);
