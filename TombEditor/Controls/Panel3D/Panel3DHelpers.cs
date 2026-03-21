@@ -11,27 +11,6 @@ namespace TombEditor.Controls.Panel3D
 {
     public partial class Panel3D
     {
-        private Room GetCurrentRoom()
-        {
-            foreach (var room in _editor.Level.Rooms)
-            {
-                if (room == null)
-                    continue;
-
-                Vector3 p = Camera.GetPosition();
-                BoundingBox b = room.WorldBoundingBox;
-
-                if (p.X >= b.Minimum.X && p.Y >= b.Minimum.Y && p.Z >= b.Minimum.Z &&
-                    p.X <= b.Maximum.X && p.Y <= b.Maximum.Y && p.Z <= b.Maximum.Z &&
-                    _editor.SelectedRoom.IsAlternate == room.IsAlternate)
-                {
-                    return room;
-                }
-            }
-
-            return null;
-        }
-
         private static int GetFloorHeight(Room room, Vector3 position)
         {
             int xSector = (int)Math.Max(0, Math.Min(room.NumXSectors - 1, Math.Floor(position.X / Level.SectorSizeUnit)));

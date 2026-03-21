@@ -15,12 +15,6 @@ namespace TombEditor.Controls.FlybyTimeline;
 /// </summary>
 public static class FlybySequenceHelper
 {
-    public const float GameTickRate = 30.0f;
-    public const float SpeedScale   = ushort.MaxValue / 100 * GameTickRate / ushort.MaxValue;
-
-    public const int FlagCameraCut    = 1 << 7;
-    public const int FlagFreezeCamera = 1 << 8;
-
     public static List<FlybyCameraInstance> GetCameras(Level level, ushort sequence)
     {
         return level.ExistingRooms
@@ -43,15 +37,15 @@ public static class FlybySequenceHelper
 
     public static float GetFreezeDuration(FlybyCameraInstance camera)
     {
-        if ((camera.Flags & FlagFreezeCamera) == 0)
+        if ((camera.Flags & FlybyConstants.FlagFreezeCamera) == 0)
             return 0;
 
         // When the cut flag is set, Timer holds the target camera index, not freeze frames.
-        if ((camera.Flags & FlagCameraCut) != 0)
+        if ((camera.Flags & FlybyConstants.FlagCameraCut) != 0)
             return 0;
 
         int frames = camera.Timer >> 3;
-        return frames > 0 ? frames / GameTickRate : 0;
+        return frames > 0 ? frames / FlybyConstants.GameTickRate : 0;
     }
 
     public static float GetSegmentDuration(FlybyCameraInstance camera)
@@ -61,7 +55,7 @@ public static class FlybySequenceHelper
         if (speed <= 0.001f)
             speed = 0.001f;
 
-        return 1.0f / (speed * SpeedScale);
+        return 1.0f / (speed * FlybyConstants.SpeedScale);
     }
 
     public static float GetTimecodeForCamera(IReadOnlyList<FlybyCameraInstance> cameras, int index)
@@ -201,23 +195,5 @@ public static class FlybySequenceHelper
         cam.RotationY = MathC.RadToDeg(yaw);
         cam.RotationX = -pitch * (180.0f / (float)Math.PI);
         cam.Fov = editorCamera.FieldOfView * (180.0f / (float)Math.PI);
-    }
-
-    /// <summary>
-    /// Finds the room that contains the given world position.
-    /// </summary>
-    public static Room? FindRoomAtPosition(Level level, Vector3 worldPos)
-    {
-        foreach (var room in level.ExistingRooms)
-        {
-            var bb = room.WorldBoundingBox;
-
-            if (worldPos.X >= bb.Minimum.X && worldPos.X <= bb.Maximum.X &&
-                worldPos.Y >= bb.Minimum.Y && worldPos.Y <= bb.Maximum.Y &&
-                worldPos.Z >= bb.Minimum.Z && worldPos.Z <= bb.Maximum.Z)
-                return room;
-        }
-
-        return null;
     }
 }

@@ -113,7 +113,7 @@ namespace TombEditor.Controls.Panel3D
 
             Camera.MoveCameraPlane(newCameraPos);
 
-            var room = GetCurrentRoom();
+            var room = _editor.GetRoomAtPosition(Camera.GetPosition());
 
             if (room != null)
                 _editor.SelectedRoom = room;
@@ -283,7 +283,7 @@ namespace TombEditor.Controls.Panel3D
             if (_editor.CameraPreviewMode != CameraPreviewType.Static || _flybyPreview == null)
                 return;
 
-            _flybyPreview.ApplyStaticFrame(Camera, flybyCamera);
+            _flybyPreview.SetFlybyStaticFrame(Camera, flybyCamera);
             Invalidate();
         }
 

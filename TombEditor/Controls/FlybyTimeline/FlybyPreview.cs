@@ -197,12 +197,11 @@ public class FlybyPreview
 	}
 
 	/// <summary>
-	/// Computes and stores the static frame for a flyby camera, then applies it to the given camera.
+	/// Computes and sets the static frame for a flyby camera, then applies it to the given camera.
 	/// </summary>
-	public void ApplyStaticFrame(Camera camera, FlybyCameraInstance flybyCamera)
+	public void SetFlybyStaticFrame(Camera camera, FlybyCameraInstance flybyCamera)
 	{
-		StaticFrame = GetFrameForCamera(flybyCamera);
-		ApplyFrame(camera, StaticFrame.Value);
+		SetStaticFrame(camera, GetFrameForCamera(flybyCamera));
 	}
 
 	/// <summary>

@@ -102,7 +102,7 @@ public class FlybySequenceCache
         for (int i = 0; i < numSegments; i++)
         {
             float speed = Math.Max(cameras[i].Speed, float.MinValue);
-            segmentDurations[i] = 1.0f / (speed * FlybySequenceHelper.SpeedScale);
+            segmentDurations[i] = 1.0f / (speed * FlybyConstants.SpeedScale);
         }
 
         // Pass 1: sequentially build the spline parameter timeline (fast, no spline math).

@@ -86,8 +86,6 @@ public class FlybyPreviewController : IDisposable
 
     public void StartPlayback(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence)
     {
-        const float DispatcherTimerInterval = 33;
-
         if (cameras.Count < 2)
         {
             _editor.SendMessage("Flyby sequence needs at least 2 cameras to play.", PopupType.Info);
@@ -121,7 +119,7 @@ public class FlybyPreviewController : IDisposable
 
         _playbackTimer = new DispatcherTimer(DispatcherPriority.Render)
         {
-            Interval = TimeSpan.FromMilliseconds(DispatcherTimerInterval)
+            Interval = TimeSpan.FromMilliseconds(FlybyConstants.PreviewTimerInterval)
         };
 
         _playbackTimer.Tick += (s, e) => OnPlaybackTick();

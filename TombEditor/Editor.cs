@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using TombEditor.Controls.FlybyTimeline;
@@ -932,6 +933,26 @@ namespace TombEditor
                 SelectedRooms = new[] { _level.Rooms[_level.Settings.LastSelectedRoom] };
             else
                 SelectedRooms = new[] { _level.Rooms.First(room => room != null) };
+        }
+
+        public Room GetRoomAtPosition(Vector3 pos)
+        {
+            foreach (var room in Level.Rooms)
+            {
+                if (room == null)
+                    continue;
+
+                BoundingBox b = room.WorldBoundingBox;
+
+                if (pos.X >= b.Minimum.X && pos.Y >= b.Minimum.Y && pos.Z >= b.Minimum.Z &&
+                    pos.X <= b.Maximum.X && pos.Y <= b.Maximum.Y && pos.Z <= b.Maximum.Z &&
+                    SelectedRoom.IsAlternate == room.IsAlternate)
+                {
+                    return room;
+                }
+            }
+
+            return null;
         }
 
         // Show an object by going to the room it, selecting it and centering the camera appropriately.

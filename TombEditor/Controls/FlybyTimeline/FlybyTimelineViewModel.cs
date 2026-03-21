@@ -8,7 +8,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
-using TombLib;
 using TombLib.LevelData;
 
 namespace TombEditor.Controls.FlybyTimeline;
@@ -19,9 +18,6 @@ namespace TombEditor.Controls.FlybyTimeline;
 /// </summary>
 public partial class FlybyTimelineViewModel : ObservableObject
 {
-    private const float DefaultSpeed = 1.0f;
-    private const float DefaultFov = 80.0f;
-
     private readonly Editor _editor;
     private readonly FlybyPreviewController _preview;
     private readonly Dispatcher _dispatcher;
@@ -49,10 +45,10 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
     // Camera properties for the selected camera.
     [ObservableProperty]
-    private float _cameraSpeed = DefaultSpeed;
+    private float _cameraSpeed;
 
     [ObservableProperty]
-    private float _cameraFov = DefaultFov;
+    private float _cameraFov;
 
     [ObservableProperty]
     private float _cameraRoll;
@@ -200,8 +196,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
         var cam = new FlybyCameraInstance
         {
             Sequence = seq,
-            Speed = DefaultSpeed,
-            Fov = DefaultFov
         };
 
         // Insert at cursor position when playhead is valid and there are existing cameras.
@@ -220,7 +214,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
                 if (gap < 0.1f)
                     gap = 1.0f;
 
-                cam.Speed = 1.0f / (gap * FlybySequenceHelper.SpeedScale);
+                cam.Speed = 1.0f / (gap * FlybyConstants.SpeedScale);
                 cam.Number = (ushort)cameras.Count;
 
                 // Use editor camera view for cameras appended beyond existing spline.
@@ -249,11 +243,11 @@ public partial class FlybyTimelineViewModel : ObservableObject
                 float rightDuration = Math.Max(segEnd - cursorTime, 0.01f);
 
                 // Adjust the previous camera's speed for the left portion.
-                cameras[prevIndex].Speed = 1.0f / (leftDuration * FlybySequenceHelper.SpeedScale);
+                cameras[prevIndex].Speed = 1.0f / (leftDuration * FlybyConstants.SpeedScale);
                 _editor.ObjectChange(cameras[prevIndex], ObjectChangeType.Change);
 
                 // Set new camera speed for the right portion.
-                cam.Speed = 1.0f / (rightDuration * FlybySequenceHelper.SpeedScale);
+                cam.Speed = 1.0f / (rightDuration * FlybyConstants.SpeedScale);
                 cam.Number = (ushort)insertIndex;
 
                 // Always place new camera at the current editor viewport position.
@@ -284,32 +278,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         if (CameraList.Count > 0)
             SelectedCamera = CameraList.Last();
-    }
-
-    private void ApplyCameraPositionAtCursor(
-        FlybyCameraInstance cam, IReadOnlyList<FlybyCameraInstance> cameras,
-        ushort sequence, float cursorTime, Room room, out Room targetRoom)
-    {
-        targetRoom = room;
-
-        // Use interpolated spline position when preview is active.
-        if (IsPreviewActive)
-        {
-            var frame = _preview.GetInterpolatedFrameAtTime(cameras, sequence, cursorTime);
-
-            if (frame.HasValue)
-            {
-                targetRoom = FlybySequenceHelper.FindRoomAtPosition(_editor.Level, frame.Value.Position) ?? room;
-                cam.Position = frame.Value.Position - targetRoom.WorldPos;
-                cam.RotationY = MathC.RadToDeg(frame.Value.RotationY);
-                cam.RotationX = -MathC.RadToDeg(frame.Value.RotationX);
-                cam.Roll = -MathC.RadToDeg(frame.Value.Roll);
-                cam.Fov = MathC.RadToDeg(frame.Value.Fov);
-                return;
-            }
-        }
-
-        ApplyEditorCameraPosition(cam, room);
     }
 
     private void ApplyEditorCameraPosition(FlybyCameraInstance cam, Room room)
@@ -542,7 +510,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         float freezeAtPrev = GetFreezeDurationSeconds(cameraIndex - 1);
         float gap = Math.Max(newTimeSeconds - prevTime - freezeAtPrev, 0.01f);
 
-        float newSpeed = 1.0f / (gap * FlybySequenceHelper.SpeedScale);
+        float newSpeed = 1.0f / (gap * FlybyConstants.SpeedScale);
         CameraList[cameraIndex - 1].Camera.Speed = newSpeed;
 
         _editor.ObjectChange(CameraList[cameraIndex - 1].Camera, ObjectChangeType.Change);
@@ -612,7 +580,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         if (index < 0 || index >= CameraList.Count)
             return false;
 
-        return (CameraList[index].Camera.Flags & FlybySequenceHelper.FlagCameraCut) != 0;
+        return (CameraList[index].Camera.Flags & FlybyConstants.FlagCameraCut) != 0;
     }
 
     public float GetFreezeDurationSeconds(int index)
@@ -635,7 +603,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         var cam = CameraList[index].Camera;
 
-        if ((cam.Flags & FlybySequenceHelper.FlagCameraCut) == 0)
+        if ((cam.Flags & FlybyConstants.FlagCameraCut) == 0)
             return 0;
 
         int targetIndex = cam.Timer;
