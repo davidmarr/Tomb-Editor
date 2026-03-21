@@ -40,12 +40,12 @@ public class FlybySequenceCache
     private const float GameTickRate = 30.0f;
 
     // Time resolution: one frame per game tick.
-    private const float TimeStep = 0.00001f;
+    private const float TimeStep = 1.0f / GameTickRate;
 
-    /// <summary>
-    /// Public accessor for the time step between cached frames.
-    /// </summary>
-    public static readonly float TimeStepValue = 1.0f / GameTickRate;
+	/// <summary>
+	/// Public accessor for the time step between cached frames.
+	/// </summary>
+	public static readonly float TimeStepValue = 1.0f / GameTickRate;
 
     // Distance from camera to target point, matching the level compiler.
     private const float TargetDistance = Level.SectorSizeUnit;
@@ -101,13 +101,12 @@ public class FlybySequenceCache
 
         for (int i = 0; i < numSegments; i++)
         {
-            float speed = Math.Max(cameras[i].Speed, 0.001f);
+            float speed = Math.Max(cameras[i].Speed, float.MinValue);
             segmentDurations[i] = 1.0f / (speed * FlybyPreview.SpeedScale);
         }
 
         // Pass 1: sequentially build the spline parameter timeline (fast, no spline math).
-        float[] splineParams = BuildSplineTimeline(cameras, segmentDurations, useSmoothPause,
-            out var cutRegionsList, out var cameraTimesResult);
+        float[] splineParams = BuildSplineTimeline(cameras, segmentDurations, useSmoothPause, out var cutRegionsList, out var cameraTimesResult);
         _cutRegions = cutRegionsList.ToArray();
         _cameraTimeSeconds = cameraTimesResult;
 
