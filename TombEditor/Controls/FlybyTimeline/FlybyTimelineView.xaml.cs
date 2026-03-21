@@ -195,9 +195,9 @@ public partial class FlybyTimelineView : UserControl
         for (int i = 0; i < cameras.Count; i++)
         {
             var item = cameras[i];
-            float timeSeconds = _viewModel.GetCacheTimecodeForCamera(i, cache);
+            float timeSeconds = _viewModel.GetTimecodeForCamera(i);
 
-            // Compute cut bypass duration from cache-based times when possible.
+            // Compute cut bypass duration from static times.
             float cutBypassDuration = 0;
 
             if (_viewModel.GetCameraCutFlag(i))
@@ -206,7 +206,7 @@ public partial class FlybyTimelineView : UserControl
 
                 if (target > i && target < cameras.Count)
                 {
-                    float targetTime = _viewModel.GetCacheTimecodeForCamera(target, cache);
+                    float targetTime = _viewModel.GetTimecodeForCamera(target);
                     cutBypassDuration = Math.Max(0, targetTime - timeSeconds);
                 }
             }
@@ -233,7 +233,7 @@ public partial class FlybyTimelineView : UserControl
             });
         }
 
-        float totalDuration = _viewModel.GetCacheDisplayDuration(cache);
+        float totalDuration = _viewModel.GetDisplayDuration();
 
         if (totalDuration < 1.0f)
             totalDuration = 10.0f;

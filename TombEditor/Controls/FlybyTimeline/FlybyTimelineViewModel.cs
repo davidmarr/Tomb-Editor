@@ -471,7 +471,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
         _editor.ObjectChange(SelectedCamera.Camera, ObjectChangeType.Change);
         _isApplyingProperty = false;
 
-        _preview.InvalidateCache();
         RecalculateTimecodes();
 
         if (IsPreviewActive && SelectedSequence.HasValue && PlayheadSeconds >= 0)
@@ -535,11 +534,12 @@ public partial class FlybyTimelineViewModel : ObservableObject
         float gap = Math.Max(newTimeSeconds - prevTime - freezeAtPrev, 0.01f);
 
         float newSpeed = 1.0f / (gap * FlybyConstants.SpeedScale);
+
+        _isApplyingProperty = true;
         CameraList[cameraIndex - 1].Camera.Speed = newSpeed;
-
         _editor.ObjectChange(CameraList[cameraIndex - 1].Camera, ObjectChangeType.Change);
+        _isApplyingProperty = false;
 
-        _preview.InvalidateCache();
         RecalculateTimecodes();
 
         // Update preview to reflect the changed timings.
@@ -564,18 +564,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
     public float GetTimecodeForCamera(int index)
     {
-        return FlybySequenceHelper.GetTimecodeForCamera(GetCamerasAsList(), index);
-    }
-
-    /// <summary>
-    /// Returns the camera timecode from the cache when available (accounts for ease-in/out),
-    /// falling back to the static computation.
-    /// </summary>
-    public float GetCacheTimecodeForCamera(int index, FlybySequenceCache? cache)
-    {
-        if (cache != null && cache.IsValid && index < cache.CameraTimeSeconds.Count)
-            return cache.CameraTimeSeconds[index];
-
         return FlybySequenceHelper.GetTimecodeForCamera(GetCamerasAsList(), index);
     }
 
@@ -643,11 +631,11 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
     private void RecalculateTimecodes()
     {
-        var cache = GetSequenceCache();
+        var cameras = GetCamerasAsList();
 
         for (int i = 0; i < CameraList.Count; i++)
             CameraList[i].Timecode = FlybySequenceHelper.FormatTimecode(
-                GetCacheTimecodeForCamera(i, cache));
+                FlybySequenceHelper.GetTimecodeForCamera(cameras, i));
     }
 
     private void UpdatePlayheadTimecode()
@@ -662,7 +650,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
     private void OnDataChanged()
     {
-        _preview.InvalidateCache();
         RefreshCameraList();
         RecalculateTimecodes();
         TimelineRefreshRequested?.Invoke();
@@ -829,8 +816,14 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         if (obj is Editor.ObjectChangedEvent changeEvent)
         {
-            if (changeEvent.Object is FlybyCameraInstance && !_isApplyingProperty)
-                OnDataChanged();
+            if (changeEvent.Object is FlybyCameraInstance flyby &&
+                SelectedSequence.HasValue && flyby.Sequence == SelectedSequence.Value)
+            {
+                _preview.InvalidateCache();
+
+                if (!_isApplyingProperty)
+                    OnDataChanged();
+            }
         }
 
         // Detect external preview exit (ESC key in Panel3D).
