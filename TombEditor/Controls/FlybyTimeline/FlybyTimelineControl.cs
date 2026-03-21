@@ -457,6 +457,10 @@ public class FlybyTimelineControl : Control
         base.OnMouseLeftButtonDown(e);
         Focus();
 
+        // Skip normal processing for double-click; OnMouseDoubleClick will handle it.
+        if (e.ClickCount >= 2)
+            return;
+
         var pos = e.GetPosition(this);
 
         // Scrub if clicking in the ruler area.
