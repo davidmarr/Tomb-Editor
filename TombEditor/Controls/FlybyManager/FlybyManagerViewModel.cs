@@ -559,9 +559,44 @@ public partial class FlybyManagerViewModel : ObservableObject
 
     #region Timecode helpers
 
+    /// <summary>
+    /// Returns the current or freshly built sequence cache for use by the timeline.
+    /// </summary>
+    public FlybySequenceCache? GetSequenceCache()
+    {
+        if (!SelectedSequence.HasValue)
+            return null;
+
+        return _preview.GetOrBuildCache(GetCamerasAsList(), SelectedSequence.Value);
+    }
+
     public float GetTimecodeForCamera(int index)
     {
         return FlybySequenceData.GetTimecodeForCamera(GetCamerasAsList(), index);
+    }
+
+    /// <summary>
+    /// Returns the camera timecode from the cache when available (accounts for ease-in/out),
+    /// falling back to the static computation.
+    /// </summary>
+    public float GetCacheTimecodeForCamera(int index, FlybySequenceCache? cache)
+    {
+        if (cache != null && cache.IsValid && index < cache.CameraTimeSeconds.Count)
+            return cache.CameraTimeSeconds[index];
+
+        return FlybySequenceData.GetTimecodeForCamera(GetCamerasAsList(), index);
+    }
+
+    /// <summary>
+    /// Returns the total display duration from the cache when available,
+    /// falling back to the static computation.
+    /// </summary>
+    public float GetCacheDisplayDuration(FlybySequenceCache? cache)
+    {
+        if (cache != null && cache.IsValid)
+            return Math.Max(cache.TotalDuration, 1.0f);
+
+        return FlybySequenceData.GetDisplayDuration(GetCamerasAsList());
     }
 
     public float GetDisplayDuration()
@@ -616,11 +651,11 @@ public partial class FlybyManagerViewModel : ObservableObject
 
     private void RecalculateTimecodes()
     {
-        var cameras = GetCamerasAsList();
+        var cache = GetSequenceCache();
 
         for (int i = 0; i < CameraList.Count; i++)
             CameraList[i].Timecode = FlybySequenceData.FormatTimecode(
-                FlybySequenceData.GetTimecodeForCamera(cameras, i));
+                GetCacheTimecodeForCamera(i, cache));
     }
 
     private void UpdatePlayheadTimecode()
@@ -783,15 +818,20 @@ public partial class FlybyManagerViewModel : ObservableObject
             return;
         }
 
-        if (obj is Editor.LevelChangedEvent)
+        if (obj is Editor.LevelChangedEvent || obj is Editor.GameVersionChangedEvent)
         {
             _preview.StopPlayback();
 
             if (IsPreviewActive)
                 _preview.ExitPreview();
 
-            _userAddedSequences.Clear();
+            _preview.InvalidateCache();
+
+            if (obj is Editor.LevelChangedEvent)
+                _userAddedSequences.Clear();
+
             RefreshSequenceList();
+            RequestTimelineRefresh();
             return;
         }
 

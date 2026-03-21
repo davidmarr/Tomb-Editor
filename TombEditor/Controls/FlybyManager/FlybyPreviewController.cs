@@ -195,6 +195,15 @@ public class FlybyPreviewController : IDisposable
         PlayheadChanged?.Invoke();
     }
 
+    /// <summary>
+    /// Returns the current sequence cache, building it if necessary.
+    /// </summary>
+    public FlybySequenceCache? GetOrBuildCache(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence)
+    {
+        EnsureCache(cameras, sequence);
+        return _cache;
+    }
+
     public void InvalidateCache()
     {
         _cache = null;

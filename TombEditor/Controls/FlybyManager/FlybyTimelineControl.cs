@@ -19,8 +19,6 @@ public class FlybyTimelineControl : Control
     private const double MarkerRadius = 6.375;
     private const double MinTickSpacing = 40.0;
     private const double TimeRulerHeight = 20.0;
-    private const double TrackHeight = 19.0;
-    private const double LabelHeight = 14.0;
     private const double TrackPadding = 3.0;
 
     private static readonly Brush BackgroundBrush = new SolidColorBrush(Color.FromRgb(43, 43, 43));
@@ -48,7 +46,11 @@ public class FlybyTimelineControl : Control
     // Timeline data: list of (timecodeSeconds, isDuplicate, isSelected) per camera.
     private List<TimelineMarker> _markers = new();
 
+    // Cache reference for distance-based speed sampling.
+    private FlybySequenceCache? _cache;
 
+    // Peak speed for normalization of the speed curve display.
+    private double _peakSpeed;
 
     // Zoom and scroll state.
     private double _visibleStartSeconds;
@@ -126,7 +128,6 @@ public class FlybyTimelineControl : Control
         public bool IsInCutBypass;
         public float CutBypassDuration;
         public float SegmentDuration;
-        public float RelativeSpeed;
         public float FreezeDurationSeconds;
     }
 
@@ -142,15 +143,44 @@ public class FlybyTimelineControl : Control
     /// <summary>
     /// Updates the marker data and redraws the timeline.
     /// </summary>
-    public void SetMarkers(List<TimelineMarker> markers, float totalDuration)
+    public void SetMarkers(List<TimelineMarker> markers, float totalDuration,
+        FlybySequenceCache? cache = null)
     {
         _markers = markers ?? new List<TimelineMarker>();
         _totalDurationSeconds = Math.Max(1.0, totalDuration);
+        _cache = cache;
+        _peakSpeed = ComputePeakSpeed();
 
         if (_visibleStartSeconds >= _visibleEndSeconds)
             _visibleStartSeconds = 0;
 
         InvalidateVisual();
+    }
+
+    /// <summary>
+    /// Scans the cache to find the maximum speed value for normalizing the speed curve display.
+    /// </summary>
+    private double ComputePeakSpeed()
+    {
+        if (_cache == null || !_cache.IsValid)
+            return 0;
+
+        double peak = 0;
+        float duration = _cache.TotalDuration;
+        float step = duration / 200.0f;
+
+        if (step < FlybySequenceCache.TimeStepValue)
+            step = FlybySequenceCache.TimeStepValue;
+
+        for (float t = 0; t <= duration; t += step)
+        {
+            float speed = _cache.GetSpeedAtTime(t);
+
+            if (speed > peak)
+                peak = speed;
+        }
+
+        return peak;
     }
 
     protected override void OnRender(DrawingContext dc)
@@ -172,31 +202,31 @@ public class FlybyTimelineControl : Control
         // Draw time ruler marks and labels.
         DrawTimeRuler(dc, w);
 
-        // Track area.
+        // Track area uses all remaining height below the ruler.
         double trackY = TimeRulerHeight;
-        double totalTrackHeight = TrackHeight + LabelHeight;
-        dc.DrawRectangle(TrackBrush, null, new Rect(0, trackY, w, totalTrackHeight));
+        double trackHeight = Math.Max(1.0, h - TimeRulerHeight);
+        dc.DrawRectangle(TrackBrush, null, new Rect(0, trackY, w, trackHeight));
 
         // Draw segment regions (freeze and camera cut indicators).
-        DrawSegmentRegions(dc, w, trackY);
+        DrawSegmentRegions(dc, w, trackY, trackHeight);
 
         // Draw relative speed curve behind markers.
-        DrawSpeedCurve(dc, w, trackY);
+        DrawSpeedCurve(dc, w, trackY, trackHeight);
 
         // Draw markers.
-        DrawMarkers(dc, w, trackY);
+        DrawMarkers(dc, w, trackY, trackHeight);
 
         // Draw range selection highlight.
         if (_isRangeSelecting)
         {
             double selLeft = Math.Min(_rangeStartX, _rangeEndX);
             double selRight = Math.Max(_rangeStartX, _rangeEndX);
-            dc.DrawRectangle(SelectionBrush, null, new Rect(selLeft, trackY, selRight - selLeft, TrackHeight));
+            dc.DrawRectangle(SelectionBrush, null, new Rect(selLeft, trackY, selRight - selLeft, trackHeight));
         }
 
         // Draw cursor line at mouse position.
         if (_isMouseOver && _mouseX >= 0 && _mouseX <= w)
-            dc.DrawLine(CursorLinePen, new Point(_mouseX, 0), new Point(_mouseX, trackY + totalTrackHeight));
+            dc.DrawLine(CursorLinePen, new Point(_mouseX, 0), new Point(_mouseX, h));
 
         // Draw playhead line.
         if (_playheadSeconds >= 0)
@@ -204,7 +234,7 @@ public class FlybyTimelineControl : Control
             double phX = TimeToPixel(_playheadSeconds, w);
 
             if (phX >= 0 && phX <= w)
-                dc.DrawLine(PlayheadPen, new Point(phX, 0), new Point(phX, trackY + totalTrackHeight));
+                dc.DrawLine(PlayheadPen, new Point(phX, 0), new Point(phX, h));
         }
     }
 
@@ -229,7 +259,7 @@ public class FlybyTimelineControl : Control
                 continue;
 
             // Draw grid line.
-            dc.DrawLine(GridLinePen, new Point(x, TimeRulerHeight), new Point(x, TimeRulerHeight + TrackHeight));
+            dc.DrawLine(GridLinePen, new Point(x, TimeRulerHeight), new Point(x, ActualHeight));
 
             // Draw tick mark.
             dc.DrawLine(GridLinePen, new Point(x, 0), new Point(x, TimeRulerHeight));
@@ -244,15 +274,12 @@ public class FlybyTimelineControl : Control
         }
     }
 
-    private void DrawSegmentRegions(DrawingContext dc, double width, double trackY)
+    private void DrawSegmentRegions(DrawingContext dc, double width, double trackY, double trackHeight)
     {
-        double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-
         for (int i = 0; i < _markers.Count - 1; i++)
         {
             var marker = _markers[i];
             double startX = TimeToPixel(marker.TimeSeconds, width);
-            double endX = TimeToPixel(marker.TimeSeconds + marker.SegmentDuration, width);
 
             // Draw camera cut region as diagonal hatch lines.
             if (marker.HasCameraCut)
@@ -265,22 +292,22 @@ public class FlybyTimelineControl : Control
                 double cutRight = Math.Min(width, TimeToPixel(bypassEnd, width));
 
                 if (cutRight > cutLeft)
-                    DrawDiagonalHatch(dc, cutLeft, trackY, cutRight - cutLeft, TrackHeight, CameraCutPen);
+                    DrawDiagonalHatch(dc, cutLeft, trackY, cutRight - cutLeft, trackHeight, CameraCutPen);
             }
         }
 
-        // Draw freeze region as a solid semi-transparent gray rectangle starting at each
-        // frozen camera's timecode and extending for the freeze duration.
+        // Draw freeze region as a solid semi-transparent gray rectangle ending at each
+        // frozen camera's timecode and extending backwards for the freeze duration.
         for (int i = 0; i < _markers.Count; i++)
         {
             if (_markers[i].FreezeDurationSeconds <= 0)
                 continue;
 
-            double left = Math.Max(0, TimeToPixel(_markers[i].TimeSeconds, width));
-            double right = Math.Min(width, TimeToPixel(_markers[i].TimeSeconds + _markers[i].FreezeDurationSeconds, width));
+            double right = Math.Min(width, TimeToPixel(_markers[i].TimeSeconds, width));
+            double left = Math.Max(0, TimeToPixel(_markers[i].TimeSeconds - _markers[i].FreezeDurationSeconds, width));
 
             if (right > left)
-                dc.DrawRectangle(FreezeBrush, null, new Rect(left, trackY, right - left, TrackHeight));
+                dc.DrawRectangle(FreezeBrush, null, new Rect(left, trackY, right - left, trackHeight));
         }
     }
 
@@ -301,66 +328,32 @@ public class FlybyTimelineControl : Control
         dc.Pop();
     }
 
-    // Returns the smoothstep-interpolated relative speed (0-1) for a given timeline time.
-    // Within each segment, speed is blended between the two endpoint camera speeds.
-    // Returns negative when the time is outside all movement spans.
+    // Returns the normalized speed (0-1) at the given timeline time by sampling
+    // the pre-calculated cache for actual inter-frame distances.
+    // Returns negative when the time is outside the sequence or within a cut region.
     private double GetSpeedAtTime(double timeSeconds)
     {
-        if (_markers.Count < 2)
+        if (_cache == null || !_cache.IsValid || _markers.Count < 2)
             return -1;
 
-        float seqStart = _markers[0].TimeSeconds;
-        var lastSeg = _markers[_markers.Count - 2];
-        float seqEnd = lastSeg.TimeSeconds + lastSeg.SegmentDuration;
+        float speed = _cache.GetSpeedAtTime((float)timeSeconds);
 
-        if (timeSeconds < seqStart || timeSeconds > seqEnd)
+        if (speed < 0)
             return -1;
 
-        // Return no speed for time within any cut bypass region.
-        for (int j = 0; j < _markers.Count; j++)
-        {
-            if (_markers[j].HasCameraCut && _markers[j].CutBypassDuration > 0)
-            {
-                float cutStart = _markers[j].TimeSeconds;
-                float cutEnd = cutStart + _markers[j].CutBypassDuration;
-
-                if (timeSeconds >= cutStart && timeSeconds <= cutEnd)
-                    return -1;
-            }
-        }
-
-        for (int i = 0; i < _markers.Count - 1; i++)
-        {
-            if (_markers[i].IsInCutBypass)
-                continue;
-
-            float segStart = _markers[i].TimeSeconds;
-            float segEnd = segStart + _markers[i].SegmentDuration;
-
-            if (timeSeconds <= segEnd || i == _markers.Count - 2)
-            {
-                float duration = segEnd - segStart;
-                float t = duration > 0 ? (float)((timeSeconds - segStart) / duration) : 0;
-                t = Math.Clamp(t, 0, 1);
-                float smooth = t * t * (3 - 2 * t);
-                float speedA = _markers[i].RelativeSpeed;
-                float speedB = _markers[i + 1].RelativeSpeed;
-                return speedA + (speedB - speedA) * smooth;
-            }
-        }
-
-        return -1;
+        // Normalize against the peak speed for this sequence.
+        return _peakSpeed > 0.001 ? speed / _peakSpeed : 0;
     }
 
     // Draws a filled speed waveform centred at the track's vertical midpoint.
     // The fill is semi-transparent and mirrors above and below the centre line.
-    private void DrawSpeedCurve(DrawingContext dc, double width, double trackY)
+    private void DrawSpeedCurve(DrawingContext dc, double width, double trackY, double trackHeight)
     {
         if (_markers.Count < 2)
             return;
 
-        const double MaxHalfAmplitude = TrackHeight / 2.0 - 1.5;
-        double centerY = trackY + TrackHeight / 2.0;
+        double maxHalfAmplitude = trackHeight / 2.0 - 1.5;
+        double centerY = trackY + trackHeight / 2.0;
         int sampleCount = Math.Max(2, (int)(width / 2.0));
 
         // Collect visible sample spans (skipping gaps outside the sequence).
@@ -395,7 +388,7 @@ public class FlybyTimelineControl : Control
         using (var ctx = geometry.Open())
         {
             foreach (var (start, end) in spans)
-                DrawFilledWaveformSpan(ctx, width, centerY, sampleCount, start, end, MaxHalfAmplitude);
+                DrawFilledWaveformSpan(ctx, width, centerY, sampleCount, start, end, maxHalfAmplitude);
         }
 
         geometry.Freeze();
@@ -405,15 +398,39 @@ public class FlybyTimelineControl : Control
     private void DrawFilledWaveformSpan(StreamGeometryContext ctx, double width, double centerY,
         int sampleCount, int start, int end, double maxHalf)
     {
+        const int SmoothRadius = 4;
+
         int count = end - start + 1;
-        var upper = new Point[count];
-        var lower = new Point[count];
+        var rawSpeeds = new double[count];
 
         for (int i = 0; i < count; i++)
         {
             int step = start + i;
             double x = width * step / sampleCount;
-            double speed = Math.Max(0, GetSpeedAtTime(PixelToTime(x, width)));
+            rawSpeeds[i] = Math.Max(0, GetSpeedAtTime(PixelToTime(x, width)));
+        }
+
+        // Smooth the speed values with a triangular moving average.
+        var upper = new Point[count];
+        var lower = new Point[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            double sum = 0;
+            double weightSum = 0;
+            int lo = Math.Max(0, i - SmoothRadius);
+            int hi = Math.Min(count - 1, i + SmoothRadius);
+
+            for (int j = lo; j <= hi; j++)
+            {
+                double weight = SmoothRadius + 1 - Math.Abs(j - i);
+                sum += rawSpeeds[j] * weight;
+                weightSum += weight;
+            }
+
+            double speed = sum / weightSum;
+            int step = start + i;
+            double x = width * step / sampleCount;
             double half = Math.Max(1.0, speed * maxHalf);
             upper[i] = new Point(x, centerY - half);
             lower[i] = new Point(x, centerY + half);
@@ -430,11 +447,9 @@ public class FlybyTimelineControl : Control
             ctx.LineTo(lower[i], true, false);
     }
 
-    private void DrawMarkers(DrawingContext dc, double width, double trackY)
+    private void DrawMarkers(DrawingContext dc, double width, double trackY, double trackHeight)
     {
-        double centerY = trackY + TrackHeight / 2.0;
-        double labelY = trackY + TrackHeight + 1.0;
-        double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+        double centerY = trackY + trackHeight / 2.0;
 
         for (int i = 0; i < _markers.Count; i++)
         {
@@ -455,13 +470,6 @@ public class FlybyTimelineControl : Control
 
             // Draw circle marker.
             dc.DrawEllipse(fill, MarkerOutlinePen, new Point(x, centerY), MarkerRadius, MarkerRadius);
-
-            // Draw index label in lower label region.
-            var indexText = new FormattedText(
-                i.ToString(), CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                DefaultTypeface, 9, LabelBrush, dpi);
-
-            dc.DrawText(indexText, new Point(x - indexText.Width / 2.0, labelY));
         }
     }
 
@@ -513,6 +521,14 @@ public class FlybyTimelineControl : Control
         var pos = e.GetPosition(this);
         _mouseX = pos.X;
         _isMouseOver = true;
+
+        // Update tooltip to show camera number when hovering over a marker.
+        int hoverIndex = HitTestMarker(pos);
+
+        if (hoverIndex >= 0)
+            ToolTip = $"Camera {hoverIndex}";
+        else
+            ToolTip = null;
 
         if (_dragIndex >= 0 && e.LeftButton == MouseButtonState.Pressed)
         {
@@ -686,10 +702,9 @@ public class FlybyTimelineControl : Control
     private int HitTestMarker(Point pos)
     {
         double trackY = TimeRulerHeight;
-        double centerY = trackY + TrackHeight / 2.0;
 
-        // Only hit-test within the track and label area.
-        if (pos.Y < trackY - 4 || pos.Y > trackY + TrackHeight + LabelHeight)
+        // Only hit-test within the track area.
+        if (pos.Y < trackY - 4 || pos.Y > ActualHeight)
             return -1;
 
         double closestDist = double.MaxValue;

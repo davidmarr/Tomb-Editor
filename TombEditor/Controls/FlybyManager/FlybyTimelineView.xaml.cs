@@ -173,6 +173,9 @@ public partial class FlybyTimelineView : UserControl
         var selectedIndices = _viewModel.GetSelectedIndices();
         var markers = new List<FlybyTimelineControl.TimelineMarker>();
 
+        // Get cache for accurate timing and speed display.
+        var cache = _viewModel.GetSequenceCache();
+
         // Determine which cameras have their outgoing segments bypassed by a cut.
         var cutBypassed = new HashSet<int>();
 
@@ -187,40 +190,24 @@ public partial class FlybyTimelineView : UserControl
             }
         }
 
-        // Pre-compute normalized speed range for the speed curve,
-        // excluding cameras whose outgoing segments are bypassed by cuts.
-        float minSpeed = float.MaxValue;
-        float maxSpeed = float.MinValue;
-
-        for (int i = 0; i < cameras.Count - 1; i++)
-        {
-            if (cutBypassed.Contains(i))
-                continue;
-
-            float s = cameras[i].Camera.Speed;
-
-            if (s < minSpeed)
-                minSpeed = s;
-
-            if (s > maxSpeed)
-                maxSpeed = s;
-        }
-
-        if (minSpeed > maxSpeed)
-        {
-            minSpeed = 0;
-            maxSpeed = 0;
-        }
-
-        float speedRange = cameras.Count > 1 ? maxSpeed - minSpeed : 0;
-
         for (int i = 0; i < cameras.Count; i++)
         {
             var item = cameras[i];
-            float timeSeconds = _viewModel.GetTimecodeForCamera(i);
-            float relativeSpeed = speedRange > 0.001f
-                ? (item.Camera.Speed - minSpeed) / speedRange
-                : 1.0f;
+            float timeSeconds = _viewModel.GetCacheTimecodeForCamera(i, cache);
+
+            // Compute cut bypass duration from cache-based times when possible.
+            float cutBypassDuration = 0;
+
+            if (_viewModel.GetCameraCutFlag(i))
+            {
+                int target = item.Camera.Timer;
+
+                if (target > i && target < cameras.Count)
+                {
+                    float targetTime = _viewModel.GetCacheTimecodeForCamera(target, cache);
+                    cutBypassDuration = Math.Max(0, targetTime - timeSeconds);
+                }
+            }
 
             markers.Add(new FlybyTimelineControl.TimelineMarker
             {
@@ -229,21 +216,20 @@ public partial class FlybyTimelineView : UserControl
                 IsSelected = selectedIndices.Contains(i),
                 HasCameraCut = _viewModel.GetCameraCutFlag(i),
                 IsInCutBypass = cutBypassed.Contains(i),
-                CutBypassDuration = _viewModel.GetCutBypassDuration(i),
+                CutBypassDuration = cutBypassDuration,
                 SegmentDuration = i < cameras.Count - 1
                     ? FlybySequenceData.GetSegmentDuration(item.Camera)
                     : 0,
-                RelativeSpeed = relativeSpeed,
                 FreezeDurationSeconds = _viewModel.GetFreezeDurationSeconds(i)
             });
         }
 
-        float totalDuration = _viewModel.GetDisplayDuration();
+        float totalDuration = _viewModel.GetCacheDisplayDuration(cache);
 
         if (totalDuration < 1.0f)
             totalDuration = 10.0f;
 
-        timelineControl.SetMarkers(markers, totalDuration);
+        timelineControl.SetMarkers(markers, totalDuration, cache);
     }
 
     private void OnTimelineMarkerClicked(int index)

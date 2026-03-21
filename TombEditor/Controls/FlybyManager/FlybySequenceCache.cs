@@ -39,8 +39,13 @@ public class FlybySequenceCache
     // The game logic runs at 30 ticks per second.
     private const float GameTickRate = 30.0f;
 
-    // Time resolution: one frame per millisecond.
-    private const float TimeStep = 1.0f / GameTickRate;
+    // Time resolution: one frame per game tick.
+    private const float TimeStep = 0.00001f;
+
+    /// <summary>
+    /// Public accessor for the time step between cached frames.
+    /// </summary>
+    public static readonly float TimeStepValue = 1.0f / GameTickRate;
 
     // Distance from camera to target point, matching the level compiler.
     private const float TargetDistance = Level.SectorSizeUnit;
@@ -57,11 +62,18 @@ public class FlybySequenceCache
     private readonly float _totalDuration;
     private readonly int _frameCount;
     private readonly CutRegion[] _cutRegions;
+    private readonly float[] _cameraTimeSeconds;
 
     public float TotalDuration => _totalDuration;
     public int FrameCount => _frameCount;
     public bool IsValid => _frameCount > 0;
     public IReadOnlyList<CutRegion> CutRegions => _cutRegions;
+
+    /// <summary>
+    /// Per-camera timeline time in seconds, as resolved by the cache build pass.
+    /// Accounts for ease-in/out phases in TombEngine smooth pause mode.
+    /// </summary>
+    public IReadOnlyList<float> CameraTimeSeconds => _cameraTimeSeconds;
 
     public FlybySequenceCache(IReadOnlyList<FlybyCameraInstance> cameras, bool useSmoothPause)
     {
@@ -69,6 +81,7 @@ public class FlybySequenceCache
         {
             _frames = Array.Empty<CachedFrame>();
             _cutRegions = Array.Empty<CutRegion>();
+            _cameraTimeSeconds = Array.Empty<float>();
             _totalDuration = 0;
             _frameCount = 0;
             return;
@@ -93,8 +106,10 @@ public class FlybySequenceCache
         }
 
         // Pass 1: sequentially build the spline parameter timeline (fast, no spline math).
-        float[] splineParams = BuildSplineTimeline(cameras, segmentDurations, useSmoothPause, out var cutRegionsList);
+        float[] splineParams = BuildSplineTimeline(cameras, segmentDurations, useSmoothPause,
+            out var cutRegionsList, out var cameraTimesResult);
         _cutRegions = cutRegionsList.ToArray();
+        _cameraTimeSeconds = cameraTimesResult;
 
         // Pass 2: evaluate all spline channels in parallel.
         _frames = EvaluateFramesParallel(splineParams, posX, posY, posZ,
@@ -174,6 +189,33 @@ public class FlybySequenceCache
         return timelineTime - accumulatedCutTime;
     }
 
+    /// <summary>
+    /// Returns the speed (world units per second) at the given timeline time,
+    /// measured from distance between adjacent cached frames.
+    /// Returns negative if the time is outside the sequence or within a cut region.
+    /// </summary>
+    public float GetSpeedAtTime(float timeSeconds)
+    {
+        if (_frameCount < 2)
+            return -1;
+
+        if (timeSeconds < 0 || timeSeconds > _totalDuration)
+            return -1;
+
+        // Skip cut regions.
+        foreach (var cut in _cutRegions)
+        {
+            if (timeSeconds >= cut.StartTime && timeSeconds <= cut.EndTime)
+                return -1;
+        }
+
+        int index = (int)(timeSeconds / TimeStep);
+        index = Math.Clamp(index, 0, _frameCount - 2);
+
+        var delta = _frames[index + 1].Position - _frames[index].Position;
+        return delta.Length() / TimeStep;
+    }
+
     private static FlybyPreview.FrameState LerpFrames(CachedFrame a, CachedFrame b, float t)
     {
         return new FlybyPreview.FrameState
@@ -211,11 +253,16 @@ public class FlybySequenceCache
         IReadOnlyList<FlybyCameraInstance> cameras,
         float[] segmentDurations,
         bool useSmoothPause,
-        out List<CutRegion> cutRegions)
+        out List<CutRegion> cutRegions,
+        out float[] cameraTimeSeconds)
     {
         cutRegions = new List<CutRegion>();
         int numCameras = cameras.Count;
         int numSegments = numCameras - 1;
+
+        // Track per-camera timeline time in seconds.
+        cameraTimeSeconds = new float[numCameras];
+        cameraTimeSeconds[0] = 0;
 
         // Estimate total duration to pre-allocate.
         float estimatedDuration = 0;
@@ -229,6 +276,8 @@ public class FlybySequenceCache
         int estimatedSlots = (int)(estimatedDuration * 1.15f / TimeStep) + 256;
         var timeline = new List<float>(estimatedSlots);
 
+        // Use a running accumulator for currentT, matching the original engine's
+        // continuous spline parameter advancement (t += speed * SpeedScale per tick).
         float currentT = 0;
         int currentSegment = 0;
 
@@ -241,29 +290,36 @@ public class FlybySequenceCache
             bool hasCut = (nextFlags & FlagCutToCam) != 0;
             bool hasFreeze = !hasCut && (nextFlags & FlagStopMovement) != 0 && nextTimer > 0;
 
+            float segEnd = currentSegment + 1.0f;
+            float speedPerTick = segmentDurations[currentSegment] > 0
+                ? TimeStep / segmentDurations[currentSegment] : 0;
+
             if (useSmoothPause && hasFreeze)
             {
                 EmitSmoothPauseSegment(timeline, currentSegment, segmentDurations,
-                    numSegments, nextTimer, ref currentT);
+                    numSegments, nextTimer, speedPerTick, ref currentT);
             }
             else
             {
-                EmitLinearSegment(timeline, currentSegment, segmentDurations[currentSegment]);
+                EmitLinearSegment(timeline, segEnd, speedPerTick, ref currentT);
 
                 if (hasFreeze)
                 {
                     int gameFrames = Math.Max(0, nextTimer >> 3);
                     float freezeDuration = gameFrames / GameTickRate;
-                    float boundaryT = currentSegment + 1.0f;
+                    currentT = segEnd;
                     int freezeSlots = (int)(freezeDuration / TimeStep);
 
                     for (int f = 0; f < freezeSlots; f++)
-                        timeline.Add(boundaryT);
+                        timeline.Add(currentT);
                 }
             }
 
             currentSegment++;
-            currentT = currentSegment;
+
+            // Record the timeline time for this camera.
+            if (currentSegment < numCameras)
+                cameraTimeSeconds[currentSegment] = timeline.Count * TimeStep;
 
             // Handle camera cut: fill the bypassed region with freeze frames
             // at the target camera, then jump to the target.
@@ -298,6 +354,10 @@ public class FlybySequenceCache
                     currentSegment = targetCam;
                     currentT = targetCam;
 
+                    // Record timeline time for the target camera.
+                    if (targetCam < numCameras)
+                        cameraTimeSeconds[targetCam] = timeline.Count * TimeStep;
+
                     // Emit freeze at target camera if it was supposed to be
                     // processed in the bypassed segment's iteration.
                     float targetFreeze = FlybySequenceData.GetFreezeDuration(cameras[targetCam]);
@@ -325,87 +385,83 @@ public class FlybySequenceCache
     }
 
     /// <summary>
-    /// Emits spline parameters for a linear segment traversal.
+    /// Advances currentT through a segment using a running accumulator, matching
+    /// the original engine's per-tick t += speed * SpeedScale advancement.
     /// </summary>
-    private static void EmitLinearSegment(List<float> timeline, int segment, float segmentDuration)
+    private static void EmitLinearSegment(List<float> timeline, float segEnd,
+        float speedPerTick, ref float currentT)
     {
-        float segStart = segment;
-        float elapsed = 0;
-
-        while (elapsed < segmentDuration)
+        while (currentT < segEnd)
         {
-            float localProgress = segmentDuration > 0 ? elapsed / segmentDuration : 1.0f;
-            timeline.Add(segStart + localProgress);
-            elapsed += TimeStep;
+            timeline.Add(currentT);
+            currentT += speedPerTick;
         }
     }
 
     /// <summary>
     /// Emits spline parameters for a TombEngine smooth-pause segment: linear traversal up to
-    /// the ease-out zone, ease-out deceleration, hold, and ease-in acceleration.
+    /// the ease-out zone, ease-out deceleration, hold, and ease-in acceleration on the next
+    /// segment. Uses the running currentT accumulator throughout all phases.
     /// </summary>
     private static void EmitSmoothPauseSegment(
         List<float> timeline, int segment, float[] segmentDurations,
-        int numSegments, short timer, ref float currentT)
+        int numSegments, short timer, float speedPerTick, ref float currentT)
     {
-        float segDuration = segmentDurations[segment];
-        float segStart = segment;
-        float speedPerSec = segDuration > 0 ? 1.0f / segDuration : 0;
+        float segEnd = segment + 1.0f;
+        float speedPerSec = segmentDurations[segment] > 0 ? 1.0f / segmentDurations[segment] : 0;
 
         // Phase 1: Linear advance until the ease-out zone.
-        float easeThreshold = 1.0f - EaseDistance;
-        float elapsed = 0;
-        float localAlpha = 0;
+        float easeOutStartT = segEnd - EaseDistance;
 
-        while (localAlpha < easeThreshold && elapsed < segDuration)
+        while (currentT < easeOutStartT)
         {
-            timeline.Add(segStart + localAlpha);
-            elapsed += TimeStep;
-            localAlpha = segDuration > 0 ? elapsed / segDuration : 1.0f;
+            timeline.Add(currentT);
+            currentT += speedPerTick;
         }
 
         // Phase 2: Ease-out deceleration.
-        float easeStartAlpha = localAlpha;
-        float remainingAlpha = Math.Max(1.0f - easeStartAlpha, MinSpeed);
+        float easeStartT = currentT;
+        float remainingT = Math.Max(segEnd - easeStartT, MinSpeed);
         float clampedSpeed = Math.Max(speedPerSec, MinSpeed);
-        float easeStep = clampedSpeed / (2.0f * remainingAlpha);
+        float easeStep = clampedSpeed / (2.0f * remainingT);
         float easeProgress = 0;
 
         while (easeProgress < 1.0f)
         {
             easeProgress = Math.Min(easeProgress + easeStep * TimeStep, 1.0f);
-            float alpha = easeStartAlpha + (1.0f - easeStartAlpha) * easeProgress * (2.0f - easeProgress);
-            timeline.Add(segStart + Math.Min(alpha, 1.0f));
+            currentT = easeStartT + remainingT * easeProgress * (2.0f - easeProgress);
+            timeline.Add(Math.Min(currentT, segEnd));
         }
+
+        currentT = segEnd;
 
         // Phase 3: Hold at boundary.
         int holdGameFrames = timer >> 3;
         float holdDuration = holdGameFrames / GameTickRate;
-        float boundaryT = segStart + 1.0f;
         int holdSlots = (int)(holdDuration / TimeStep);
 
         for (int i = 0; i < holdSlots; i++)
-            timeline.Add(boundaryT);
+            timeline.Add(currentT);
 
         // Phase 4: Ease-in acceleration on the next segment.
         int nextSegment = segment + 1;
 
         if (nextSegment < numSegments)
         {
-            float nextSpeedPerSec = segmentDurations[nextSegment] > 0 ? 1.0f / segmentDurations[nextSegment] : 0;
-            currentT = boundaryT;
+            float nextSpeedPerSec = segmentDurations[nextSegment] > 0
+                ? 1.0f / segmentDurations[nextSegment] : 0;
+            float nextClampedSpeed = Math.Max(nextSpeedPerSec, MinSpeed);
+            float easeInStep = nextClampedSpeed / (2.0f * EaseDistance);
             float easeInProgress = 0;
 
             while (easeInProgress < 1.0f)
             {
-                easeInProgress = Math.Min(easeInProgress + easeStep * TimeStep, 1.0f);
+                easeInProgress = Math.Min(easeInProgress + easeInStep * TimeStep, 1.0f);
                 float speedFactor = easeInProgress * easeInProgress;
-                currentT = Math.Min(currentT + nextSpeedPerSec * speedFactor * TimeStep, nextSegment + 1.0f);
+                currentT += nextSpeedPerSec * speedFactor * TimeStep;
                 timeline.Add(currentT);
             }
         }
-
-        currentT = segment + 1.0f;
     }
 
     #endregion Pass 1: spline parameter timeline

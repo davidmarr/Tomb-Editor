@@ -157,6 +157,7 @@
     <Resource Include="Resources\icons_actions\actions_StarFilled-16.png" />
     <Resource Include="Resources\icons_actions\actions_play-16.png" />
     <Resource Include="Resources\icons_actions\actions_3DView-16.png" />
+    <Resource Include="Resources\icons_actions\actions_delete-16.png" />
     <Resource Include="Resources\icons_general\general_plus_math-16.png" />
     <Resource Include="Resources\icons_general\general_trash-16.png" />
     <Resource Include="Resources\icons_transport\*.png" />
