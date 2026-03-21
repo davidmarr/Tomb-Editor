@@ -46,6 +46,7 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.RangeSelected += OnTimelineRangeSelected;
         timelineControl.ScrubRequested += OnTimelineScrubRequested;
         timelineControl.PlayStopRequested += OnTimelinePlayStopRequested;
+        timelineControl.DeleteRequested += OnTimelineDeleteRequested;
 
         editor.EditorEventRaised += OnEditorEventRaised;
 
@@ -69,6 +70,7 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.RangeSelected -= OnTimelineRangeSelected;
         timelineControl.ScrubRequested -= OnTimelineScrubRequested;
         timelineControl.PlayStopRequested -= OnTimelinePlayStopRequested;
+        timelineControl.DeleteRequested -= OnTimelineDeleteRequested;
 
         _viewModel.Cleanup();
         _viewModel = null;
@@ -323,6 +325,12 @@ public partial class FlybyTimelineView : UserControl
     {
         if (_viewModel?.IsPreviewActive == true)
             _viewModel.TogglePlayStopCommand.Execute(null);
+    }
+
+    private void OnTimelineDeleteRequested()
+    {
+        _viewModel?.DeleteSelectedCameras();
+        RefreshTimeline();
     }
 
     #endregion Timeline event handlers

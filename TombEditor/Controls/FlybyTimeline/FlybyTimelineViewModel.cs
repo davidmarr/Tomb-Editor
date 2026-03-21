@@ -181,6 +181,30 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
     #region Camera list management
 
+    /// <summary>
+    /// Deletes all currently selected cameras from the level.
+    /// </summary>
+    public void DeleteSelectedCameras()
+    {
+        if (_selectedCameras.Count == 0 || !SelectedSequence.HasValue)
+            return;
+
+        var toDelete = _selectedCameras.Select(vm => vm.Camera).ToList();
+        var rooms = toDelete.ToDictionary(c => c, c => c.Room);
+
+        foreach (var cam in toDelete)
+            EditorActions.DeleteObjectWithoutUpdate(cam);
+
+        foreach (var cam in toDelete)
+            _editor.ObjectChange(cam, ObjectChangeType.Remove, rooms[cam]);
+
+        _selectedCameras.Clear();
+        SelectedCamera = null;
+
+        RenumberSequence(SelectedSequence.Value);
+        OnDataChanged();
+    }
+
     [RelayCommand]
     private void AddCamera()
     {

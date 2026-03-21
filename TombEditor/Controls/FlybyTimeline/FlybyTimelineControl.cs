@@ -80,6 +80,7 @@ public class FlybyTimelineControl : Control
     public event Action<List<int>>? RangeSelected;
     public event Action<float>? ScrubRequested;
     public event Action? PlayStopRequested;
+    public event Action? DeleteRequested;
 
     static FlybyTimelineControl()
     {
@@ -297,25 +298,17 @@ public class FlybyTimelineControl : Control
             }
         }
 
-        // Draw freeze region as a solid semi-transparent gray rectangle.
-        // For TombEngine targets with smooth pause, the region spans from the ease-out
-        // start (deceleration) to the camera's timecode (covering ease-out + hold + ease-in).
-        // For legacy targets, it extends backwards by FreezeDurationSeconds.
-        for (int i = 0; i < _markers.Count; i++)
+        // Draw freeze regions detected from cache frame data.
+        if (_cache != null)
         {
-            if (_markers[i].FreezeDurationSeconds <= 0)
-                continue;
+            foreach (var region in _cache.FreezeRegions)
+            {
+                double left = Math.Max(0, TimeToPixel(region.StartSeconds, width));
+                double right = Math.Min(width, TimeToPixel(region.EndSeconds, width));
 
-            double right = Math.Min(width, TimeToPixel(_markers[i].TimeSeconds, width));
-            double left;
-
-            if (_markers[i].EaseOutStartSeconds > 0 && _markers[i].EaseOutStartSeconds < _markers[i].TimeSeconds)
-                left = Math.Max(0, TimeToPixel(_markers[i].EaseOutStartSeconds, width));
-            else
-                left = Math.Max(0, TimeToPixel(_markers[i].TimeSeconds - _markers[i].FreezeDurationSeconds, width));
-
-            if (right > left)
-                dc.DrawRectangle(FreezeBrush, null, new Rect(left, trackY, right - left, trackHeight));
+                if (right > left)
+                    dc.DrawRectangle(FreezeBrush, null, new Rect(left, trackY, right - left, trackHeight));
+            }
         }
     }
 
@@ -360,7 +353,7 @@ public class FlybyTimelineControl : Control
         if (_markers.Count < 2)
             return;
 
-        double maxHalfAmplitude = trackHeight / 2.0 - 1.5;
+        double maxHalfAmplitude = trackHeight / 2.0 - 5.0;
         double centerY = trackY + trackHeight / 2.0;
         int sampleCount = Math.Max(2, (int)(width / 2.0));
 
@@ -406,39 +399,15 @@ public class FlybyTimelineControl : Control
     private void DrawFilledWaveformSpan(StreamGeometryContext ctx, double width, double centerY,
         int sampleCount, int start, int end, double maxHalf)
     {
-        const int SmoothRadius = 4;
-
         int count = end - start + 1;
-        var rawSpeeds = new double[count];
-
-        for (int i = 0; i < count; i++)
-        {
-            int step = start + i;
-            double x = width * step / sampleCount;
-            rawSpeeds[i] = Math.Max(0, GetSpeedAtTime(PixelToTime(x, width)));
-        }
-
-        // Smooth the speed values with a triangular moving average.
         var upper = new Point[count];
         var lower = new Point[count];
 
         for (int i = 0; i < count; i++)
         {
-            double sum = 0;
-            double weightSum = 0;
-            int lo = Math.Max(0, i - SmoothRadius);
-            int hi = Math.Min(count - 1, i + SmoothRadius);
-
-            for (int j = lo; j <= hi; j++)
-            {
-                double weight = SmoothRadius + 1 - Math.Abs(j - i);
-                sum += rawSpeeds[j] * weight;
-                weightSum += weight;
-            }
-
-            double speed = sum / weightSum;
             int step = start + i;
             double x = width * step / sampleCount;
+            double speed = Math.Max(0, GetSpeedAtTime(PixelToTime(x, width)));
             double half = Math.Max(1.0, speed * maxHalf);
             upper[i] = new Point(x, centerY - half);
             lower[i] = new Point(x, centerY + half);
@@ -650,6 +619,11 @@ public class FlybyTimelineControl : Control
         if (e.Key == Key.Space)
         {
             PlayStopRequested?.Invoke();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Delete || e.Key == Key.Back)
+        {
+            DeleteRequested?.Invoke();
             e.Handled = true;
         }
     }
