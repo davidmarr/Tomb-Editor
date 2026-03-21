@@ -129,6 +129,10 @@ public class FlybyTimelineControl : Control
         public float CutBypassDuration;
         public float SegmentDuration;
         public float FreezeDurationSeconds;
+
+        // For TombEngine targets, the time where ease-out deceleration starts.
+        // When set (> 0 and < TimeSeconds), the freeze region extends from here.
+        public float EaseOutStartSeconds;
     }
 
     /// <summary>
@@ -296,15 +300,22 @@ public class FlybyTimelineControl : Control
             }
         }
 
-        // Draw freeze region as a solid semi-transparent gray rectangle ending at each
-        // frozen camera's timecode and extending backwards for the freeze duration.
+        // Draw freeze region as a solid semi-transparent gray rectangle.
+        // For TombEngine targets with smooth pause, the region spans from the ease-out
+        // start (deceleration) to the camera's timecode (covering ease-out + hold + ease-in).
+        // For legacy targets, it extends backwards by FreezeDurationSeconds.
         for (int i = 0; i < _markers.Count; i++)
         {
             if (_markers[i].FreezeDurationSeconds <= 0)
                 continue;
 
             double right = Math.Min(width, TimeToPixel(_markers[i].TimeSeconds, width));
-            double left = Math.Max(0, TimeToPixel(_markers[i].TimeSeconds - _markers[i].FreezeDurationSeconds, width));
+            double left;
+
+            if (_markers[i].EaseOutStartSeconds > 0 && _markers[i].EaseOutStartSeconds < _markers[i].TimeSeconds)
+                left = Math.Max(0, TimeToPixel(_markers[i].EaseOutStartSeconds, width));
+            else
+                left = Math.Max(0, TimeToPixel(_markers[i].TimeSeconds - _markers[i].FreezeDurationSeconds, width));
 
             if (right > left)
                 dc.DrawRectangle(FreezeBrush, null, new Rect(left, trackY, right - left, trackHeight));
