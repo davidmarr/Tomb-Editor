@@ -190,19 +190,17 @@ public partial class FlybyTimelineViewModel : ObservableObject
             return;
 
         var toDelete = _selectedCameras.Select(vm => vm.Camera).ToList();
-        var rooms = toDelete.ToDictionary(c => c, c => c.Room);
 
-        foreach (var cam in toDelete)
-            EditorActions.DeleteObjectWithoutUpdate(cam);
-
-        foreach (var cam in toDelete)
-            _editor.ObjectChange(cam, ObjectChangeType.Remove, rooms[cam]);
+        _isApplyingProperty = true;
+        EditorActions.DeleteObjects(toDelete);
+        _isApplyingProperty = false;
 
         _selectedCameras.Clear();
-        SelectedCamera = null;
 
         RenumberSequence(SelectedSequence.Value);
         OnDataChanged();
+
+        SelectedCamera = null;
     }
 
     [RelayCommand]

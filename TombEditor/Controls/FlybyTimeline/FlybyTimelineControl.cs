@@ -103,7 +103,7 @@ public class FlybyTimelineControl : Control
         SpeedCurveFillBrush = scBrush;
 
         // Diagonal hatch pen for camera cuts.
-        CameraCutPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 230, 80, 80)), 1.0);
+        CameraCutPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 160, 160, 160)), 1.0);
         CameraCutPen.Freeze();
 
         var freezeBrush = new SolidColorBrush(Color.FromArgb(64, 160, 160, 160));
