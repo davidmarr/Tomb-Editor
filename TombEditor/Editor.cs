@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using TombEditor.Controls.FlybyManager;
+using TombEditor.Controls.FlybyTimeline;
 using TombLib;
 using TombLib.Forms;
 using TombLib.Graphics;

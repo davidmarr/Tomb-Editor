@@ -11,13 +11,13 @@ using System.Windows.Threading;
 using TombLib;
 using TombLib.LevelData;
 
-namespace TombEditor.Controls.FlybyManager;
+namespace TombEditor.Controls.FlybyTimeline;
 
 /// <summary>
 /// Main view model for the Flyby Sequence Manager window.
-/// Delegates data operations to FlybySequenceData and preview to FlybyPreviewController.
+/// Delegates data operations to FlybySequenceHelper and preview to FlybyPreviewController.
 /// </summary>
-public partial class FlybyManagerViewModel : ObservableObject
+public partial class FlybyTimelineViewModel : ObservableObject
 {
     private const float DefaultSpeed = 1.0f;
     private const float DefaultFov = 80.0f;
@@ -95,7 +95,7 @@ public partial class FlybyManagerViewModel : ObservableObject
     /// </summary>
     public event Action? TimelineRefreshRequested;
 
-    public FlybyManagerViewModel(Editor editor, Dispatcher dispatcher)
+    public FlybyTimelineViewModel(Editor editor, Dispatcher dispatcher)
     {
         _editor = editor;
         _dispatcher = dispatcher;
@@ -210,7 +210,7 @@ public partial class FlybyManagerViewModel : ObservableObject
             float cursorTime = PlayheadSeconds;
             var cameras = GetCamerasAsList();
 
-            float lastCameraTime = FlybySequenceData.GetTimecodeForCamera(cameras, cameras.Count - 1);
+            float lastCameraTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, cameras.Count - 1);
 
             // Cursor is at or past the last camera: append with appropriate speed.
             if (cursorTime >= lastCameraTime - 0.01f)
@@ -236,14 +236,14 @@ public partial class FlybyManagerViewModel : ObservableObject
                 return;
             }
 
-            int insertIndex = FlybySequenceData.FindInsertionIndex(cameras, cursorTime);
+            int insertIndex = FlybySequenceHelper.FindInsertionIndex(cameras, cursorTime);
 
             if (insertIndex > 0 && insertIndex < cameras.Count)
             {
                 int prevIndex = insertIndex - 1;
 
-                float segStart = FlybySequenceData.GetTimecodeForCamera(cameras, prevIndex);
-                float segEnd = FlybySequenceData.GetTimecodeForCamera(cameras, insertIndex);
+                float segStart = FlybySequenceHelper.GetTimecodeForCamera(cameras, prevIndex);
+                float segEnd = FlybySequenceHelper.GetTimecodeForCamera(cameras, insertIndex);
 
                 float leftDuration = Math.Max(cursorTime - segStart, 0.01f);
                 float rightDuration = Math.Max(segEnd - cursorTime, 0.01f);
@@ -299,7 +299,7 @@ public partial class FlybyManagerViewModel : ObservableObject
 
             if (frame.HasValue)
             {
-                targetRoom = FlybySequenceData.FindRoomAtPosition(_editor.Level, frame.Value.Position) ?? room;
+                targetRoom = FlybySequenceHelper.FindRoomAtPosition(_editor.Level, frame.Value.Position) ?? room;
                 cam.Position = frame.Value.Position - targetRoom.WorldPos;
                 cam.RotationY = MathC.RadToDeg(frame.Value.RotationY);
                 cam.RotationX = -MathC.RadToDeg(frame.Value.RotationX);
@@ -319,7 +319,7 @@ public partial class FlybyManagerViewModel : ObservableObject
         if (editorCamera != null)
         {
             cam.Position = editorCamera.GetPosition() - room.WorldPos;
-            FlybySequenceData.ApplyEditorCameraRotation(editorCamera, cam);
+            FlybySequenceHelper.ApplyEditorCameraRotation(editorCamera, cam);
         }
         else
         {
@@ -572,7 +572,7 @@ public partial class FlybyManagerViewModel : ObservableObject
 
     public float GetTimecodeForCamera(int index)
     {
-        return FlybySequenceData.GetTimecodeForCamera(GetCamerasAsList(), index);
+        return FlybySequenceHelper.GetTimecodeForCamera(GetCamerasAsList(), index);
     }
 
     /// <summary>
@@ -584,7 +584,7 @@ public partial class FlybyManagerViewModel : ObservableObject
         if (cache != null && cache.IsValid && index < cache.CameraTimeSeconds.Count)
             return cache.CameraTimeSeconds[index];
 
-        return FlybySequenceData.GetTimecodeForCamera(GetCamerasAsList(), index);
+        return FlybySequenceHelper.GetTimecodeForCamera(GetCamerasAsList(), index);
     }
 
     /// <summary>
@@ -596,12 +596,12 @@ public partial class FlybyManagerViewModel : ObservableObject
         if (cache != null && cache.IsValid)
             return Math.Max(cache.TotalDuration, 1.0f);
 
-        return FlybySequenceData.GetDisplayDuration(GetCamerasAsList());
+        return FlybySequenceHelper.GetDisplayDuration(GetCamerasAsList());
     }
 
     public float GetDisplayDuration()
     {
-        return FlybySequenceData.GetDisplayDuration(GetCamerasAsList());
+        return FlybySequenceHelper.GetDisplayDuration(GetCamerasAsList());
     }
 
     /// <summary>
@@ -612,7 +612,7 @@ public partial class FlybyManagerViewModel : ObservableObject
         if (index < 0 || index >= CameraList.Count)
             return false;
 
-        return (CameraList[index].Camera.Flags & FlybySequenceData.FlagCameraCut) != 0;
+        return (CameraList[index].Camera.Flags & FlybySequenceHelper.FlagCameraCut) != 0;
     }
 
     public float GetFreezeDurationSeconds(int index)
@@ -620,7 +620,7 @@ public partial class FlybyManagerViewModel : ObservableObject
         if (index < 0 || index >= CameraList.Count)
             return 0;
 
-        return FlybySequenceData.GetFreezeDuration(CameraList[index].Camera);
+        return FlybySequenceHelper.GetFreezeDuration(CameraList[index].Camera);
     }
 
     /// <summary>
@@ -635,7 +635,7 @@ public partial class FlybyManagerViewModel : ObservableObject
 
         var cam = CameraList[index].Camera;
 
-        if ((cam.Flags & FlybySequenceData.FlagCameraCut) == 0)
+        if ((cam.Flags & FlybySequenceHelper.FlagCameraCut) == 0)
             return 0;
 
         int targetIndex = cam.Timer;
@@ -644,8 +644,8 @@ public partial class FlybyManagerViewModel : ObservableObject
             return 0;
 
         var cameras = GetCamerasAsList();
-        float fromTime = FlybySequenceData.GetTimecodeForCamera(cameras, index);
-        float toTime = FlybySequenceData.GetTimecodeForCamera(cameras, targetIndex);
+        float fromTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, index);
+        float toTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, targetIndex);
         return Math.Max(0, toTime - fromTime);
     }
 
@@ -654,14 +654,14 @@ public partial class FlybyManagerViewModel : ObservableObject
         var cache = GetSequenceCache();
 
         for (int i = 0; i < CameraList.Count; i++)
-            CameraList[i].Timecode = FlybySequenceData.FormatTimecode(
+            CameraList[i].Timecode = FlybySequenceHelper.FormatTimecode(
                 GetCacheTimecodeForCamera(i, cache));
     }
 
     private void UpdatePlayheadTimecode()
     {
         float seconds = PlayheadSeconds >= 0 ? PlayheadSeconds : 0;
-        PlayheadTimecode = FlybySequenceData.FormatTimecode(seconds);
+        PlayheadTimecode = FlybySequenceHelper.FormatTimecode(seconds);
     }
 
     #endregion Timecode helpers
@@ -692,7 +692,7 @@ public partial class FlybyManagerViewModel : ObservableObject
 
         if (_editor.Level != null)
         {
-            foreach (ushort seq in FlybySequenceData.GetAllSequences(_editor.Level))
+            foreach (ushort seq in FlybySequenceHelper.GetAllSequences(_editor.Level))
                 sequences.Add(seq);
         }
 
@@ -716,7 +716,7 @@ public partial class FlybyManagerViewModel : ObservableObject
         if (!SelectedSequence.HasValue || _editor.Level == null)
             return;
 
-        var cameras = FlybySequenceData.GetCameras(_editor.Level, SelectedSequence.Value);
+        var cameras = FlybySequenceHelper.GetCameras(_editor.Level, SelectedSequence.Value);
 
         var duplicateNumbers = cameras
             .GroupBy(c => c.Number)
@@ -750,7 +750,7 @@ public partial class FlybyManagerViewModel : ObservableObject
 
     private void RenumberSequence(ushort sequence, FlybyCameraInstance? excludeFromEvent = null)
     {
-        var cameras = FlybySequenceData.GetCameras(_editor.Level, sequence);
+        var cameras = FlybySequenceHelper.GetCameras(_editor.Level, sequence);
 
         _isApplyingProperty = true;
 
@@ -773,7 +773,7 @@ public partial class FlybyManagerViewModel : ObservableObject
         if (!SelectedSequence.HasValue || _editor.Level == null)
             return new List<FlybyCameraInstance>();
 
-        return FlybySequenceData.GetCameras(_editor.Level, SelectedSequence.Value);
+        return FlybySequenceHelper.GetCameras(_editor.Level, SelectedSequence.Value);
     }
 
     private IReadOnlyList<FlybyCameraInstance> GetCamerasAsList()

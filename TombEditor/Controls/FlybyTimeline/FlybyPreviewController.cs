@@ -6,7 +6,7 @@ using System.Windows.Threading;
 using TombLib.Forms;
 using TombLib.LevelData;
 
-namespace TombEditor.Controls.FlybyManager;
+namespace TombEditor.Controls.FlybyTimeline;
 
 /// <summary>
 /// Manages flyby camera preview and playback lifecycle.
@@ -164,7 +164,7 @@ public class FlybyPreviewController : IDisposable
         }
         else if (cameras.Count > 0)
         {
-            int nearestIndex = FlybySequenceData.FindCameraIndexAtTime(cameras, timeSeconds);
+            int nearestIndex = FlybySequenceHelper.FindCameraIndexAtTime(cameras, timeSeconds);
             _editor.CameraPreviewUpdated(cameras[nearestIndex]);
         }
 

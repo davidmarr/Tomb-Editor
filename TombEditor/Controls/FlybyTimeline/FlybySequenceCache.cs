@@ -6,7 +6,7 @@ using TombLib;
 using TombLib.LevelData;
 using TombLib.Utils;
 
-namespace TombEditor.Controls.FlybyManager;
+namespace TombEditor.Controls.FlybyTimeline;
 
 /// <summary>
 /// Pre-calculates a flyby sequence into a frame array at fixed time resolution.
@@ -284,7 +284,7 @@ public class FlybySequenceCache
             estimatedDuration += segmentDurations[i];
 
         for (int i = 0; i < numCameras; i++)
-            estimatedDuration += FlybySequenceData.GetFreezeDuration(cameras[i]);
+            estimatedDuration += FlybySequenceHelper.GetFreezeDuration(cameras[i]);
 
         int estimatedSlots = (int)(estimatedDuration * 1.15f / TimeStep) + 256;
         var timeline = new List<float>(estimatedSlots);
@@ -359,7 +359,7 @@ public class FlybySequenceCache
                     {
                         if (i < numSegments)
                             bypassedTime += segmentDurations[i];
-                        bypassedTime += FlybySequenceData.GetFreezeDuration(cameras[i]);
+                        bypassedTime += FlybySequenceHelper.GetFreezeDuration(cameras[i]);
                     }
 
                     float cutStartTime = timeline.Count * TimeStep;
@@ -384,7 +384,7 @@ public class FlybySequenceCache
 
                     // Emit freeze at target camera if it was supposed to be
                     // processed in the bypassed segment's iteration.
-                    float targetFreeze = FlybySequenceData.GetFreezeDuration(cameras[targetCam]);
+                    float targetFreeze = FlybySequenceHelper.GetFreezeDuration(cameras[targetCam]);
 
                     if (targetFreeze > 0)
                     {

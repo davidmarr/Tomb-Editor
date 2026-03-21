@@ -8,12 +8,12 @@ using TombLib;
 using TombLib.Graphics;
 using TombLib.LevelData;
 
-namespace TombEditor.Controls.FlybyManager;
+namespace TombEditor.Controls.FlybyTimeline;
 
 /// <summary>
 /// Pure static helpers for flyby sequence data queries and timecode calculations.
 /// </summary>
-public static class FlybySequenceData
+public static class FlybySequenceHelper
 {
     public const float GameTickRate = 30.0f;
     public const int FlagCameraCut = 1 << 7;

@@ -6,7 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using TombLib.LevelData;
 
-namespace TombEditor.Controls.FlybyManager;
+namespace TombEditor.Controls.FlybyTimeline;
 
 /// <summary>
 /// WPF UserControl that embeds the flyby timeline and its controls.
@@ -14,7 +14,7 @@ namespace TombEditor.Controls.FlybyManager;
 /// </summary>
 public partial class FlybyTimelineView : UserControl
 {
-    private FlybyManagerViewModel _viewModel;
+    private FlybyTimelineViewModel _viewModel;
     private bool _isUpdatingSelection;
     private System.Windows.Forms.IWin32Window _parentForm;
 
@@ -34,7 +34,7 @@ public partial class FlybyTimelineView : UserControl
 
         _parentForm = parentForm;
 
-        _viewModel = new FlybyManagerViewModel(editor, Dispatcher);
+        _viewModel = new FlybyTimelineViewModel(editor, Dispatcher);
         DataContext = _viewModel;
 
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -98,11 +98,11 @@ public partial class FlybyTimelineView : UserControl
     {
         switch (e.PropertyName)
         {
-            case nameof(FlybyManagerViewModel.SelectedCamera):
+            case nameof(FlybyTimelineViewModel.SelectedCamera):
                 RefreshTimeline();
                 break;
 
-            case nameof(FlybyManagerViewModel.PlayheadSeconds):
+            case nameof(FlybyTimelineViewModel.PlayheadSeconds):
                 timelineControl.SetPlayheadSeconds(_viewModel.PlayheadSeconds);
                 break;
         }
@@ -224,7 +224,7 @@ public partial class FlybyTimelineView : UserControl
                 IsInCutBypass = cutBypassed.Contains(i),
                 CutBypassDuration = cutBypassDuration,
                 SegmentDuration = i < cameras.Count - 1
-                    ? FlybySequenceData.GetSegmentDuration(item.Camera)
+                    ? FlybySequenceHelper.GetSegmentDuration(item.Camera)
                     : 0,
                 FreezeDurationSeconds = _viewModel.GetFreezeDurationSeconds(i),
                 EaseOutStartSeconds = easeOutStart

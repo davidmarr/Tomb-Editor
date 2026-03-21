@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
@@ -7,9 +6,8 @@ using System.Windows.Forms;
 using TombLib;
 using TombLib.Graphics;
 using TombLib.LevelData;
-using TombLib.Utils;
 
-namespace TombEditor.Controls.FlybyManager;
+namespace TombEditor.Controls.FlybyTimeline;
 
 /// <summary>
 /// Handles camera preview for flyby sequences. All frame interpolation is backed

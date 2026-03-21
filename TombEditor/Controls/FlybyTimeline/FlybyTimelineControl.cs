@@ -5,9 +5,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using TombLib.Utils;
 
-namespace TombEditor.Controls.FlybyManager;
+namespace TombEditor.Controls.FlybyTimeline;
 
 /// <summary>
 /// A custom WPF timeline control that displays draggable camera keyframes.
@@ -25,7 +24,6 @@ public class FlybyTimelineControl : Control
     private static readonly Brush RulerBrush = new SolidColorBrush(Color.FromRgb(55, 55, 55));
     private static readonly Brush GridLineBrush = new SolidColorBrush(Color.FromRgb(65, 65, 65));
     private static readonly Brush RulerTextBrush = new SolidColorBrush(Color.FromRgb(180, 180, 180));
-    private static readonly Brush LabelBrush = new SolidColorBrush(Color.FromRgb(120, 120, 120));
     private static readonly Brush MarkerBrush = new SolidColorBrush(Color.FromRgb(104, 151, 187));
     private static readonly Brush MarkerSelectedBrush = new SolidColorBrush(Color.FromRgb(230, 180, 60));
     private static readonly Brush MarkerErrorBrush = new SolidColorBrush(Color.FromRgb(230, 80, 80));
