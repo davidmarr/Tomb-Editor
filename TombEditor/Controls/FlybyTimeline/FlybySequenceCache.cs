@@ -38,14 +38,7 @@ public class FlybySequenceCache
 
     // The game logic runs at 30 ticks per second.
     private const float GameTickRate = 30.0f;
-
-    // Time resolution: one frame per game tick.
-    private const float TimeStep = 1.0f / GameTickRate;
-
-	/// <summary>
-	/// Public accessor for the time step between cached frames.
-	/// </summary>
-	public static readonly float TimeStepValue = 1.0f / GameTickRate;
+    public const float TimeStep = 1.0f / GameTickRate;
 
     // Distance from camera to target point, matching the level compiler.
     private const float TargetDistance = Level.SectorSizeUnit;
@@ -66,9 +59,7 @@ public class FlybySequenceCache
     private readonly float[] _easeOutStartSeconds;
 
     public float TotalDuration => _totalDuration;
-    public int FrameCount => _frameCount;
     public bool IsValid => _frameCount > 0;
-    public IReadOnlyList<CutRegion> CutRegions => _cutRegions;
 
     /// <summary>
     /// Per-camera timeline time in seconds, as resolved by the cache build pass.
@@ -115,15 +106,14 @@ public class FlybySequenceCache
         }
 
         // Pass 1: sequentially build the spline parameter timeline (fast, no spline math).
-        float[] splineParams = BuildSplineTimeline(cameras, segmentDurations, useSmoothPause,
-            out var cutRegionsList, out var cameraTimesResult, out var easeOutStartResult);
+        float[] splineParams = BuildSplineTimeline(cameras, segmentDurations, useSmoothPause, out var cutRegionsList, out var cameraTimesResult, out var easeOutStartResult);
+
         _cutRegions = cutRegionsList.ToArray();
         _cameraTimeSeconds = cameraTimesResult;
         _easeOutStartSeconds = easeOutStartResult;
 
         // Pass 2: evaluate all spline channels in parallel.
-        _frames = EvaluateFramesParallel(splineParams, posX, posY, posZ,
-            tgtX, tgtY, tgtZ, rollKnots, fovKnots, numSegments);
+        _frames = EvaluateFramesParallel(splineParams, posX, posY, posZ, tgtX, tgtY, tgtZ, rollKnots, fovKnots, numSegments);
 
         // Pass 3: unwrap yaw/pitch/roll to prevent discontinuities from atan2 wrapping.
         UnwrapFrameAngles(_frames);
@@ -262,15 +252,11 @@ public class FlybySequenceCache
     /// segments, freeze regions, camera cuts, and smooth pause phases. No spline math here,
     /// only float arithmetic, so this pass is very fast.
     /// </summary>
-    private static float[] BuildSplineTimeline(
-        IReadOnlyList<FlybyCameraInstance> cameras,
-        float[] segmentDurations,
-        bool useSmoothPause,
-        out List<CutRegion> cutRegions,
-        out float[] cameraTimeSeconds,
-        out float[] easeOutStartSeconds)
+    private static float[] BuildSplineTimeline(IReadOnlyList<FlybyCameraInstance> cameras, float[] segmentDurations, bool useSmoothPause,
+        out List<CutRegion> cutRegions, out float[] cameraTimeSeconds, out float[] easeOutStartSeconds)
     {
         cutRegions = new List<CutRegion>();
+			
         int numCameras = cameras.Count;
         int numSegments = numCameras - 1;
 
@@ -307,14 +293,12 @@ public class FlybySequenceCache
             bool hasFreeze = !hasCut && (nextFlags & FlagStopMovement) != 0 && nextTimer > 0;
 
             float segEnd = currentSegment + 1.0f;
-            float speedPerTick = segmentDurations[currentSegment] > 0
-                ? TimeStep / segmentDurations[currentSegment] : 0;
+            float speedPerTick = segmentDurations[currentSegment] > 0 ? TimeStep / segmentDurations[currentSegment] : 0;
 
             if (useSmoothPause && hasFreeze)
             {
                 EmitSmoothPauseSegment(timeline, currentSegment, segmentDurations,
-                    numSegments, nextTimer, speedPerTick, ref currentT,
-                    out float easeOutStart);
+                    numSegments, nextTimer, speedPerTick, ref currentT, out float easeOutStart);
 
                 // Record the ease-out start time for the next camera's freeze region display.
                 if (nextCamera < numCameras)
@@ -415,8 +399,7 @@ public class FlybySequenceCache
     /// Advances currentT through a segment using a running accumulator, matching
     /// the original engine's per-tick t += speed * SpeedScale advancement.
     /// </summary>
-    private static void EmitLinearSegment(List<float> timeline, float segEnd,
-        float speedPerTick, ref float currentT)
+    private static void EmitLinearSegment(List<float> timeline, float segEnd, float speedPerTick, ref float currentT)
     {
         while (currentT < segEnd)
         {
@@ -430,10 +413,8 @@ public class FlybySequenceCache
     /// the ease-out zone, ease-out deceleration, hold, and ease-in acceleration on the next
     /// segment. Uses the running currentT accumulator throughout all phases.
     /// </summary>
-    private static void EmitSmoothPauseSegment(
-        List<float> timeline, int segment, float[] segmentDurations,
-        int numSegments, short timer, float speedPerTick, ref float currentT,
-        out float easeOutStartTimeSeconds)
+    private static void EmitSmoothPauseSegment(List<float> timeline, int segment, float[] segmentDurations,
+        int numSegments, short timer, float speedPerTick, ref float currentT, out float easeOutStartTimeSeconds)
     {
         float segEnd = segment + 1.0f;
         float speedPerSec = segmentDurations[segment] > 0 ? 1.0f / segmentDurations[segment] : 0;
@@ -479,8 +460,7 @@ public class FlybySequenceCache
 
         if (nextSegment < numSegments)
         {
-            float nextSpeedPerSec = segmentDurations[nextSegment] > 0
-                ? 1.0f / segmentDurations[nextSegment] : 0;
+            float nextSpeedPerSec = segmentDurations[nextSegment] > 0 ? 1.0f / segmentDurations[nextSegment] : 0;
             float nextClampedSpeed = Math.Max(nextSpeedPerSec, MinSpeed);
             float easeInStep = nextClampedSpeed / (2.0f * EaseDistance);
             float easeInProgress = 0;
@@ -534,14 +514,14 @@ public class FlybySequenceCache
     {
         t = Math.Clamp(t, 0, numSegments);
 
-        float px = CatmullRomSpline.Evaluate(t, posX);
-        float py = CatmullRomSpline.Evaluate(t, posY);
-        float pz = CatmullRomSpline.Evaluate(t, posZ);
-        float tx = CatmullRomSpline.Evaluate(t, tgtX);
-        float ty = CatmullRomSpline.Evaluate(t, tgtY);
-        float tz = CatmullRomSpline.Evaluate(t, tgtZ);
+        float px   = CatmullRomSpline.Evaluate(t, posX);
+        float py   = CatmullRomSpline.Evaluate(t, posY);
+        float pz   = CatmullRomSpline.Evaluate(t, posZ);
+        float tx   = CatmullRomSpline.Evaluate(t, tgtX);
+        float ty   = CatmullRomSpline.Evaluate(t, tgtY);
+        float tz   = CatmullRomSpline.Evaluate(t, tgtZ);
         float roll = CatmullRomSpline.Evaluate(t, rollKnots);
-        float fov = CatmullRomSpline.Evaluate(t, fovKnots);
+        float fov  = CatmullRomSpline.Evaluate(t, fovKnots);
 
         float dx = tx - px;
         float dy = ty - py;
@@ -585,7 +565,7 @@ public class FlybySequenceCache
         var rawTgtY = new float[n];
         var rawTgtZ = new float[n];
         var rawRoll = new float[n];
-        var rawFov = new float[n];
+        var rawFov  = new float[n];
 
         for (int i = 0; i < n; i++)
         {
@@ -603,7 +583,7 @@ public class FlybySequenceCache
             rawTgtY[i] = worldPos.Y + TargetDistance * MathF.Sin(pitchRad);
             rawTgtZ[i] = worldPos.Z + TargetDistance * cosPitch * MathF.Cos(yawRad);
             rawRoll[i] = cam.Roll;
-            rawFov[i] = cam.Fov;
+            rawFov[i]  = cam.Fov;
         }
 
         UnwrapAngles(rawRoll);
@@ -633,18 +613,16 @@ public class FlybySequenceCache
     /// </summary>
     private static void UnwrapFrameAngles(CachedFrame[] frames)
     {
-        float twoPi = 2.0f * MathF.PI;
-
         for (int i = 1; i < frames.Length; i++)
         {
             float dyaw = frames[i].RotationY - frames[i - 1].RotationY;
-            frames[i].RotationY -= MathF.Round(dyaw / twoPi) * twoPi;
+            frames[i].RotationY -= MathF.Round(dyaw / MathC.TwoPi) * MathC.TwoPi;
 
             float dpitch = frames[i].RotationX - frames[i - 1].RotationX;
-            frames[i].RotationX -= MathF.Round(dpitch / twoPi) * twoPi;
+            frames[i].RotationX -= MathF.Round(dpitch / MathC.TwoPi) * MathC.TwoPi;
 
             float droll = frames[i].Roll - frames[i - 1].Roll;
-            frames[i].Roll -= MathF.Round(droll / twoPi) * twoPi;
+            frames[i].Roll -= MathF.Round(droll / MathC.TwoPi) * MathC.TwoPi;
         }
     }
 

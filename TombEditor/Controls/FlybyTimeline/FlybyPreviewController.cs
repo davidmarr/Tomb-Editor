@@ -86,6 +86,8 @@ public class FlybyPreviewController : IDisposable
 
     public void StartPlayback(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence)
     {
+        const float DispatcherTimerInterval = 33;
+
         if (cameras.Count < 2)
         {
             _editor.SendMessage("Flyby sequence needs at least 2 cameras to play.", PopupType.Info);
@@ -119,7 +121,7 @@ public class FlybyPreviewController : IDisposable
 
         _playbackTimer = new DispatcherTimer(DispatcherPriority.Render)
         {
-            Interval = TimeSpan.FromMilliseconds(16)
+            Interval = TimeSpan.FromMilliseconds(DispatcherTimerInterval)
         };
 
         _playbackTimer.Tick += (s, e) => OnPlaybackTick();
@@ -212,8 +214,7 @@ public class FlybyPreviewController : IDisposable
     /// <summary>
     /// Returns the interpolated frame at the given time in seconds (for camera insertion).
     /// </summary>
-    public FlybyPreview.FrameState? GetInterpolatedFrameAtTime(
-        IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence, float timeSeconds)
+    public FlybyPreview.FrameState? GetInterpolatedFrameAtTime(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence, float timeSeconds)
     {
         EnsureCache(cameras, sequence);
         return _cache?.SampleAtTime(timeSeconds);

@@ -8,7 +8,8 @@ namespace TombLib
 {
     public static class MathC
     {
-        public const float ZeroTolerance = 1e-6f; // Value a 8x higher than 1.19209290E-07F
+        public const float Epsilon = 1e-6f; // Value a 8x higher than 1.19209290E-07F
+        public const float TwoPi = 2.0f * MathF.PI;
 
         // Use Rec.709 trichromat formula to get perceptive luma value
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -144,7 +145,7 @@ namespace TombLib
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsZero(float a)
         {
-            return Math.Abs(a) < ZeroTolerance;
+            return Math.Abs(a) < Epsilon;
         }
 
         /// <summary>

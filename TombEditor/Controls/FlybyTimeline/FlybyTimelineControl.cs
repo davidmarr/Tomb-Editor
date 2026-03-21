@@ -170,8 +170,8 @@ public class FlybyTimelineControl : Control
         float duration = _cache.TotalDuration;
         float step = duration / 200.0f;
 
-        if (step < FlybySequenceCache.TimeStepValue)
-            step = FlybySequenceCache.TimeStepValue;
+        if (step < FlybySequenceCache.TimeStep)
+            step = FlybySequenceCache.TimeStep;
 
         for (float t = 0; t <= duration; t += step)
         {
