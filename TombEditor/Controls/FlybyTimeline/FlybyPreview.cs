@@ -179,7 +179,7 @@ public class FlybyPreview
 			Position = worldPos,
 			RotationY = MathC.DegToRad(camera.RotationY),
 			RotationX = -MathC.DegToRad(camera.RotationX),
-			Roll = -MathC.DegToRad(camera.Roll),
+			Roll = MathC.DegToRad(camera.Roll),
 			Fov = MathC.DegToRad(camera.Fov)
 		};
 	}

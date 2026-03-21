@@ -125,6 +125,9 @@ public class FlybySequenceCache
         _frames = EvaluateFramesParallel(splineParams, posX, posY, posZ,
             tgtX, tgtY, tgtZ, rollKnots, fovKnots, numSegments);
 
+        // Pass 3: unwrap yaw/pitch/roll to prevent discontinuities from atan2 wrapping.
+        UnwrapFrameAngles(_frames);
+
         _frameCount = _frames.Length;
         _totalDuration = _frameCount > 0 ? (_frameCount - 1) * TimeStep : 0;
     }
@@ -558,7 +561,7 @@ public class FlybySequenceCache
             Position = new Vector3(px, py, pz),
             RotationY = yaw,
             RotationX = pitch,
-            Roll = -MathC.DegToRad(roll),
+            Roll = MathC.DegToRad(roll),
             Fov = MathC.DegToRad(fov)
         };
     }
@@ -621,6 +624,27 @@ public class FlybySequenceCache
         {
             float delta = angles[i] - angles[i - 1];
             angles[i] -= MathF.Round(delta / 360.0f) * 360.0f;
+        }
+    }
+
+    /// <summary>
+    /// Unwraps RotationY, RotationX and Roll across consecutive cached frames to prevent
+    /// discontinuities from atan2 wrapping at the +/-pi boundary.
+    /// </summary>
+    private static void UnwrapFrameAngles(CachedFrame[] frames)
+    {
+        float twoPi = 2.0f * MathF.PI;
+
+        for (int i = 1; i < frames.Length; i++)
+        {
+            float dyaw = frames[i].RotationY - frames[i - 1].RotationY;
+            frames[i].RotationY -= MathF.Round(dyaw / twoPi) * twoPi;
+
+            float dpitch = frames[i].RotationX - frames[i - 1].RotationX;
+            frames[i].RotationX -= MathF.Round(dpitch / twoPi) * twoPi;
+
+            float droll = frames[i].Roll - frames[i - 1].Roll;
+            frames[i].Roll -= MathF.Round(droll / twoPi) * twoPi;
         }
     }
 
