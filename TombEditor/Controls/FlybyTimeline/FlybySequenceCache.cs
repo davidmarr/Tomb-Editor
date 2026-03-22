@@ -108,6 +108,8 @@ public class FlybySequenceCache
 
     /// <summary>
     /// Samples the cache at a given time, linearly interpolating between adjacent frames.
+    /// Interpolation is suppressed at cut region boundaries to prevent blending between
+    /// valid sequence frames and dummy still frames filling the cut gap.
     /// </summary>
     public FlybyPreview.FrameState SampleAtTime(float timeSeconds)
     {
@@ -123,6 +125,10 @@ public class FlybySequenceCache
 
         if (i0 >= _frameCount - 1)
             return FrameToState(_frames[_frameCount - 1]);
+
+        // Suppress interpolation across cut region boundaries.
+        if (frac > 0 && IsAtCutBoundary(i0))
+            return FrameToState(_frames[IsInsideCutRegion(i0) ? i0 + 1 : i0]);
 
         return LerpFrames(_frames[i0], _frames[i0 + 1], frac);
     }
@@ -227,6 +233,36 @@ public class FlybySequenceCache
             Fov = f.Fov,
             Finished = false
         };
+    }
+
+    private bool IsInsideCutRegion(int frameIndex)
+    {
+        float time = frameIndex * FlybyConstants.TimeStep;
+
+        foreach (var cut in _cutRegions)
+        {
+            if (time >= cut.StartTime && time < cut.EndTime)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsAtCutBoundary(int frameIndex)
+    {
+        float t0 = frameIndex * FlybyConstants.TimeStep;
+        float t1 = (frameIndex + 1) * FlybyConstants.TimeStep;
+
+        foreach (var cut in _cutRegions)
+        {
+            // Interpolation pair straddles the cut start or cut end.
+            if (t0 < cut.StartTime && t1 >= cut.StartTime)
+                return true;
+            if (t0 < cut.EndTime && t1 >= cut.EndTime)
+                return true;
+        }
+
+        return false;
     }
 
     #region Pass 1: spline parameter timeline
