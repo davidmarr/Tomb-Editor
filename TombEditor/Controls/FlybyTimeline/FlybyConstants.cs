@@ -9,5 +9,7 @@
 		public const int FlagFreezeCamera = 1 << 8;
 
 		public const float PreviewTimerInterval = 16;
+
+		public const float TimelineZoomOutScale = 1.05f;
 	}
 }

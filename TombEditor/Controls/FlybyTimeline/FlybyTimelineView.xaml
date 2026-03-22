@@ -30,7 +30,7 @@
                 VerticalAlignment="Center"
                 HorizontalAlignment="Left"
                 FontFamily="Courier New"
-                FontSize="14"
+                FontSize="15"
                 Foreground="#FFC0C0C0"
                 Text="{Binding PlayheadTimecode}"
                 TextAlignment="Right"

@@ -176,9 +176,9 @@ public class FlybyTimelineControl : Control
         return peak;
     }
 
-    protected override void OnRender(DrawingContext dc)
+    protected override void OnRender(DrawingContext context)
     {
-        base.OnRender(dc);
+        base.OnRender(context);
 
         double w = ActualWidth;
         double h = ActualHeight;
@@ -187,39 +187,39 @@ public class FlybyTimelineControl : Control
             return;
 
         // Background.
-        dc.DrawRectangle(BackgroundBrush, null, new Rect(0, 0, w, h));
+        context.DrawRectangle(BackgroundBrush, null, new Rect(0, 0, w, h));
 
         // Time ruler area.
-        dc.DrawRectangle(RulerBrush, null, new Rect(0, 0, w, TimeRulerHeight));
+        context.DrawRectangle(RulerBrush, null, new Rect(0, 0, w, TimeRulerHeight));
 
         // Draw time ruler marks and labels.
-        DrawTimeRuler(dc, w);
+        DrawTimeRuler(context, w);
 
         // Track area uses all remaining height below the ruler.
         double trackY = TimeRulerHeight;
         double trackHeight = Math.Max(1.0, h - TimeRulerHeight);
-        dc.DrawRectangle(TrackBrush, null, new Rect(0, trackY, w, trackHeight));
+        context.DrawRectangle(TrackBrush, null, new Rect(0, trackY, w, trackHeight));
 
         // Draw segment regions (freeze and camera cut indicators).
-        DrawSegmentRegions(dc, w, trackY, trackHeight);
+        DrawSegmentRegions(context, w, trackY, trackHeight);
 
         // Draw relative speed curve behind markers.
-        DrawSpeedCurve(dc, w, trackY, trackHeight);
+        DrawSpeedCurve(context, w, trackY, trackHeight);
 
         // Draw markers.
-        DrawMarkers(dc, w, trackY, trackHeight);
+        DrawMarkers(context, w, trackY, trackHeight);
 
         // Draw range selection highlight.
         if (_isRangeSelecting)
         {
             double selLeft = Math.Min(_rangeStartX, _rangeEndX);
             double selRight = Math.Max(_rangeStartX, _rangeEndX);
-            dc.DrawRectangle(SelectionBrush, null, new Rect(selLeft, trackY, selRight - selLeft, trackHeight));
+            context.DrawRectangle(SelectionBrush, null, new Rect(selLeft, trackY, selRight - selLeft, trackHeight));
         }
 
         // Draw cursor line at mouse position.
         if (_isMouseOver && _mouseX >= 0 && _mouseX <= w)
-            dc.DrawLine(CursorLinePen, new Point(_mouseX, 0), new Point(_mouseX, h));
+            context.DrawLine(CursorLinePen, new Point(_mouseX, 0), new Point(_mouseX, h));
 
         // Draw playhead line.
         if (_playheadSeconds >= 0)
@@ -227,11 +227,11 @@ public class FlybyTimelineControl : Control
             double phX = TimeToPixel(_playheadSeconds, w);
 
             if (phX >= 0 && phX <= w)
-                dc.DrawLine(PlayheadPen, new Point(phX, 0), new Point(phX, h));
+                context.DrawLine(PlayheadPen, new Point(phX, 0), new Point(phX, h));
         }
     }
 
-    private void DrawTimeRuler(DrawingContext dc, double width)
+    private void DrawTimeRuler(DrawingContext context, double width)
     {
         double visibleDuration = _visibleEndSeconds - _visibleStartSeconds;
 
@@ -252,10 +252,10 @@ public class FlybyTimelineControl : Control
                 continue;
 
             // Draw grid line.
-            dc.DrawLine(GridLinePen, new Point(x, TimeRulerHeight), new Point(x, ActualHeight));
+            context.DrawLine(GridLinePen, new Point(x, TimeRulerHeight), new Point(x, ActualHeight));
 
             // Draw tick mark.
-            dc.DrawLine(GridLinePen, new Point(x, 0), new Point(x, TimeRulerHeight));
+            context.DrawLine(GridLinePen, new Point(x, 0), new Point(x, TimeRulerHeight));
 
             // Draw label.
             string label = FormatRulerLabel(t);
@@ -263,11 +263,11 @@ public class FlybyTimelineControl : Control
                 label, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
                 DefaultTypeface, 9, RulerTextBrush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
-            dc.DrawText(formattedText, new Point(x + 2, 2));
+            context.DrawText(formattedText, new Point(x + 2, 2));
         }
     }
 
-    private void DrawSegmentRegions(DrawingContext dc, double width, double trackY, double trackHeight)
+    private void DrawSegmentRegions(DrawingContext context, double width, double trackY, double trackHeight)
     {
         for (int i = 0; i < _markers.Count - 1; i++)
         {
@@ -285,26 +285,26 @@ public class FlybyTimelineControl : Control
                 double cutRight = Math.Min(width, TimeToPixel(bypassEnd, width));
 
                 if (cutRight > cutLeft)
-                    DrawDiagonalHatch(dc, cutLeft, trackY, cutRight - cutLeft, trackHeight, CameraCutPen);
+                    DrawDiagonalHatch(context, cutLeft, trackY, cutRight - cutLeft, trackHeight, CameraCutPen);
             }
         }
     }
 
-    private void DrawDiagonalHatch(DrawingContext dc, double x, double y, double w, double h, Pen pen)
+    private void DrawDiagonalHatch(DrawingContext context, double x, double y, double w, double h, Pen pen)
     {
         double spacing = 6.0;
         var clip = new RectangleGeometry(new Rect(x, y, w, h));
 
-        dc.PushClip(clip);
+        context.PushClip(clip);
 
         for (double offset = -h; offset < w + h; offset += spacing)
         {
-            dc.DrawLine(pen,
+            context.DrawLine(pen,
                 new Point(x + offset, y + h),
                 new Point(x + offset + h, y));
         }
 
-        dc.Pop();
+        context.Pop();
     }
 
     // Returns the normalized speed (0-1) at the given timeline time by sampling
@@ -326,12 +326,12 @@ public class FlybyTimelineControl : Control
 
     // Draws a filled speed waveform centred at the track's vertical midpoint.
     // The fill is semi-transparent and mirrors above and below the centre line.
-    private void DrawSpeedCurve(DrawingContext dc, double width, double trackY, double trackHeight)
+    private void DrawSpeedCurve(DrawingContext context, double width, double trackY, double trackHeight)
     {
         if (_markers.Count < 2)
             return;
 
-        double maxHalfAmplitude = trackHeight / 2.0 - 5.0;
+        double maxHalfAmplitude = trackHeight / 2.0 - 8.0;
         double centerY = trackY + trackHeight / 2.0;
         int sampleCount = Math.Max(2, (int)(width / 2.0));
 
@@ -364,20 +364,20 @@ public class FlybyTimelineControl : Control
 
         var geometry = new StreamGeometry();
 
-        using (var ctx = geometry.Open())
+        using (var streamContext = geometry.Open())
         {
             foreach (var (start, end) in spans)
-                DrawFilledWaveformSpan(ctx, width, centerY, sampleCount, start, end, maxHalfAmplitude);
+                DrawFilledWaveformSpan(streamContext, width, centerY, sampleCount, start, end, maxHalfAmplitude);
         }
 
         geometry.Freeze();
 
-        dc.PushClip(new RectangleGeometry(new Rect(0, trackY, width, trackHeight)));
-        dc.DrawGeometry(SpeedCurveFillBrush, null, geometry);
-        dc.Pop();
+        context.PushClip(new RectangleGeometry(new Rect(0, trackY, width, trackHeight)));
+        context.DrawGeometry(SpeedCurveFillBrush, null, geometry);
+        context.Pop();
     }
 
-    private void DrawFilledWaveformSpan(StreamGeometryContext ctx, double width, double centerY,
+    private void DrawFilledWaveformSpan(StreamGeometryContext context, double width, double centerY,
         int sampleCount, int start, int end, double maxHalf)
     {
         int count = end - start + 1;
@@ -396,16 +396,16 @@ public class FlybyTimelineControl : Control
 
         // Begin at the first upper point, trace upper edge left-to-right,
         // then lower edge right-to-left, forming a closed filled shape.
-        ctx.BeginFigure(upper[0], true, true);
+        context.BeginFigure(upper[0], true, true);
 
         for (int i = 1; i < count; i++)
-            ctx.LineTo(upper[i], true, false);
+            context.LineTo(upper[i], true, false);
 
         for (int i = count - 1; i >= 0; i--)
-            ctx.LineTo(lower[i], true, false);
+            context.LineTo(lower[i], true, false);
     }
 
-    private void DrawMarkers(DrawingContext dc, double width, double trackY, double trackHeight)
+    private void DrawMarkers(DrawingContext context, double width, double trackY, double trackHeight)
     {
         double centerY = trackY + trackHeight / 2.0;
 
@@ -430,11 +430,11 @@ public class FlybyTimelineControl : Control
             if (marker.HasFreeze)
             {
                 double half = MarkerRadius;
-                dc.DrawRectangle(fill, MarkerOutlinePen, new Rect(x - half, centerY - half, half * 2, half * 2));
+                context.DrawRectangle(fill, MarkerOutlinePen, new Rect(x - half, centerY - half, half * 2, half * 2));
             }
             else
             {
-                dc.DrawEllipse(fill, MarkerOutlinePen, new Point(x, centerY), MarkerRadius, MarkerRadius);
+                context.DrawEllipse(fill, MarkerOutlinePen, new Point(x, centerY), MarkerRadius, MarkerRadius);
             }
         }
     }
@@ -600,7 +600,7 @@ public class FlybyTimelineControl : Control
 
         // Full zoom out on double-click on empty space.
         _visibleStartSeconds = 0;
-        _visibleEndSeconds = _totalDurationSeconds * 1.1;
+        _visibleEndSeconds = _totalDurationSeconds * FlybyConstants.TimelineZoomOutScale;
 
         InvalidateVisual();
     }
