@@ -36,7 +36,6 @@ public class FlybyTimelineControl : Control
     private static readonly Brush SpeedCurveFillBrush;
     private static readonly Pen PlayheadPen;
     private static readonly Pen CameraCutPen;
-    private static readonly Brush FreezeBrush;
 
     private static readonly Typeface DefaultTypeface = new("Segoe UI");
 
@@ -105,10 +104,6 @@ public class FlybyTimelineControl : Control
         // Diagonal hatch pen for camera cuts.
         CameraCutPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 160, 160, 160)), 1.0);
         CameraCutPen.Freeze();
-
-        var freezeBrush = new SolidColorBrush(Color.FromArgb(64, 160, 160, 160));
-        freezeBrush.Freeze();
-        FreezeBrush = freezeBrush;
     }
 
     public FlybyTimelineControl()
@@ -126,11 +121,7 @@ public class FlybyTimelineControl : Control
         public bool IsInCutBypass;
         public float CutBypassDuration;
         public float SegmentDuration;
-        public float FreezeDurationSeconds;
-
-        // For TombEngine targets, the time where ease-out deceleration starts.
-        // When set (> 0 and < TimeSeconds), the freeze region extends from here.
-        public float EaseOutStartSeconds;
+        public bool HasFreeze;
     }
 
     /// <summary>
@@ -297,19 +288,6 @@ public class FlybyTimelineControl : Control
                     DrawDiagonalHatch(dc, cutLeft, trackY, cutRight - cutLeft, trackHeight, CameraCutPen);
             }
         }
-
-        // Draw freeze regions detected from cache frame data.
-        if (_cache != null)
-        {
-            foreach (var region in _cache.FreezeRegions)
-            {
-                double left = Math.Max(0, TimeToPixel(region.StartSeconds, width));
-                double right = Math.Min(width, TimeToPixel(region.EndSeconds, width));
-
-                if (right > left)
-                    dc.DrawRectangle(FreezeBrush, null, new Rect(left, trackY, right - left, trackHeight));
-            }
-        }
     }
 
     private void DrawDiagonalHatch(DrawingContext dc, double x, double y, double w, double h, Pen pen)
@@ -448,8 +426,16 @@ public class FlybyTimelineControl : Control
             else
                 fill = MarkerBrush;
 
-            // Draw circle marker.
-            dc.DrawEllipse(fill, MarkerOutlinePen, new Point(x, centerY), MarkerRadius, MarkerRadius);
+            // Draw square marker for cameras with freeze flag, circle otherwise.
+            if (marker.HasFreeze)
+            {
+                double half = MarkerRadius;
+                dc.DrawRectangle(fill, MarkerOutlinePen, new Rect(x - half, centerY - half, half * 2, half * 2));
+            }
+            else
+            {
+                dc.DrawEllipse(fill, MarkerOutlinePen, new Point(x, centerY), MarkerRadius, MarkerRadius);
+            }
         }
     }
 

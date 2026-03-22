@@ -211,12 +211,6 @@ public partial class FlybyTimelineView : UserControl
                 }
             }
 
-            // Get ease-out start time from the cache for TombEngine freeze region display.
-            float easeOutStart = 0;
-
-            if (cache != null && cache.IsValid && i < cache.EaseOutStartSeconds.Count)
-                easeOutStart = cache.EaseOutStartSeconds[i];
-
             markers.Add(new FlybyTimelineControl.TimelineMarker
             {
                 TimeSeconds = timeSeconds,
@@ -225,11 +219,8 @@ public partial class FlybyTimelineView : UserControl
                 HasCameraCut = _viewModel.GetCameraCutFlag(i),
                 IsInCutBypass = cutBypassed.Contains(i),
                 CutBypassDuration = cutBypassDuration,
-                SegmentDuration = i < cameras.Count - 1
-                    ? FlybySequenceHelper.GetSegmentDuration(item.Camera)
-                    : 0,
-                FreezeDurationSeconds = _viewModel.GetFreezeDurationSeconds(i),
-                EaseOutStartSeconds = easeOutStart
+                SegmentDuration = i < cameras.Count - 1 ? FlybySequenceHelper.GetSegmentDuration(item.Camera) : 0,
+                HasFreeze = (item.Camera.Flags & FlybyConstants.FlagFreezeCamera) != 0
             });
         }
 

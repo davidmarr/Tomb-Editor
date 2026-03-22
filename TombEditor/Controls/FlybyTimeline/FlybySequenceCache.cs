@@ -30,13 +30,6 @@ public class FlybySequenceCache
         public float Fov;
     }
 
-    // Time range where the camera is frozen (no change in position, rotation, or FOV).
-    public struct FreezeRegion
-    {
-        public float StartSeconds;
-        public float EndSeconds;
-    }
-
     // Time range bypassed by a camera cut flag.
     public struct CutRegion
     {
@@ -65,16 +58,10 @@ public class FlybySequenceCache
     private readonly CutRegion[] _cutRegions;
     private readonly float[] _cameraTimeSeconds;
     private readonly float[] _easeOutStartSeconds;
-    private readonly FreezeRegion[] _freezeRegions;
     private readonly float[] _smoothedSpeeds;
 
     public float TotalDuration => _totalDuration;
     public bool IsValid => _frameCount > 0;
-
-    /// <summary>
-    /// Freeze regions detected from cache frame data (consecutive frames with no movement).
-    /// </summary>
-    public IReadOnlyList<FreezeRegion> FreezeRegions => _freezeRegions;
 
     /// <summary>
     /// Per-camera timeline time in seconds, as resolved by the cache build pass.
@@ -97,7 +84,6 @@ public class FlybySequenceCache
             _cutRegions = Array.Empty<CutRegion>();
             _cameraTimeSeconds = Array.Empty<float>();
             _easeOutStartSeconds = Array.Empty<float>();
-            _freezeRegions = Array.Empty<FreezeRegion>();
             _smoothedSpeeds = Array.Empty<float>();
             _totalDuration = 0;
             _frameCount = 0;
@@ -131,8 +117,7 @@ public class FlybySequenceCache
         _frameCount = _frames.Length;
         _totalDuration = _frameCount > 0 ? (_frameCount - 1) * TimeStep : 0;
 
-        // Pass 4: detect freeze regions and pre-compute smoothed speed curve.
-        _freezeRegions = DetectFreezeRegions();
+        // Pass 4: pre-compute smoothed speed curve.
         _smoothedSpeeds = ComputeSmoothedSpeeds();
     }
 
@@ -634,62 +619,7 @@ public class FlybySequenceCache
 
     #endregion Knot building
 
-    #region Freeze detection and speed smoothing
-
-    /// <summary>
-    /// Scans cached frames to find regions where position, rotation and FOV are static.
-    /// </summary>
-    private FreezeRegion[] DetectFreezeRegions()
-    {
-        if (_frameCount < 2)
-            return Array.Empty<FreezeRegion>();
-
-        const float posThreshold = 0.01f;
-        const float angleThreshold = 0.0001f;
-        const float fovThreshold = 0.0001f;
-
-        var regions = new List<FreezeRegion>();
-        int freezeStart = -1;
-
-        for (int i = 0; i < _frameCount - 1; i++)
-        {
-            var a = _frames[i];
-            var b = _frames[i + 1];
-
-            bool isFrozen =
-                Vector3.Distance(a.Position, b.Position) < posThreshold &&
-                MathF.Abs(a.RotationY - b.RotationY) < angleThreshold &&
-                MathF.Abs(a.RotationX - b.RotationX) < angleThreshold &&
-                MathF.Abs(a.Roll - b.Roll) < angleThreshold &&
-                MathF.Abs(a.Fov - b.Fov) < fovThreshold;
-
-            if (isFrozen)
-            {
-                if (freezeStart < 0)
-                    freezeStart = i;
-            }
-            else if (freezeStart >= 0)
-            {
-                regions.Add(new FreezeRegion
-                {
-                    StartSeconds = freezeStart * TimeStep,
-                    EndSeconds = i * TimeStep
-                });
-                freezeStart = -1;
-            }
-        }
-
-        if (freezeStart >= 0)
-        {
-            regions.Add(new FreezeRegion
-            {
-                StartSeconds = freezeStart * TimeStep,
-                EndSeconds = (_frameCount - 1) * TimeStep
-            });
-        }
-
-        return regions.ToArray();
-    }
+    #region Speed smoothing
 
     /// <summary>
     /// Pre-computes a smoothed speed curve from position deltas between consecutive frames.
@@ -738,5 +668,5 @@ public class FlybySequenceCache
         return result;
     }
 
-    #endregion Freeze detection and speed smoothing
+    #endregion Speed smoothing
 }
