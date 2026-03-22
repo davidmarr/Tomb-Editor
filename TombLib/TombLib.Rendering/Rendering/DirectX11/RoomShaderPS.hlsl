@@ -143,10 +143,10 @@ float4 main(PixelInputType input) : SV_TARGET
 	{	// Draw outline
 		float2 absUV = abs(input.EditorUv);
 
-		float lineWidth = (RoomGridLineWidth * 1024) / input.Position.w - 0.5f;
 		float resolutionX = ddAny(input.EditorUv.x);
 		float resolutionY = ddAny(input.EditorUv.y);
 		float resolutionDiagonal = ddAny(input.EditorUv.x + input.EditorUv.y);
+		float lineWidth = RoomGridLineWidth / (min(resolutionX, resolutionY) * 1024.0f) - 0.5f;
 
 		float distanceX = min(absUV.x, 1.0f - absUV.x);
 		float distanceY = min(absUV.y, 1.0f - absUV.y);
