@@ -15,10 +15,6 @@ namespace TombEditor.Controls.FlybyTimeline;
 /// </summary>
 public class FlybyTimelineControl : Control
 {
-    private const double MarkerRadius = 6.375;
-    private const double MinTickSpacing = 40.0;
-    private const double TimeRulerHeight = 20.0;
-
     private static readonly Brush BackgroundBrush = new SolidColorBrush(Color.FromRgb(43, 43, 43));
     private static readonly Brush RulerBrush = new SolidColorBrush(Color.FromRgb(55, 55, 55));
     private static readonly Brush GridLineBrush = new SolidColorBrush(Color.FromRgb(65, 65, 65));
@@ -31,8 +27,8 @@ public class FlybyTimelineControl : Control
     private static readonly Brush PlayheadBrush;
 
     private static readonly Pen GridLinePen = new(GridLineBrush, 1.0);
-    private static readonly Pen MarkerOutlinePen = new(new SolidColorBrush(Color.FromRgb(178, 178, 178)), 2.0);
-    private static readonly Pen CursorLinePen = new(new SolidColorBrush(Color.FromArgb(100, 178, 178, 178)), 1.0);
+    private static readonly Pen MarkerOutlinePen = new(new SolidColorBrush(Color.FromRgb(178, 178, 178)), 2.0f);
+    private static readonly Pen CursorLinePen = new(new SolidColorBrush(Color.FromArgb(100, 178, 178, 178)), 1.0f);
     private static readonly Brush SpeedCurveFillBrush;
     private static readonly Pen PlayheadPen;
     private static readonly Pen CameraCutPen;
@@ -102,7 +98,7 @@ public class FlybyTimelineControl : Control
         SpeedCurveFillBrush = scBrush;
 
         // Diagonal hatch pen for camera cuts.
-        CameraCutPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 160, 160, 160)), 1.0);
+        CameraCutPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 160, 160, 160)), 1.0f);
         CameraCutPen.Freeze();
     }
 
@@ -140,7 +136,7 @@ public class FlybyTimelineControl : Control
         FlybySequenceCache? cache = null)
     {
         _markers = markers ?? new List<TimelineMarker>();
-        _totalDurationSeconds = Math.Max(1.0, totalDuration);
+        _totalDurationSeconds = Math.Max(1.0f, totalDuration);
         _cache = cache;
         _peakSpeed = ComputePeakSpeed();
 
@@ -190,14 +186,14 @@ public class FlybyTimelineControl : Control
         context.DrawRectangle(BackgroundBrush, null, new Rect(0, 0, w, h));
 
         // Time ruler area.
-        context.DrawRectangle(RulerBrush, null, new Rect(0, 0, w, TimeRulerHeight));
+        context.DrawRectangle(RulerBrush, null, new Rect(0, 0, w, FlybyConstants.TimelineRulerHeight));
 
         // Draw time ruler marks and labels.
         DrawTimeRuler(context, w);
 
         // Track area uses all remaining height below the ruler.
-        double trackY = TimeRulerHeight;
-        double trackHeight = Math.Max(1.0, h - TimeRulerHeight);
+        double trackY = FlybyConstants.TimelineRulerHeight;
+        double trackHeight = Math.Max(1.0f, h - FlybyConstants.TimelineRulerHeight);
         context.DrawRectangle(TrackBrush, null, new Rect(0, trackY, w, trackHeight));
 
         // Draw segment regions (freeze and camera cut indicators).
@@ -252,10 +248,10 @@ public class FlybyTimelineControl : Control
                 continue;
 
             // Draw grid line.
-            context.DrawLine(GridLinePen, new Point(x, TimeRulerHeight), new Point(x, ActualHeight));
+            context.DrawLine(GridLinePen, new Point(x, FlybyConstants.TimelineRulerHeight), new Point(x, ActualHeight));
 
             // Draw tick mark.
-            context.DrawLine(GridLinePen, new Point(x, 0), new Point(x, TimeRulerHeight));
+            context.DrawLine(GridLinePen, new Point(x, 0), new Point(x, FlybyConstants.TimelineRulerHeight));
 
             // Draw label.
             string label = FormatRulerLabel(t);
@@ -292,7 +288,7 @@ public class FlybyTimelineControl : Control
 
     private void DrawDiagonalHatch(DrawingContext context, double x, double y, double w, double h, Pen pen)
     {
-        double spacing = 6.0;
+        double spacing = 6.0f;
         var clip = new RectangleGeometry(new Rect(x, y, w, h));
 
         context.PushClip(clip);
@@ -321,7 +317,7 @@ public class FlybyTimelineControl : Control
             return -1;
 
         // Normalize against the peak speed for this sequence.
-        return _peakSpeed > 0.001 ? speed / _peakSpeed : 0;
+        return _peakSpeed > 0.001f ? speed / _peakSpeed : 0;
     }
 
     // Draws a filled speed waveform centred at the track's vertical midpoint.
@@ -331,9 +327,9 @@ public class FlybyTimelineControl : Control
         if (_markers.Count < 2)
             return;
 
-        double maxHalfAmplitude = trackHeight / 2.0 - 8.0;
-        double centerY = trackY + trackHeight / 2.0;
-        int sampleCount = Math.Max(2, (int)(width / 2.0));
+        double maxHalfAmplitude = trackHeight / 2.0f - 5.0f;
+        double centerY = trackY + trackHeight / 2.0f;
+        int sampleCount = Math.Max(2, (int)(width / 2.0f));
 
         // Collect visible sample spans (skipping gaps outside the sequence).
         var spans = new List<(int Start, int End)>();
@@ -389,7 +385,7 @@ public class FlybyTimelineControl : Control
             int step = start + i;
             double x = width * step / sampleCount;
             double speed = Math.Max(0, GetSpeedAtTime(PixelToTime(x, width)));
-            double half = Math.Max(1.0, speed * maxHalf);
+            double half = Math.Min(maxHalf, Math.Max(1.0f, speed * maxHalf));
             upper[i] = new Point(x, centerY - half);
             lower[i] = new Point(x, centerY + half);
         }
@@ -407,14 +403,14 @@ public class FlybyTimelineControl : Control
 
     private void DrawMarkers(DrawingContext context, double width, double trackY, double trackHeight)
     {
-        double centerY = trackY + trackHeight / 2.0;
+        double centerY = trackY + trackHeight / 2.0f;
 
         for (int i = 0; i < _markers.Count; i++)
         {
             var marker = _markers[i];
             double x = TimeToPixel(marker.TimeSeconds, width);
 
-            if (x < -MarkerRadius || x > width + MarkerRadius)
+            if (x < -FlybyConstants.TimelineMarkerRadius || x > width + FlybyConstants.TimelineMarkerRadius)
                 continue;
 
             Brush fill;
@@ -429,12 +425,12 @@ public class FlybyTimelineControl : Control
             // Draw square marker for cameras with freeze flag, circle otherwise.
             if (marker.HasFreeze)
             {
-                double half = MarkerRadius;
+                double half = FlybyConstants.TimelineMarkerRadius;
                 context.DrawRectangle(fill, MarkerOutlinePen, new Rect(x - half, centerY - half, half * 2, half * 2));
             }
             else
             {
-                context.DrawEllipse(fill, MarkerOutlinePen, new Point(x, centerY), MarkerRadius, MarkerRadius);
+                context.DrawEllipse(fill, MarkerOutlinePen, new Point(x, centerY), FlybyConstants.TimelineMarkerRadius, FlybyConstants.TimelineMarkerRadius);
             }
         }
     }
@@ -453,7 +449,7 @@ public class FlybyTimelineControl : Control
         var pos = e.GetPosition(this);
 
         // Scrub if clicking in the ruler area.
-        if (pos.Y < TimeRulerHeight)
+        if (pos.Y < FlybyConstants.TimelineRulerHeight)
         {
             _isScrubbing = true;
             CaptureMouse();
@@ -680,7 +676,7 @@ public class FlybyTimelineControl : Control
 
     private int HitTestMarker(Point pos)
     {
-        double trackY = TimeRulerHeight;
+        double trackY = FlybyConstants.TimelineRulerHeight;
 
         // Only hit-test within the track area.
         if (pos.Y < trackY - 4 || pos.Y > ActualHeight)
@@ -694,7 +690,7 @@ public class FlybyTimelineControl : Control
             double x = TimeToPixel(_markers[i].TimeSeconds, ActualWidth);
             double dist = Math.Abs(pos.X - x);
 
-            if (dist < MarkerRadius + 4 && dist < closestDist)
+            if (dist < FlybyConstants.TimelineMarkerRadius + 4 && dist < closestDist)
             {
                 closestDist = dist;
                 closestIndex = i;
@@ -706,11 +702,11 @@ public class FlybyTimelineControl : Control
 
     private static double CalculateTickInterval(double pixelsPerSecond)
     {
-        double[] candidates = { 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 30, 60, 120, 300 };
+        double[] candidates = { 0.01f, 0.02f, 0.05f, 0.1f, 0.2f, 0.5f, 1, 2, 5, 10, 20, 30, 60, 120, 300 };
 
         foreach (double interval in candidates)
         {
-            if (interval * pixelsPerSecond >= MinTickSpacing)
+            if (interval * pixelsPerSecond >= FlybyConstants.TimelineMinTickSpacing)
                 return interval;
         }
 
