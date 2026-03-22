@@ -289,7 +289,7 @@ public class FlybySequenceCache
                 currentT = boundaryT;
 
                 // Hold at boundary.
-                int holdFrames = nextTimer >> 3;
+                int holdFrames = nextTimer >> 4;
                 int holdSlots = Math.Max(0, (int)(holdFrames / FlybyConstants.TickRate / FlybyConstants.TimeStep));
 
                 for (int f = 0; f < holdSlots; f++)
@@ -308,7 +308,7 @@ public class FlybySequenceCache
                 if (hasFreeze)
                 {
                     // Hard freeze: hold at boundary.
-                    int gameFrames = Math.Max(0, nextTimer >> 3);
+                    int gameFrames = Math.Max(0, nextTimer >> 4);
                     int freezeSlots = (int)(gameFrames / FlybyConstants.TickRate / FlybyConstants.TimeStep);
 
                     for (int f = 0; f < freezeSlots; f++)
