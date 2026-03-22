@@ -45,7 +45,7 @@ public static class FlybySequenceHelper
             return 0;
 
         int frames = camera.Timer >> 3;
-        return frames > 0 ? frames / FlybyConstants.GameTickRate : 0;
+        return frames > 0 ? frames / FlybyConstants.TickRate : 0;
     }
 
     public static float GetSegmentDuration(FlybyCameraInstance camera)

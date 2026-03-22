@@ -37,21 +37,6 @@ public class FlybySequenceCache
         public float EndTime;
     }
 
-    // The game logic runs at 30 ticks per second.
-    private const float GameTickRate = 30.0f;
-    public const float TimeStep = 1.0f / GameTickRate;
-
-    // Distance from camera to target point, matching the level compiler.
-    private const float TargetDistance = Level.SectorSizeUnit;
-
-    // TombEngine smooth pause constants.
-    private const float EaseDistance = 0.15f;
-    private const float MinSpeed = 0.001f;
-
-    // SCF flag bits.
-    private const int FlagStopMovement = 1 << 8;
-    private const int FlagCutToCam = 1 << 7;
-
     private readonly CachedFrame[] _frames;
     private readonly float _totalDuration;
     private readonly int _frameCount;
@@ -115,7 +100,7 @@ public class FlybySequenceCache
         UnwrapFrameAngles(_frames);
 
         _frameCount = _frames.Length;
-        _totalDuration = _frameCount > 0 ? (_frameCount - 1) * TimeStep : 0;
+        _totalDuration = _frameCount > 0 ? (_frameCount - 1) * FlybyConstants.TimeStep : 0;
 
         // Pass 4: pre-compute smoothed speed curve.
         _smoothedSpeeds = ComputeSmoothedSpeeds();
@@ -129,7 +114,7 @@ public class FlybySequenceCache
         if (_frameCount == 0)
             return new FlybyPreview.FrameState { Finished = true };
 
-        float index = timeSeconds / TimeStep;
+        float index = timeSeconds / FlybyConstants.TimeStep;
         int i0 = (int)index;
         float frac = index - i0;
 
@@ -210,7 +195,7 @@ public class FlybySequenceCache
                 return -1;
         }
 
-        float index = timeSeconds / TimeStep;
+        float index = timeSeconds / FlybyConstants.TimeStep;
         int i0 = Math.Clamp((int)index, 0, _smoothedSpeeds.Length - 1);
         int i1 = Math.Min(i0 + 1, _smoothedSpeeds.Length - 1);
         float frac = index - (int)index;
@@ -278,27 +263,27 @@ public class FlybySequenceCache
             ushort nextFlags = cameras[nextCamIdx].Flags;
             short nextTimer = cameras[nextCamIdx].Timer;
 
-            bool hasCut = (nextFlags & FlagCutToCam) != 0;
-            bool hasFreeze = !hasCut && (nextFlags & FlagStopMovement) != 0 && nextTimer > 0;
+            bool hasCut = (nextFlags & FlybyConstants.FlagCameraCut) != 0;
+            bool hasFreeze = !hasCut && (nextFlags & FlybyConstants.FlagFreezeCamera) != 0 && nextTimer > 0;
             float boundaryT = (float)nextBoundary;
 
             if (useSmoothPause && hasFreeze)
             {
                 // Advance to the ease-out zone with spline-interpolated speed.
-                float easeOutStartT = boundaryT - EaseDistance;
+                float easeOutStartT = boundaryT - FlybyConstants.FreezeEaseDistance;
                 AdvanceToTarget(timeline, speedKnots, numSegments, easeOutStartT, ref currentT);
-                easeOutStartSeconds[nextCamIdx] = timeline.Count * TimeStep;
+                easeOutStartSeconds[nextCamIdx] = timeline.Count * FlybyConstants.TimeStep;
 
                 // Ease-out: decelerate to zero at the boundary.
                 EmitEaseOut(timeline, speedKnots, numSegments, boundaryT, ref currentT);
                 currentT = boundaryT;
 
                 // Record camera time at the freeze boundary.
-                cameraTimeSeconds[nextCamIdx] = timeline.Count * TimeStep;
+                cameraTimeSeconds[nextCamIdx] = timeline.Count * FlybyConstants.TimeStep;
 
                 // Hold at boundary.
                 int holdFrames = nextTimer >> 3;
-                int holdSlots = Math.Max(0, (int)(holdFrames / GameTickRate / TimeStep));
+                int holdSlots = Math.Max(0, (int)(holdFrames / FlybyConstants.TickRate / FlybyConstants.TimeStep));
 
                 for (int f = 0; f < holdSlots; f++)
                     timeline.Add(currentT);
@@ -314,14 +299,14 @@ public class FlybySequenceCache
                 currentT = boundaryT;
 
                 // Record camera time.
-                cameraTimeSeconds[nextCamIdx] = timeline.Count * TimeStep;
+                cameraTimeSeconds[nextCamIdx] = timeline.Count * FlybyConstants.TimeStep;
                 easeOutStartSeconds[nextCamIdx] = cameraTimeSeconds[nextCamIdx];
 
                 if (hasFreeze)
                 {
                     // Hard freeze: hold at boundary.
                     int gameFrames = Math.Max(0, nextTimer >> 3);
-                    int freezeSlots = (int)(gameFrames / GameTickRate / TimeStep);
+                    int freezeSlots = (int)(gameFrames / FlybyConstants.TickRate / FlybyConstants.TimeStep);
 
                     for (int f = 0; f < freezeSlots; f++)
                         timeline.Add(currentT);
@@ -347,9 +332,9 @@ public class FlybySequenceCache
                         bypassedTime += FlybySequenceHelper.GetFreezeDuration(cameras[i]);
                     }
 
-                    float cutStartTime = timeline.Count * TimeStep;
+                    float cutStartTime = timeline.Count * FlybyConstants.TimeStep;
                     float targetSplineT = (float)targetCam;
-                    int bypassSlots = Math.Max(1, (int)(bypassedTime / TimeStep));
+                    int bypassSlots = Math.Max(1, (int)(bypassedTime / FlybyConstants.TimeStep));
 
                     for (int f = 0; f < bypassSlots; f++)
                         timeline.Add(targetSplineT);
@@ -364,14 +349,14 @@ public class FlybySequenceCache
                     currentT = targetCam;
 
                     if (targetCam < numCameras)
-                        cameraTimeSeconds[targetCam] = timeline.Count * TimeStep;
+                        cameraTimeSeconds[targetCam] = timeline.Count * FlybyConstants.TimeStep;
 
                     // Emit freeze at target camera if applicable.
                     float targetFreeze = FlybySequenceHelper.GetFreezeDuration(cameras[targetCam]);
 
                     if (targetFreeze > 0)
                     {
-                        int freezeSlots = (int)(targetFreeze / TimeStep);
+                        int freezeSlots = (int)(targetFreeze / FlybyConstants.TimeStep);
 
                         for (int f = 0; f < freezeSlots; f++)
                             timeline.Add(targetSplineT);
@@ -396,18 +381,17 @@ public class FlybySequenceCache
     /// Each tick evaluates the speed spline at the current position, producing
     /// smooth transitions between cameras.
     /// </summary>
-    private static void AdvanceToTarget(
-        List<float> timeline, float[] speedKnots, int numSegments,
+    private static void AdvanceToTarget(List<float> timeline, float[] speedKnots, int numSegments,
         float targetT, ref float currentT)
     {
-        float tickFactor = FlybyConstants.SpeedScale * TimeStep;
+        float tickFactor = FlybyConstants.SpeedScale * FlybyConstants.TimeStep;
 
         while (currentT < targetT)
         {
             timeline.Add(currentT);
             float speed = CatmullRomSpline.Evaluate(
                 Math.Clamp(currentT, 0, numSegments), speedKnots);
-            currentT += Math.Max(speed, MinSpeed) * tickFactor;
+            currentT += Math.Max(speed, FlybyConstants.MinSpeed) * tickFactor;
         }
 
         currentT = Math.Min(currentT, targetT);
@@ -417,23 +401,22 @@ public class FlybySequenceCache
     /// Emits a quadratic ease-out deceleration from the current position to the boundary.
     /// Uses the spline-interpolated speed at the ease start as the initial speed.
     /// </summary>
-    private static void EmitEaseOut(
-        List<float> timeline, float[] speedKnots, int numSegments,
+    private static void EmitEaseOut(List<float> timeline, float[] speedKnots, int numSegments,
         float boundaryT, ref float currentT)
     {
         float easeStartT = currentT;
-        float remainingDist = Math.Max(boundaryT - easeStartT, MinSpeed);
+        float remainingDist = Math.Max(boundaryT - easeStartT, FlybyConstants.MinSpeed);
 
         float speed = CatmullRomSpline.Evaluate(
             Math.Clamp(easeStartT, 0, numSegments), speedKnots);
-        float speedPerSec = Math.Max(speed, MinSpeed) * FlybyConstants.SpeedScale;
+        float speedPerSec = Math.Max(speed, FlybyConstants.MinSpeed) * FlybyConstants.SpeedScale;
 
         float easeStep = speedPerSec / (2.0f * remainingDist);
         float easeProgress = 0;
 
         while (easeProgress < 1.0f)
         {
-            easeProgress = Math.Min(easeProgress + easeStep * TimeStep, 1.0f);
+            easeProgress = Math.Min(easeProgress + easeStep * FlybyConstants.TimeStep, 1.0f);
             currentT = easeStartT + remainingDist * easeProgress * (2.0f - easeProgress);
             timeline.Add(Math.Min(currentT, boundaryT));
         }
@@ -443,22 +426,20 @@ public class FlybySequenceCache
     /// Emits a quadratic ease-in acceleration from zero speed at the current position.
     /// Uses the spline-interpolated speed at the boundary as the target speed.
     /// </summary>
-    private static void EmitEaseIn(
-        List<float> timeline, float[] speedKnots, int numSegments,
-        ref float currentT)
+    private static void EmitEaseIn(List<float> timeline, float[] speedKnots, int numSegments, ref float currentT)
     {
         float speed = CatmullRomSpline.Evaluate(
             Math.Clamp(currentT, 0, numSegments), speedKnots);
-        float speedPerSec = Math.Max(speed, MinSpeed) * FlybyConstants.SpeedScale;
+        float speedPerSec = Math.Max(speed, FlybyConstants.MinSpeed) * FlybyConstants.SpeedScale;
 
-        float easeInStep = speedPerSec / (2.0f * EaseDistance);
+        float easeInStep = speedPerSec / (2.0f * FlybyConstants.FreezeEaseDistance);
         float easeInProgress = 0;
 
         while (easeInProgress < 1.0f)
         {
-            easeInProgress = Math.Min(easeInProgress + easeInStep * TimeStep, 1.0f);
+            easeInProgress = Math.Min(easeInProgress + easeInStep * FlybyConstants.TimeStep, 1.0f);
             float speedFactor = easeInProgress * easeInProgress;
-            currentT += speedPerSec * speedFactor * TimeStep;
+            currentT += speedPerSec * speedFactor * FlybyConstants.TimeStep;
             timeline.Add(currentT);
         }
     }
@@ -568,12 +549,12 @@ public class FlybySequenceCache
             rawPosX[i] = worldPos.X;
             rawPosY[i] = worldPos.Y;
             rawPosZ[i] = worldPos.Z;
-            rawTgtX[i] = worldPos.X + TargetDistance * cosPitch * MathF.Sin(yawRad);
-            rawTgtY[i] = worldPos.Y + TargetDistance * MathF.Sin(pitchRad);
-            rawTgtZ[i] = worldPos.Z + TargetDistance * cosPitch * MathF.Cos(yawRad);
+            rawTgtX[i] = worldPos.X + FlybyConstants.TargetDistance * cosPitch * MathF.Sin(yawRad);
+            rawTgtY[i] = worldPos.Y + FlybyConstants.TargetDistance * MathF.Sin(pitchRad);
+            rawTgtZ[i] = worldPos.Z + FlybyConstants.TargetDistance * cosPitch * MathF.Cos(yawRad);
             rawRoll[i] = cam.Roll;
             rawFov[i]  = cam.Fov;
-            rawSpeed[i] = Math.Max(cam.Speed, MinSpeed);
+            rawSpeed[i] = Math.Max(cam.Speed, FlybyConstants.MinSpeed);
         }
 
         UnwrapAngles(rawRoll);
@@ -636,7 +617,7 @@ public class FlybySequenceCache
         for (int i = 0; i < count; i++)
         {
             var delta = _frames[i + 1].Position - _frames[i].Position;
-            speeds[i] = delta.Length() / TimeStep;
+            speeds[i] = delta.Length() / FlybyConstants.TimeStep;
         }
 
         // Three passes of box smoothing approximate a Gaussian filter.
@@ -656,13 +637,13 @@ public class FlybySequenceCache
         for (int i = 0; i < len; i++)
         {
             float sum = 0;
-            int lo = Math.Max(0, i - radius);
-            int hi = Math.Min(len - 1, i + radius);
+            int low = Math.Max(0, i - radius);
+            int high = Math.Min(len - 1, i + radius);
 
-            for (int j = lo; j <= hi; j++)
+            for (int j = low; j <= high; j++)
                 sum += data[j];
 
-            result[i] = sum / (hi - lo + 1);
+            result[i] = sum / (high - low + 1);
         }
 
         return result;

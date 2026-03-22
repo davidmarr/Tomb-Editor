@@ -225,7 +225,7 @@ public class FlybyPreview
 		var right = MathC.HomogenousTransform(Vector3.UnitX, rotation);
 		var up = Vector3.Cross(look, right);
 
-		if (Math.Abs(frame.Roll) > 0.001f)
+		if (Math.Abs(frame.Roll) > MathC.Epsilon)
 		{
 			var rollMatrix = Matrix4x4.CreateFromAxisAngle(look, frame.Roll);
 			up = Vector3.TransformNormal(up, rollMatrix);
