@@ -652,8 +652,13 @@ public class FlybySequenceCache
 
         for (int i = 0; i < count; i++)
         {
-            var delta = _frames[i + 1].Position - _frames[i].Position;
-            speeds[i] = delta.Length() / FlybyConstants.TimeStep;
+            if (IsInsideCutRegion(i) || IsInsideCutRegion(i + 1))
+                speeds[i] = 0.0f;
+            else
+            {
+                var delta = _frames[i + 1].Position - _frames[i].Position;
+                speeds[i] = delta.Length() / FlybyConstants.TimeStep;
+            }
         }
 
         // Three passes of box smoothing approximate a Gaussian filter.
