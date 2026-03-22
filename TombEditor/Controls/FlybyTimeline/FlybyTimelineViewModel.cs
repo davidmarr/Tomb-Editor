@@ -444,9 +444,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     partial void OnCameraRollChanged(float value) => ApplyPropertyToCamera(c => c.Roll = value);
     partial void OnCameraRotationXChanged(float value) => ApplyPropertyToCamera(c => c.RotationX = value);
     partial void OnCameraRotationYChanged(float value) => ApplyPropertyToCamera(c => c.RotationY = value);
-
     partial void OnCameraTimerChanged(short value) => ApplyPropertyToCamera(c => c.Timer = value);
-
     partial void OnCameraFlagsChanged(ushort value) => ApplyPropertyToCamera(c => c.Flags = value);
 
     public bool GetFlag(int bit) => (CameraFlags & (1 << bit)) != 0;
