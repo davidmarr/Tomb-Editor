@@ -599,9 +599,13 @@ public class FlybyTimelineControl : Control
         }
 
         // Full zoom out on double-click on empty space.
+        ZoomToFit();
+    }
+
+    public void ZoomToFit()
+    {
         _visibleStartSeconds = 0;
         _visibleEndSeconds = _totalDurationSeconds * FlybyConstants.TimelineZoomOutScale;
-
         InvalidateVisual();
     }
 

@@ -100,6 +100,11 @@ public partial class FlybyTimelineView : UserControl
     {
         switch (e.PropertyName)
         {
+            case nameof(FlybyTimelineViewModel.SelectedSequence):
+                RefreshTimeline();
+                timelineControl.ZoomToFit();
+                break;
+
             case nameof(FlybyTimelineViewModel.SelectedCamera):
                 RefreshTimeline();
                 break;
