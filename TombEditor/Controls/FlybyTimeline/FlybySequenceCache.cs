@@ -41,25 +41,10 @@ public class FlybySequenceCache
     private readonly float _totalDuration;
     private readonly int _frameCount;
     private readonly CutRegion[] _cutRegions;
-    private readonly float[] _cameraTimeSeconds;
-    private readonly float[] _easeOutStartSeconds;
     private readonly float[] _smoothedSpeeds;
 
     public float TotalDuration => _totalDuration;
     public bool IsValid => _frameCount > 0;
-
-    /// <summary>
-    /// Per-camera timeline time in seconds, as resolved by the cache build pass.
-    /// Accounts for ease-in/out phases in TombEngine smooth pause mode.
-    /// </summary>
-    public IReadOnlyList<float> CameraTimeSeconds => _cameraTimeSeconds;
-
-    /// <summary>
-    /// Per-camera ease-out start time in seconds for TombEngine smooth-pause display.
-    /// For cameras with a smooth-pause freeze, this is the time where deceleration begins.
-    /// For other cameras, this equals the camera's own time.
-    /// </summary>
-    public IReadOnlyList<float> EaseOutStartSeconds => _easeOutStartSeconds;
 
     public FlybySequenceCache(IReadOnlyList<FlybyCameraInstance> cameras, bool useSmoothPause)
     {
@@ -67,8 +52,6 @@ public class FlybySequenceCache
         {
             _frames = Array.Empty<CachedFrame>();
             _cutRegions = Array.Empty<CutRegion>();
-            _cameraTimeSeconds = Array.Empty<float>();
-            _easeOutStartSeconds = Array.Empty<float>();
             _smoothedSpeeds = Array.Empty<float>();
             _totalDuration = 0;
             _frameCount = 0;
@@ -87,11 +70,9 @@ public class FlybySequenceCache
         // Pass 1: sequentially build the spline parameter timeline using
         // spline-interpolated speed for smooth advancement between cameras.
         float[] splineParams = BuildSplineTimeline(cameras, speedKnots, numSegments,
-            useSmoothPause, out var cutRegionsList, out var cameraTimesResult, out var easeOutStartResult);
+            useSmoothPause, out var cutRegionsList);
 
         _cutRegions = cutRegionsList.ToArray();
-        _cameraTimeSeconds = cameraTimesResult;
-        _easeOutStartSeconds = easeOutStartResult;
 
         // Pass 2: evaluate all spline channels in parallel.
         _frames = EvaluateFramesParallel(splineParams, posX, posY, posZ, tgtX, tgtY, tgtZ, rollKnots, fovKnots, numSegments);
@@ -277,15 +258,10 @@ public class FlybySequenceCache
         float[] speedKnots,
         int numSegments,
         bool useSmoothPause,
-        out List<CutRegion> cutRegions,
-        out float[] cameraTimeSeconds,
-        out float[] easeOutStartSeconds)
+        out List<CutRegion> cutRegions)
     {
         cutRegions = new List<CutRegion>();
         int numCameras = cameras.Count;
-
-        cameraTimeSeconds = new float[numCameras];
-        easeOutStartSeconds = new float[numCameras];
 
         var timeline = new List<float>(numCameras * 200);
 
@@ -308,14 +284,10 @@ public class FlybySequenceCache
                 // Advance to the ease-out zone with spline-interpolated speed.
                 float easeOutStartT = boundaryT - FlybyConstants.FreezeEaseDistance;
                 AdvanceToTarget(timeline, speedKnots, numSegments, easeOutStartT, ref currentT);
-                easeOutStartSeconds[nextCamIdx] = timeline.Count * FlybyConstants.TimeStep;
 
                 // Ease-out: decelerate to zero at the boundary.
                 EmitEaseOut(timeline, speedKnots, numSegments, boundaryT, ref currentT);
                 currentT = boundaryT;
-
-                // Record camera time at the freeze boundary.
-                cameraTimeSeconds[nextCamIdx] = timeline.Count * FlybyConstants.TimeStep;
 
                 // Hold at boundary.
                 int holdFrames = nextTimer >> 3;
@@ -333,10 +305,6 @@ public class FlybySequenceCache
                 // Advance through the boundary with spline-interpolated speed.
                 AdvanceToTarget(timeline, speedKnots, numSegments, boundaryT, ref currentT);
                 currentT = boundaryT;
-
-                // Record camera time.
-                cameraTimeSeconds[nextCamIdx] = timeline.Count * FlybyConstants.TimeStep;
-                easeOutStartSeconds[nextCamIdx] = cameraTimeSeconds[nextCamIdx];
 
                 if (hasFreeze)
                 {
@@ -383,9 +351,6 @@ public class FlybySequenceCache
 
                     processedBoundary = targetCam;
                     currentT = targetCam;
-
-                    if (targetCam < numCameras)
-                        cameraTimeSeconds[targetCam] = timeline.Count * FlybyConstants.TimeStep;
 
                     // Emit freeze at target camera if applicable.
                     float targetFreeze = FlybySequenceHelper.GetFreezeDuration(cameras[targetCam]);
