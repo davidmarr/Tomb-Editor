@@ -393,7 +393,10 @@ public class FlybyTimelineControl : Control
         }
 
         geometry.Freeze();
+
+        dc.PushClip(new RectangleGeometry(new Rect(0, trackY, width, trackHeight)));
         dc.DrawGeometry(SpeedCurveFillBrush, null, geometry);
+        dc.Pop();
     }
 
     private void DrawFilledWaveformSpan(StreamGeometryContext ctx, double width, double centerY,
