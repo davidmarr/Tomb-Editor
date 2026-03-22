@@ -69,8 +69,7 @@ public class FlybySequenceCache
 
         // Pass 1: sequentially build the spline parameter timeline using
         // spline-interpolated speed for smooth advancement between cameras.
-        float[] splineParams = BuildSplineTimeline(cameras, speedKnots, numSegments,
-            useSmoothPause, out var cutRegionsList);
+        float[] splineParams = BuildSplineTimeline(cameras, speedKnots, numSegments, useSmoothPause, out var cutRegionsList);
 
         _cutRegions = cutRegionsList.ToArray();
 
@@ -627,10 +626,8 @@ public class FlybySequenceCache
         }
 
         // Three passes of box smoothing approximate a Gaussian filter.
-        const int smoothRadius = 5;
-
         for (int pass = 0; pass < 3; pass++)
-            speeds = BoxSmooth(speeds, smoothRadius);
+            speeds = BoxSmooth(speeds, 5);
 
         return speeds;
     }

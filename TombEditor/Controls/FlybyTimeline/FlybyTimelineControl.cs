@@ -132,8 +132,7 @@ public class FlybyTimelineControl : Control
     /// <summary>
     /// Updates the marker data and redraws the timeline.
     /// </summary>
-    public void SetMarkers(List<TimelineMarker> markers, float totalDuration,
-        FlybySequenceCache? cache = null)
+    public void SetMarkers(List<TimelineMarker> markers, float totalDuration, FlybySequenceCache? cache = null)
     {
         _markers = markers ?? new List<TimelineMarker>();
         _totalDurationSeconds = Math.Max(1.0f, totalDuration);
