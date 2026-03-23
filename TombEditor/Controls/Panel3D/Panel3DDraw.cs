@@ -1301,98 +1301,102 @@ namespace TombEditor.Controls.Panel3D
                     }
             }
 
+            if (_editor.CameraPreviewMode != CameraPreviewType.None)
+                return;
+
             // Draw extra flyby cones (hidden during flyby preview)
-            if (_editor.CameraPreviewMode == CameraPreviewType.None)
-            {
-                _legacyDevice.SetVertexBuffer(_cone.VertexBuffer);
-                _legacyDevice.SetVertexInputLayout(_cone.InputLayout);
-                _legacyDevice.SetIndexBuffer(_cone.IndexBuffer, _cone.IsIndex32Bits);
-                _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullNone);
-                _legacyDevice.SetBlendState(_legacyDevice.BlendStates.AlphaBlend);
 
-                bool wireframe = false;
-                foreach (Room room in roomsWhoseObjectsToDraw)
-                    foreach (var instance in room.Objects.OfType<FlybyCameraInstance>())
+            _legacyDevice.SetVertexBuffer(_cone.VertexBuffer);
+            _legacyDevice.SetVertexInputLayout(_cone.InputLayout);
+            _legacyDevice.SetIndexBuffer(_cone.IndexBuffer, _cone.IsIndex32Bits);
+            _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullNone);
+            _legacyDevice.SetBlendState(_legacyDevice.BlendStates.AlphaBlend);
+
+            bool wireframe = false;
+            foreach (Room room in roomsWhoseObjectsToDraw)
+                foreach (var instance in room.Objects.OfType<FlybyCameraInstance>())
+                {
+                    var color = MathC.GetRandomColorByIndex(instance.Sequence, 32, 0.7f);
+                    Matrix4x4 model;
+
+                    if (_highlightedObjects.Contains(instance))
+                        color = _editor.Configuration.UI_ColorScheme.ColorSelection;
+
+                    for (int pass = 0; pass < 2; pass++)
                     {
-                        var color = MathC.GetRandomColorByIndex(instance.Sequence, 32, 0.7f);
-                        Matrix4x4 model;
-
-                        if (_highlightedObjects.Contains(instance))
-                            color = _editor.Configuration.UI_ColorScheme.ColorSelection;
-
-                        for (int pass = 0; pass < 2; pass++)
+                        if (_editor.SelectedObject == instance)
                         {
-                            if (_editor.SelectedObject == instance)
+                            float coneAngle = (float)Math.Atan2(512, 1024);
+                            float cutoffScaleH = 1;
+                            float cutoffScaleW = instance.Fov * (float)(Math.PI / 360) / coneAngle * cutoffScaleH;
+
+                            if (pass == 0)
                             {
-                                float coneAngle = (float)Math.Atan2(512, 1024);
-                                float cutoffScaleH = 1;
-                                float cutoffScaleW = instance.Fov * (float)(Math.PI / 360) / coneAngle * cutoffScaleH;
-
-                                if (pass == 0)
-                                {
-                                    // Ordinary cone
-                                    model = Matrix4x4.CreateScale(cutoffScaleW, cutoffScaleW, cutoffScaleH) * instance.ObjectMatrix;
-                                }
-                                else
-                                {
-                                    // Roll pointer
-                                    var step = 1 / _coneRadius;
-                                    var scale = _littleCubeRadius * 2;
-                                    var pScale = _littleCubeRadius / 5;
-                                    var vOffset = -cutoffScaleW / 2 * _coneRadius - scale;
-                                    var hOffset = cutoffScaleH * _coneRadius;
-
-                                    model = Matrix4x4.CreateScale(step * pScale, step * pScale, step * scale) *
-                                            Matrix4x4.CreateTranslation(new Vector3(0, hOffset, vOffset)) *
-                                            Matrix4x4.CreateRotationX((float)(Math.PI / 2)) *
-                                            instance.ObjectMatrix;
-                                }
-
-                                if (!wireframe)
-                                {
-                                    _legacyDevice.SetRasterizerState(_rasterizerWireframe);
-                                    wireframe = true;
-                                }
+                                // Ordinary cone
+                                model = Matrix4x4.CreateScale(cutoffScaleW, cutoffScaleW, cutoffScaleH) * instance.ObjectMatrix;
                             }
                             else
                             {
-                                // Don't do second pass for non-selected flybys
-                                if (pass == 1)
-                                    break;
+                                // Roll pointer
+                                var step = 1 / _coneRadius;
+                                var scale = _littleCubeRadius * 2;
+                                var pScale = _littleCubeRadius / 5;
+                                var vOffset = -cutoffScaleW / 2 * _coneRadius - scale;
+                                var hOffset = cutoffScaleH * _coneRadius;
 
-                                // Push unselected cone further away in sprite mode for neatness
-                                model = _editor.Configuration.Rendering3D_UseSpritesForServiceObjects
-                                    ? Matrix4x4.CreateTranslation(new Vector3(0, 0, -_coneRadius * 0.5f))
-                                    : Matrix4x4.Identity;
-
-                                model *= Matrix4x4.CreateTranslation(new Vector3(0, 0, -_coneRadius * 1.2f)) *
-                                         Matrix4x4.CreateRotationY((float)Math.PI) *
-                                         Matrix4x4.CreateScale(1 / _coneRadius * _littleCubeRadius * 2.0f) *
-                                         instance.ObjectMatrix;
-
-                                if (wireframe)
-                                {
-                                    _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullNone);
-                                    wireframe = false;
-                                }
+                                model = Matrix4x4.CreateScale(step * pScale, step * pScale, step * scale) *
+                                        Matrix4x4.CreateTranslation(new Vector3(0, hOffset, vOffset)) *
+                                        Matrix4x4.CreateRotationX((float)(Math.PI / 2)) *
+                                        instance.ObjectMatrix;
                             }
 
-                            // Apply distance-based fade for nearby flyby cameras.
-                            float distance = Vector3.Distance(instance.WorldPosition, Camera.GetPosition());
-                            if (distance < (_coneRadius * 0.5f))
-                                color.W *= distance / (_coneRadius * 0.5f);
-
-                            effect.Parameters["ModelViewProjection"].SetValue((model * _viewProjection).ToSharpDX());
-                            effect.Parameters["Color"].SetValue(color);
-                            effect.CurrentTechnique.Passes[0].Apply();
-                            _legacyDevice.DrawIndexed(PrimitiveType.TriangleList, _cone.IndexBuffer.ElementCount);
+                            if (!wireframe)
+                            {
+                                _legacyDevice.SetRasterizerState(_rasterizerWireframe);
+                                wireframe = true;
+                            }
                         }
+                        else
+                        {
+                            // Don't do second pass for non-selected flybys
+                            if (pass == 1)
+                                break;
+
+                            // Push unselected cone further away in sprite mode for neatness
+                            model = _editor.Configuration.Rendering3D_UseSpritesForServiceObjects
+                                ? Matrix4x4.CreateTranslation(new Vector3(0, 0, -_coneRadius * 0.5f))
+                                : Matrix4x4.Identity;
+
+                            model *= Matrix4x4.CreateTranslation(new Vector3(0, 0, -_coneRadius * 1.2f)) *
+                                        Matrix4x4.CreateRotationY((float)Math.PI) *
+                                        Matrix4x4.CreateScale(1 / _coneRadius * _littleCubeRadius * 2.0f) *
+                                        instance.ObjectMatrix;
+
+                            if (wireframe)
+                            {
+                                _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullNone);
+                                wireframe = false;
+                            }
+                        }
+
+                        // Apply distance-based fade for nearby flyby cameras.
+                        float distance = Vector3.Distance(instance.WorldPosition, Camera.GetPosition());
+                        if (distance < (_coneRadius * 0.5f))
+                            color.W *= distance / (_coneRadius * 0.5f);
+
+                        effect.Parameters["ModelViewProjection"].SetValue((model * _viewProjection).ToSharpDX());
+                        effect.Parameters["Color"].SetValue(color);
+                        effect.CurrentTechnique.Passes[0].Apply();
+                        _legacyDevice.DrawIndexed(PrimitiveType.TriangleList, _cone.IndexBuffer.ElementCount);
                     }
-            }
+                }
         }
 
         private void DrawOrQueueServiceObject(ISpatial instance, GeometricPrimitive primitive, Vector4 color, Effect effect, List<Sprite> sprites)
         {
+            if (_editor.CameraPreviewMode != CameraPreviewType.None)
+                return;
+
             if (_editor.Configuration.Rendering3D_UseSpritesForServiceObjects)
             {
                 foreach (bool shadow in new[] { true, false })

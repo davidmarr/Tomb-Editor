@@ -26,15 +26,14 @@
 
 			<!-- Timecode label, right-aligned in the left panel. -->
 			<TextBlock
-                Width="73"
                 VerticalAlignment="Center"
-                HorizontalAlignment="Left"
+                HorizontalAlignment="Stretch"
                 FontFamily="Courier New"
-                FontSize="15"
+                FontSize="16"
                 Foreground="#FFC0C0C0"
                 Text="{Binding PlayheadTimecode}"
                 TextAlignment="Right"
-                ToolTip="Playhead timecode (MM:SS.CC)" Margin="37,0,0,0" />
+                ToolTip="Playhead timecode (MM:SS.CC)"/>
 
 			<!-- Flyby selector row. -->
 			<StackPanel
@@ -102,7 +101,7 @@
                 Background="Transparent"
                 Command="{Binding TogglePlayStopCommand}"
                 IsEnabled="{Binding HasSequenceSelected}"
-                ToolTip="Play/Stop sequence" Height="41">
+                ToolTip="Play/stop sequence" Height="41">
 				<Image
                     Source="{Binding PlayStopIcon}"
                     RenderOptions.BitmapScalingMode="HighQuality" />
