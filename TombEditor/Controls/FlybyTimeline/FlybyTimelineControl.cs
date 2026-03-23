@@ -76,7 +76,7 @@ public class FlybyTimelineControl : Control
     private bool _isRepositioning;
     private float _repositionGhostX;
     private int _repositionTargetIndex = -1;
-    private List<int> _repositionFromIndices = new();
+    private int _repositionFromIndex = -1;
 
     public event Action<int, float>? MarkerDragged;
     public event Action<int>? MarkerClicked;
@@ -85,7 +85,7 @@ public class FlybyTimelineControl : Control
     public event Action<float>? ScrubRequested;
     public event Action? PlayStopRequested;
     public event Action? DeleteRequested;
-    public event Action<List<int>, int>? MarkersReordered;
+    public event Action<int, int>? MarkerReordered;
 
     static FlybyTimelineControl()
     {
@@ -458,21 +458,14 @@ public class FlybyTimelineControl : Control
 
     private void DrawGhostMarkers(DrawingContext context, float width, float centerY)
     {
-        int count = _repositionFromIndices.Count;
-        float spacing = FlybyConstants.TimelineMarkerRadius * 2.5f;
-        float totalWidth = (count - 1) * spacing;
-
-        for (int i = 0; i < count; i++)
-        {
-            float offsetX = count > 1 ? i * spacing - totalWidth / 2.0f : 0.0f;
-            context.DrawEllipse(GhostMarkerBrush, GhostMarkerPen,
-                new Point(_repositionGhostX + offsetX, centerY),
-                FlybyConstants.TimelineMarkerRadius, FlybyConstants.TimelineMarkerRadius);
-        }
+        // Draw ghost at the dragged camera's current mouse position.
+        context.DrawEllipse(GhostMarkerBrush, GhostMarkerPen,
+            new Point(_repositionGhostX, centerY),
+            FlybyConstants.TimelineMarkerRadius, FlybyConstants.TimelineMarkerRadius);
 
         // Highlight the target marker.
         if (_repositionTargetIndex >= 0 && _repositionTargetIndex < _markers.Count &&
-            !_repositionFromIndices.Contains(_repositionTargetIndex))
+            _repositionTargetIndex != _repositionFromIndex)
         {
             float targetX = TimeToPixel(_markers[_repositionTargetIndex].TimeSeconds, width);
             context.DrawEllipse(GhostMarkerBrush, GhostMarkerPen,
@@ -514,15 +507,8 @@ public class FlybyTimelineControl : Control
                 // Alt+drag: reposition/renumber mode.
                 _isRepositioning = true;
                 _repositionGhostX = (float)pos.X;
+                _repositionFromIndex = hitIndex;
                 _repositionTargetIndex = hitIndex;
-
-                int selectedCount = _markers.Count(m => m.IsSelected);
-
-                if (_markers[hitIndex].IsSelected && selectedCount > 1)
-                    _repositionFromIndices = _markers.Select((m, i) => (m, i)).Where(x => x.m.IsSelected).Select(x => x.i).ToList();
-                else
-                    _repositionFromIndices = new List<int> { hitIndex };
-
                 CaptureMouse();
             }
             else
@@ -723,16 +709,16 @@ public class FlybyTimelineControl : Control
 
     private void CommitRepositioning()
     {
-        if (_repositionFromIndices.Count == 0 || _repositionTargetIndex < 0)
+        if (_repositionFromIndex < 0 || _repositionTargetIndex < 0 || _repositionFromIndex == _repositionTargetIndex)
         {
-            _repositionFromIndices.Clear();
+            _repositionFromIndex = -1;
+            _repositionTargetIndex = -1;
             return;
         }
 
-        if (!_repositionFromIndices.Contains(_repositionTargetIndex))
-            MarkersReordered?.Invoke(new List<int>(_repositionFromIndices), _repositionTargetIndex);
+        MarkerReordered?.Invoke(_repositionFromIndex, _repositionTargetIndex);
 
-        _repositionFromIndices.Clear();
+        _repositionFromIndex = -1;
         _repositionTargetIndex = -1;
     }
 
