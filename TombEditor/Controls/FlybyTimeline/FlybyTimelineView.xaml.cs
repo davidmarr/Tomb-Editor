@@ -47,6 +47,7 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.ScrubRequested += OnTimelineScrubRequested;
         timelineControl.PlayStopRequested += OnTimelinePlayStopRequested;
         timelineControl.DeleteRequested += OnTimelineDeleteRequested;
+        timelineControl.MarkersReordered += OnTimelineMarkersReordered;
 
         editor.EditorEventRaised += OnEditorEventRaised;
 
@@ -71,6 +72,7 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.ScrubRequested -= OnTimelineScrubRequested;
         timelineControl.PlayStopRequested -= OnTimelinePlayStopRequested;
         timelineControl.DeleteRequested -= OnTimelineDeleteRequested;
+        timelineControl.MarkersReordered -= OnTimelineMarkersReordered;
 
         _viewModel.Cleanup();
         _viewModel = null;
@@ -326,6 +328,15 @@ public partial class FlybyTimelineView : UserControl
     private void OnTimelineDeleteRequested()
     {
         _viewModel?.DeleteSelectedCameras();
+        RefreshTimeline();
+    }
+
+    private void OnTimelineMarkersReordered(List<int> fromIndices, int toIndex)
+    {
+        if (_viewModel == null)
+            return;
+
+        _viewModel.MoveCamerasToIndex(fromIndices, toIndex);
         RefreshTimeline();
     }
 

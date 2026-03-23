@@ -410,6 +410,55 @@ public partial class FlybyTimelineViewModel : ObservableObject
         SelectCameraByInstance(movedCamera);
     }
 
+    /// <summary>
+    /// Moves a group of cameras from their current list indices to a new position.
+    /// </summary>
+    public void MoveCamerasToIndex(List<int> fromIndices, int toIndex)
+    {
+        if (fromIndices == null || fromIndices.Count == 0)
+            return;
+
+        if (fromIndices.Count == 1)
+        {
+            MoveCameraToIndex(fromIndices[0], toIndex);
+            return;
+        }
+
+        fromIndices = fromIndices.OrderBy(i => i).ToList();
+
+        if (fromIndices.Any(i => i < 0 || i >= CameraList.Count) || toIndex < 0 || toIndex >= CameraList.Count)
+            return;
+
+        var cameras = CameraList.Select(vm => vm.Camera).ToList();
+        var movedCameras = fromIndices.Select(i => cameras[i]).ToList();
+
+        // Remove in reverse order to preserve indices.
+        for (int i = fromIndices.Count - 1; i >= 0; i--)
+            cameras.RemoveAt(fromIndices[i]);
+
+        int removedBefore = fromIndices.Count(i => i < toIndex);
+        int adjustedTarget = Math.Clamp(toIndex - removedBefore, 0, cameras.Count);
+
+        for (int i = 0; i < movedCameras.Count; i++)
+            cameras.Insert(adjustedTarget + i, movedCameras[i]);
+
+        _isApplyingProperty = true;
+
+        for (int i = 0; i < cameras.Count; i++)
+        {
+            if (cameras[i].Number != (ushort)i)
+            {
+                cameras[i].Number = (ushort)i;
+                _editor.ObjectChange(cameras[i], ObjectChangeType.Change);
+            }
+        }
+
+        _isApplyingProperty = false;
+
+        OnDataChanged();
+        SelectCameraByInstance(movedCameras[0]);
+    }
+
     partial void OnSelectedCameraChanged(FlybyCameraItemViewModel? value)
     {
         _isUpdating = true;

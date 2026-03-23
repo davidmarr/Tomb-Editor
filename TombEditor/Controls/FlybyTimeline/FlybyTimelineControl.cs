@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -32,6 +33,8 @@ public class FlybyTimelineControl : Control
     private static readonly Brush SpeedCurveFillBrush;
     private static readonly Pen PlayheadPen;
     private static readonly Pen CameraCutPen;
+    private static readonly Brush GhostMarkerBrush;
+    private static readonly Pen GhostMarkerPen;
 
     private static readonly Typeface DefaultTypeface = new("Segoe UI");
 
@@ -69,6 +72,12 @@ public class FlybyTimelineControl : Control
     // Playhead position in seconds (negative = hidden).
     private float _playheadSeconds = -1.0f;
 
+    // Reposition state (Alt+LMB drag for renumbering).
+    private bool _isRepositioning;
+    private float _repositionGhostX;
+    private int _repositionTargetIndex = -1;
+    private List<int> _repositionFromIndices = new();
+
     public event Action<int, float>? MarkerDragged;
     public event Action<int>? MarkerClicked;
     public event Action<int>? MarkerDoubleClicked;
@@ -76,6 +85,7 @@ public class FlybyTimelineControl : Control
     public event Action<float>? ScrubRequested;
     public event Action? PlayStopRequested;
     public event Action? DeleteRequested;
+    public event Action<List<int>, int>? MarkersReordered;
 
     static FlybyTimelineControl()
     {
@@ -100,6 +110,14 @@ public class FlybyTimelineControl : Control
         // Diagonal hatch pen for camera cuts.
         CameraCutPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 160, 160, 160)), 1.0f);
         CameraCutPen.Freeze();
+
+        var ghostFill = new SolidColorBrush(Color.FromArgb(160, 100, 100, 100));
+        ghostFill.Freeze();
+        GhostMarkerBrush = ghostFill;
+
+        var ghostPen = new Pen(new SolidColorBrush(Color.FromArgb(140, 200, 200, 200)), 2.0f);
+        ghostPen.Freeze();
+        GhostMarkerPen = ghostPen;
     }
 
     public FlybyTimelineControl()
@@ -432,6 +450,35 @@ public class FlybyTimelineControl : Control
                 context.DrawEllipse(fill, MarkerOutlinePen, new Point(x, centerY), FlybyConstants.TimelineMarkerRadius, FlybyConstants.TimelineMarkerRadius);
             }
         }
+
+        // Draw ghost markers during reposition drag.
+        if (_isRepositioning)
+            DrawGhostMarkers(context, width, centerY);
+    }
+
+    private void DrawGhostMarkers(DrawingContext context, float width, float centerY)
+    {
+        int count = _repositionFromIndices.Count;
+        float spacing = FlybyConstants.TimelineMarkerRadius * 2.5f;
+        float totalWidth = (count - 1) * spacing;
+
+        for (int i = 0; i < count; i++)
+        {
+            float offsetX = count > 1 ? i * spacing - totalWidth / 2.0f : 0.0f;
+            context.DrawEllipse(GhostMarkerBrush, GhostMarkerPen,
+                new Point(_repositionGhostX + offsetX, centerY),
+                FlybyConstants.TimelineMarkerRadius, FlybyConstants.TimelineMarkerRadius);
+        }
+
+        // Highlight the target marker.
+        if (_repositionTargetIndex >= 0 && _repositionTargetIndex < _markers.Count &&
+            !_repositionFromIndices.Contains(_repositionTargetIndex))
+        {
+            float targetX = TimeToPixel(_markers[_repositionTargetIndex].TimeSeconds, width);
+            context.DrawEllipse(GhostMarkerBrush, GhostMarkerPen,
+                new Point(targetX, centerY),
+                FlybyConstants.TimelineMarkerRadius, FlybyConstants.TimelineMarkerRadius);
+        }
     }
 
     #region Input handling
@@ -462,11 +509,30 @@ public class FlybyTimelineControl : Control
 
         if (hitIndex >= 0)
         {
-            _dragIndex = hitIndex;
-            _isDragging = false;
-            _dragStartX = (float)pos.X;
-            CaptureMouse();
-            MarkerClicked?.Invoke(hitIndex);
+            if ((Keyboard.Modifiers & ModifierKeys.Alt) != 0)
+            {
+                // Alt+drag: reposition/renumber mode.
+                _isRepositioning = true;
+                _repositionGhostX = (float)pos.X;
+                _repositionTargetIndex = hitIndex;
+
+                int selectedCount = _markers.Count(m => m.IsSelected);
+
+                if (_markers[hitIndex].IsSelected && selectedCount > 1)
+                    _repositionFromIndices = _markers.Select((m, i) => (m, i)).Where(x => x.m.IsSelected).Select(x => x.i).ToList();
+                else
+                    _repositionFromIndices = new List<int> { hitIndex };
+
+                CaptureMouse();
+            }
+            else
+            {
+                _dragIndex = hitIndex;
+                _isDragging = false;
+                _dragStartX = (float)pos.X;
+                CaptureMouse();
+                MarkerClicked?.Invoke(hitIndex);
+            }
         }
         else
         {
@@ -487,15 +553,12 @@ public class FlybyTimelineControl : Control
         _mouseX = (float)pos.X;
         _isMouseOver = true;
 
-        // Update tooltip to show camera number when hovering over a marker.
-        int hoverIndex = HitTestMarker(pos);
-
-        if (hoverIndex >= 0)
-            ToolTip = $"Camera {hoverIndex}";
-        else
-            ToolTip = null;
-
-        if (_dragIndex >= 0 && e.LeftButton == MouseButtonState.Pressed)
+        if (_isRepositioning && e.LeftButton == MouseButtonState.Pressed)
+        {
+            _repositionGhostX = (float)pos.X;
+            _repositionTargetIndex = ComputeReorderTargetIndex((float)pos.X, (float)ActualWidth);
+        }
+        else if (_dragIndex >= 0 && e.LeftButton == MouseButtonState.Pressed)
         {
             if (!_isDragging && Math.Abs((float)pos.X - _dragStartX) > 3)
                 _isDragging = true;
@@ -524,7 +587,12 @@ public class FlybyTimelineControl : Control
     {
         base.OnMouseLeftButtonUp(e);
 
-        if (_isRangeSelecting)
+        if (_isRepositioning)
+        {
+            _isRepositioning = false;
+            CommitRepositioning();
+        }
+        else if (_isRangeSelecting)
         {
             _isRangeSelecting = false;
             CommitRangeSelection();
@@ -651,6 +719,25 @@ public class FlybyTimelineControl : Control
 
     #endregion Range selection
 
+    #region Reposition
+
+    private void CommitRepositioning()
+    {
+        if (_repositionFromIndices.Count == 0 || _repositionTargetIndex < 0)
+        {
+            _repositionFromIndices.Clear();
+            return;
+        }
+
+        if (!_repositionFromIndices.Contains(_repositionTargetIndex))
+            MarkersReordered?.Invoke(new List<int>(_repositionFromIndices), _repositionTargetIndex);
+
+        _repositionFromIndices.Clear();
+        _repositionTargetIndex = -1;
+    }
+
+    #endregion Reposition
+
     #region Coordinate conversion
 
     private float TimeToPixel(float timeSeconds, float width)
@@ -697,6 +784,19 @@ public class FlybyTimelineControl : Control
         }
 
         return closestIndex;
+    }
+
+    private int ComputeReorderTargetIndex(float mouseX, float width)
+    {
+        for (int i = 0; i < _markers.Count; i++)
+        {
+            float markerX = TimeToPixel(_markers[i].TimeSeconds, width);
+
+            if (mouseX < markerX)
+                return i;
+        }
+
+        return Math.Max(0, _markers.Count - 1);
     }
 
     private static float CalculateTickInterval(float pixelsPerSecond)
