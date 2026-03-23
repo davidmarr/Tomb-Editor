@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -504,6 +503,9 @@ public class FlybyTimelineControl : Control
         {
             if ((Keyboard.Modifiers & ModifierKeys.Alt) != 0)
             {
+                // Re-select the clicked camera first to enforce singular selection.
+                MarkerClicked?.Invoke(hitIndex);
+
                 // Alt+drag: reposition/renumber mode.
                 _isRepositioning = true;
                 _repositionGhostX = (float)pos.X;
@@ -774,15 +776,22 @@ public class FlybyTimelineControl : Control
 
     private int ComputeReorderTargetIndex(float mouseX, float width)
     {
+        int lastBefore = -1;
+
         for (int i = 0; i < _markers.Count; i++)
         {
-            float markerX = TimeToPixel(_markers[i].TimeSeconds, width);
-
-            if (mouseX < markerX)
-                return i;
+            if (TimeToPixel(_markers[i].TimeSeconds, width) <= mouseX)
+                lastBefore = i;
+            else
+                break;
         }
 
-        return Math.Max(0, _markers.Count - 1);
+        // Forward drag: source is at or before the last marker the ghost passed.
+        if (_repositionFromIndex <= lastBefore)
+            return lastBefore;
+
+        // Backward drag: place the dragged camera before the first marker to the right of the ghost.
+        return Math.Min(lastBefore + 1, _markers.Count - 1);
     }
 
     private static float CalculateTickInterval(float pixelsPerSecond)
