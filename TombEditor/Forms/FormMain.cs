@@ -367,6 +367,7 @@ namespace TombEditor.Forms
             ShowRealTintForObjectsToolStripMenuItem.Checked = _editor.Configuration.Rendering3D_ShowRealTintForObjects;
             drawWhiteTextureLightingOnlyToolStripMenuItem.Checked = _editor.Configuration.Rendering3D_ShowLightingWhiteTextureOnly;
             statisticsToolStripMenuItem.Checked = _editor.Configuration.UI_ShowStats;
+            flybyTimelineToolStripMenuItem.Checked = _editor.Configuration.UI_ShowFlybyTimeline;
         }
 
         private void RefreshRecentProjectsList()

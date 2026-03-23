@@ -10,7 +10,7 @@
     Background="{DynamicResource Brush_Background}"
     mc:Ignorable="d">
 
-	<Grid Margin="3,2,3,2">
+	<Grid Margin="2,2,2,2">
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition Width="Auto" />
 			<ColumnDefinition Width="*" />
@@ -54,12 +54,11 @@
                     Width="23"
                     Height="24"
                     Margin="4,0,0,0"
+                    Padding="3"
                     VerticalAlignment="Center"
                     Command="{Binding AddSequenceCommand}"
                     ToolTip="Add new sequence">
 					<Image
-                        Width="16"
-                        Height="16"
                         Source="pack://application:,,,/TombEditor;component/Resources/icons_general/general_plus_math-16.png"
                         RenderOptions.BitmapScalingMode="HighQuality" />
 				</Button>
@@ -68,6 +67,7 @@
                     Width="23"
                     Height="24"
                     Margin="4,0,0,0"
+                    Padding="3"
                     VerticalAlignment="Center"
                     Command="{Binding RemoveSequenceCommand}"
                     IsEnabled="{Binding HasSequenceSelected}"
@@ -100,13 +100,12 @@
                 Width="36"
                 Margin="0"
                 VerticalAlignment="Stretch"
-                Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
+                BorderThickness="0"
+                Background="Transparent"
                 Command="{Binding TogglePlayStopCommand}"
                 IsEnabled="{Binding HasSequenceSelected}"
                 ToolTip="Play/Stop sequence" Height="41">
 				<Image
-                    Width="24"
-                    Height="24"
                     Source="{Binding PlayStopIcon}"
                     RenderOptions.BitmapScalingMode="HighQuality" />
 			</Button>
@@ -115,13 +114,12 @@
                 Width="36"
                 Margin="0"
                 VerticalAlignment="Stretch"
-                Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
+                BorderThickness="0"
+                Background="Transparent"
                 Command="{Binding AddCameraCommand}"
                 IsEnabled="{Binding HasSequenceSelected}"
                 ToolTip="Add camera at current view position" Height="41">
 				<Image
-                    Width="24"
-                    Height="24"
                     Source="pack://application:,,,/TombEditor;component/Resources/icons_transport/transport-plus.png"
                     RenderOptions.BitmapScalingMode="HighQuality" />
 			</Button>
