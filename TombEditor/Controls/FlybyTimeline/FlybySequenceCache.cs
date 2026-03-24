@@ -345,7 +345,7 @@ public class FlybySequenceCache
                     cutRegions.Add(new CutRegion
                     {
                         StartTime = cutStartTime,
-                        EndTime = cutStartTime + bypassedTime
+                        EndTime = cutStartTime + bypassSlots * FlybyConstants.TimeStep
                     });
 
                     processedBoundary = targetCam;
