@@ -1148,6 +1148,13 @@ namespace TombEditor
                     Tool = _lastObjectPlacementTool;
                 else
                     Tool = _lastFaceEditTool;
+
+                // If the mode switched to lighting mode, relight all rooms which have `PendingRelight` set to true
+                if (@event.Current == EditorMode.Lighting)
+                {
+                    Parallel.ForEach(Level.Rooms.Where(room => room?.PendingRelight == true),
+                        room => room.RebuildLighting(Configuration.Rendering3D_HighQualityLightPreview));
+                }
             }
 
             // Backup last used tool for next mode
@@ -1526,5 +1533,7 @@ namespace TombEditor
             => Level.Settings.GameVersion is TRVersion.Game.TombEngine || Configuration.Editor_EnableStepHeightControlsForUnsupportedEngines;
 
         public int IncrementReference => IsPreciseGeometryAllowed ? Configuration.Editor_StepHeight : Level.FullClickHeight;
+
+        public bool ShouldRelight => Mode is EditorMode.Lighting;
     }
 }
