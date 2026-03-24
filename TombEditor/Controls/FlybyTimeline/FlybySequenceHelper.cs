@@ -15,7 +15,7 @@ namespace TombEditor.Controls.FlybyTimeline;
 /// </summary>
 public static class FlybySequenceHelper
 {
-    public static List<FlybyCameraInstance> GetCameras(Level level, ushort sequence)
+    public static List<FlybyCameraInstance> GetCameras(Level level, int sequence)
     {
         return level.ExistingRooms
             .SelectMany(r => r.Objects.OfType<FlybyCameraInstance>())
@@ -44,7 +44,7 @@ public static class FlybySequenceHelper
         if ((camera.Flags & FlybyConstants.FlagCameraCut) != 0)
             return 0;
 
-        int frames = camera.Timer >> 3;
+        int frames = camera.Timer >> 4;
         return frames > 0 ? frames / FlybyConstants.TickRate : 0;
     }
 

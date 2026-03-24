@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
 using TombLib;
@@ -46,13 +45,7 @@ public class FlybyPreview
 		SavedCamera = savedCamera;
 		bool useSmoothPause = level.Settings.GameVersion == TRVersion.Game.TombEngine;
 
-		var cameras = level.ExistingRooms
-			.SelectMany(r => r.Objects.OfType<FlybyCameraInstance>())
-			.Where(c => c.Sequence == sequence)
-			.OrderBy(c => c.Number)
-			.ToList();
-
-		_cache = new FlybySequenceCache(cameras, useSmoothPause);
+		_cache = new FlybySequenceCache(FlybySequenceHelper.GetCameras(level, sequence), useSmoothPause);
 		IsFinished = !_cache.IsValid;
 
 		if (_cache.IsValid)
