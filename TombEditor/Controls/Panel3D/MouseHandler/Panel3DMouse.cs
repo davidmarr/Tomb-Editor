@@ -61,6 +61,8 @@ namespace TombEditor.Controls.Panel3D
             if (_editor.FlyMode)
                 return;
 
+            _lastMousePosition = location;
+
             // End camera preview on any mouse click
             if (_editor.CameraPreviewMode != CameraPreviewType.None)
             {
@@ -68,7 +70,6 @@ namespace TombEditor.Controls.Panel3D
                 return;
             }
 
-            _lastMousePosition = location;
             _doSectorSelection = false;
             _objectPlaced = false;
 

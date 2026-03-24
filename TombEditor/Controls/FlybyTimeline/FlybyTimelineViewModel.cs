@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Numerics;
 using System.Windows;
 using System.Windows.Threading;
 using TombLib.LevelData;
@@ -514,7 +515,28 @@ public partial class FlybyTimelineViewModel : ObservableObject
         if (!SelectedSequence.HasValue || CameraList.Count == 0)
             return;
 
-        _preview.ScrubToTime(GetCamerasAsList(), SelectedSequence.Value, timeSeconds);
+        var cameras = GetCamerasAsList();
+        _preview.ScrubToTime(cameras, SelectedSequence.Value, timeSeconds);
+
+        var frame = _preview.GetInterpolatedFrameAtTime(cameras, SelectedSequence.Value, timeSeconds);
+        if (frame.HasValue)
+            UpdateSelectedRoomByPosition(frame.Value.Position);
+    }
+
+    // Updates the editor's selected room when position crosses into a different room,
+    // and resets the camera (or backup camera during preview) to the new room.
+    public void UpdateSelectedRoomByPosition(Vector3 worldPosition)
+    {
+        if (_editor.Level == null)
+            return;
+
+        var room = _editor.GetRoomAtPosition(worldPosition);
+
+        if (room == null || room == _editor.SelectedRoom)
+            return;
+
+        _editor.SelectedRoom = room;
+        _editor.ResetCamera(false, room);
     }
 
     /// <summary>

@@ -203,11 +203,8 @@ namespace TombEditor.Controls.Panel3D
 
                 // Save the current camera before swapping to a free camera for preview.
                 var savedCamera = Camera;
-                Camera = new FreeCamera(
-                    savedCamera.GetPosition(),
-                    savedCamera.RotationX,
-                    savedCamera.RotationY - (float)Math.PI,
-                    -(float)Math.PI / 2, (float)Math.PI / 2,
+                Camera = new FreeCamera(savedCamera.GetPosition(),
+                    savedCamera.RotationX, savedCamera.RotationY - (float)Math.PI, -(float)Math.PI / 2, (float)Math.PI / 2,
                     savedCamera.FieldOfView);
 
                 if (obj is FlybyCameraInstance flyby)

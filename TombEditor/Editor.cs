@@ -715,10 +715,11 @@ namespace TombEditor
         public class ResetCameraEvent : IEditorCameraEvent
         {
             public bool NewCamera { get; set; }
+            public Room? Room { get; set; }
         }
-        public void ResetCamera(bool newCamera = false)
+        public void ResetCamera(bool newCamera = false, Room? room = null)
         {
-            RaiseEvent(new ResetCameraEvent { NewCamera = newCamera });
+            RaiseEvent(new ResetCameraEvent { NewCamera = newCamera, Room = room });
         }
 
         // Toggle FlyMode

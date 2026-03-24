@@ -9,30 +9,37 @@ namespace TombEditor.Controls.Panel3D
 {
     public partial class Panel3D
     {
-        public void ResetCamera(bool forceNewCamera = false)
+        public void ResetCamera(bool forceNewCamera = false, Room? destRoom = null)
         {
-            Room room = _editor?.SelectedRoom;
+            var room = destRoom ?? _editor?.SelectedRoom;
 
             // Point the camera to the room's center
-            Vector3 target = new Vector3();
+            var target = new Vector3();
             if (room != null)
                 target = room.WorldPos + room.GetLocalCenter();
 
             // Calculate camera distance
-            Vector2 roomDiagonal = new Vector2(room?.NumXSectors ?? 0, room?.NumZSectors ?? 0);
+            var roomDiagonal = new Vector2(room?.NumXSectors ?? 0, room?.NumZSectors ?? 0);
 
             var dist = (roomDiagonal.Length() * 0.8f + 2.1f) * Level.SectorSizeUnit;
             var rotX = 0.6f;
             var rotY = (float)Math.PI;
 
-            // Initialize a new camera
-            if (Camera == null || forceNewCamera || !_editor.Configuration.Rendering3D_AnimateCameraOnReset)
+            bool flybyPreviewActive = _flybyPreview?.SavedCamera != null;
+
+            if (flybyPreviewActive || Camera == null || forceNewCamera || !_editor.Configuration.Rendering3D_AnimateCameraOnReset)
             {
-                Camera = new ArcBallCamera(target, rotX, rotY, -(float)Math.PI / 2, (float)Math.PI / 2, dist, 100, 1000000, _editor.Configuration.Rendering3D_FieldOfView * (float)(Math.PI / 180));
-                Invalidate();
+                var newCamera = new ArcBallCamera(target, rotX, rotY, -(float)Math.PI / 2, (float)Math.PI / 2, dist, 100, 1000000, _editor.Configuration.Rendering3D_FieldOfView * (float)(Math.PI / 180));
+
+                if (flybyPreviewActive)
+                    _flybyPreview.SavedCamera = newCamera;
+                else
+                    Camera = newCamera;
             }
             else
-                AnimateCamera(target, new Vector2(rotX, rotY), dist);
+            {
+                    AnimateCamera(target, new Vector2(rotX, rotY), dist);
+            }
         }
 
         public int TranslateCameraMouseMovement(Point value, bool horizontal = false)

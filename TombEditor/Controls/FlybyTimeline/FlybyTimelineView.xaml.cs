@@ -252,6 +252,7 @@ public partial class FlybyTimelineView : UserControl
 
         _isUpdatingSelection = false;
 
+        _viewModel.UpdateSelectedRoomByPosition(item.Camera.WorldPosition);
         RefreshTimeline();
     }
 

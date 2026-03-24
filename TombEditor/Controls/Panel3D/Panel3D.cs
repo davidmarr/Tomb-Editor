@@ -348,8 +348,8 @@ namespace TombEditor.Controls.Panel3D
             }
 
             // Center camera
-            if (obj is Editor.ResetCameraEvent)
-                ResetCamera(((Editor.ResetCameraEvent)obj).NewCamera);
+            if (obj is Editor.ResetCameraEvent resetEvent)
+                ResetCamera(resetEvent.NewCamera, resetEvent.Room);
 
             // Toggle FlyMode
             if (obj is Editor.ToggleFlyModeEvent)

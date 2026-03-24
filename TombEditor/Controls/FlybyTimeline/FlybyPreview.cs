@@ -26,16 +26,17 @@ public class FlybyPreview
 		public bool Finished;
 	}
 
-	private readonly FlybySequenceCache _cache;
 	private readonly Stopwatch _stopwatch = new();
 	private Timer _sequenceTimer;
 	private float _startTimeOffset;
 
+	public FlybySequenceCache Cache => _cache;
+	private readonly FlybySequenceCache _cache;
+
 	public bool IsFinished { get; private set; }
 	public FrameState LastFrame { get; private set; }
-	public Camera SavedCamera { get; }
 	public FrameState? StaticFrame { get; private set; }
-	public FlybySequenceCache Cache => _cache;
+	public Camera SavedCamera { get; set; }
 
 	/// <summary>
 	/// Creates a sequence preview backed by a pre-calculated cache.
