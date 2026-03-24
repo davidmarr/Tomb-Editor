@@ -14,6 +14,8 @@ namespace TombEditor.Controls.FlybyTimeline;
 /// </summary>
 public partial class FlybyTimelineView : UserControl
 {
+    private readonly Editor _editor;
+
     private FlybyTimelineViewModel _viewModel;
     private bool _isUpdatingSelection;
     private System.Windows.Forms.IWin32Window _parentForm;
@@ -21,20 +23,21 @@ public partial class FlybyTimelineView : UserControl
     public FlybyTimelineView()
     {
         InitializeComponent();
+        _editor = Editor.Instance;
     }
 
     /// <summary>
     /// Initializes the view model and wires up all event handlers.
     /// Called once when the hosting MainView is ready.
     /// </summary>
-    public void Initialize(Editor editor, System.Windows.Forms.IWin32Window parentForm = null)
+    public void Initialize(System.Windows.Forms.IWin32Window parentForm = null)
     {
         if (_viewModel != null)
             return;
 
         _parentForm = parentForm;
 
-        _viewModel = new FlybyTimelineViewModel(editor, Dispatcher);
+        _viewModel = new FlybyTimelineViewModel(_editor, Dispatcher);
         DataContext = _viewModel;
 
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -49,7 +52,7 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.DeleteRequested += OnTimelineDeleteRequested;
         timelineControl.MarkerReordered += OnTimelineMarkerReordered;
 
-        editor.EditorEventRaised += OnEditorEventRaised;
+        _editor.EditorEventRaised += OnEditorEventRaised;
 
         RefreshTimeline();
     }
@@ -73,6 +76,8 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.PlayStopRequested -= OnTimelinePlayStopRequested;
         timelineControl.DeleteRequested -= OnTimelineDeleteRequested;
         timelineControl.MarkerReordered -= OnTimelineMarkerReordered;
+
+        _editor.EditorEventRaised -= OnEditorEventRaised;
 
         _viewModel.Cleanup();
         _viewModel = null;

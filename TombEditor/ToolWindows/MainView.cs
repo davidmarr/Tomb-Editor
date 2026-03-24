@@ -40,7 +40,7 @@ namespace TombEditor.ToolWindows
             RefreshControls(_editor.Configuration);
             UpdateStatistics();
 
-            flybyTimelineView.Initialize(_editor, FindForm());
+            flybyTimelineView.Initialize(FindForm());
         }
 
         public void InitializeRendering(RenderingDevice device)

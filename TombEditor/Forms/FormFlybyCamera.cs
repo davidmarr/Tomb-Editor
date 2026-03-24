@@ -39,7 +39,6 @@ namespace TombEditor.Forms
 
         private void butCancel_Click(object sender, EventArgs e)
         {
-            RestoreOriginalValues();
             DialogResult = DialogResult.Cancel;
             Close();
         }
@@ -112,6 +111,9 @@ namespace TombEditor.Forms
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            if (DialogResult == DialogResult.Cancel)
+                RestoreOriginalValues();
+
             // Only exit the preview mode if we were the one who entered it.
             if (_ownedPreview && _editor.CameraPreviewMode != CameraPreviewType.None)
                 _editor.ToggleCameraPreview(false);

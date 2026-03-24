@@ -16,6 +16,8 @@ namespace TombLib.LevelData
         private float _rotationX { get; set; }
         private float _rotationY { get; set; }
 
+        public int TimerToFrames => ((int)Timer >> 4);
+
         public FlybyCameraInstance(ObjectInstance selectedObject = null)
         {
             if (selectedObject != null && selectedObject is FlybyCameraInstance)

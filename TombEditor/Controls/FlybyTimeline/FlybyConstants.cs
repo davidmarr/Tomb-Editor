@@ -7,7 +7,7 @@ public static class FlybyConstants
 	// The game logic runs at 30 ticks per second.
 	public const float TickRate = 30.0f;
 	public const float TimeStep = 1.0f / TickRate;
-	public const float SpeedScale = ushort.MaxValue / 100 * TickRate / ushort.MaxValue;
+	public const float SpeedScale = TickRate / 100.0f;
 
 	// Native camera flags.
 	public const int FlagCameraCut = 1 << 7;

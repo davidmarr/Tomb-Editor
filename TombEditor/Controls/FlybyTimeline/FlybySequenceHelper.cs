@@ -44,7 +44,7 @@ public static class FlybySequenceHelper
         if ((camera.Flags & FlybyConstants.FlagCameraCut) != 0)
             return 0;
 
-        int frames = camera.Timer >> 4;
+        int frames = camera.TimerToFrames;
         return frames > 0 ? frames / FlybyConstants.TickRate : 0;
     }
 
