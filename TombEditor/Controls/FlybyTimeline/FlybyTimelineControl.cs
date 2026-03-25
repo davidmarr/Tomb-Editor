@@ -25,6 +25,7 @@ public class FlybyTimelineControl : Control
     private static readonly Brush TrackBrush = new SolidColorBrush(Color.FromRgb(49, 51, 53));
     private static readonly Brush SelectionBrush;
     private static readonly Brush PlayheadBrush;
+    private static readonly Brush FreezeRegionBrush;
 
     private static readonly Pen GridLinePen = new(GridLineBrush, 1.0f);
     private static readonly Pen MarkerOutlinePen = new(new SolidColorBrush(Color.FromRgb(178, 178, 178)), 2.0f);
@@ -106,6 +107,10 @@ public class FlybyTimelineControl : Control
         scBrush.Freeze();
         SpeedCurveFillBrush = scBrush;
 
+        var freezeBrush = new SolidColorBrush(Color.FromArgb(96, 120, 120, 120));
+        freezeBrush.Freeze();
+        FreezeRegionBrush = freezeBrush;
+
         // Diagonal hatch pen for camera cuts.
         CameraCutPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 160, 160, 160)), 1.0f);
         CameraCutPen.Freeze();
@@ -135,6 +140,7 @@ public class FlybyTimelineControl : Control
         public float CutBypassDuration;
         public float SegmentDuration;
         public bool HasFreeze;
+        public float FreezeDuration;
     }
 
     /// <summary>
@@ -285,6 +291,15 @@ public class FlybyTimelineControl : Control
         {
             var marker = _markers[i];
             float startX = TimeToPixel(marker.TimeSeconds, width);
+
+            if (marker.HasFreeze && marker.FreezeDuration > 0)
+            {
+                float freezeRight = Math.Min(width, TimeToPixel(marker.TimeSeconds + marker.FreezeDuration, width));
+                float freezeLeft = Math.Max(0.0f, startX);
+
+                if (freezeRight > freezeLeft)
+                    context.DrawRectangle(FreezeRegionBrush, null, new Rect(freezeLeft, trackY, freezeRight - freezeLeft, trackHeight));
+            }
 
             // Draw camera cut region as diagonal hatch lines.
             if (marker.HasCameraCut)

@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Threading;
 using TombLib.Forms;
 using TombLib.LevelData;
@@ -18,6 +19,8 @@ public class FlybyPreviewController : IDisposable
     private readonly Editor _editor;
 
     private FlybySequenceCache? _cache;
+    private ushort? _cacheSequence;
+    private List<FlybyCameraInstance>? _cacheCameras;
     private FlybyPreview? _playbackPreview;
     private DispatcherTimer? _playbackTimer;
     private bool _isChangingPreview;
@@ -144,7 +147,8 @@ public class FlybyPreviewController : IDisposable
         }
         else
         {
-            int nearestIndex = FlybySequenceHelper.FindCameraIndexAtTime(cameras, timeSeconds);
+            bool useSmoothPause = _editor.Level?.Settings.GameVersion == TRVersion.Game.TombEngine;
+            int nearestIndex = FlybySequenceHelper.FindCameraIndexAtTime(cameras, timeSeconds, useSmoothPause);
             _editor.CameraPreviewUpdated(cameras[nearestIndex]);
         }
 
@@ -177,6 +181,8 @@ public class FlybyPreviewController : IDisposable
     public void InvalidateCache()
     {
         _cache = null;
+        _cacheSequence = null;
+        _cacheCameras = null;
     }
 
     /// <summary>
@@ -227,14 +233,32 @@ public class FlybyPreviewController : IDisposable
 
     private bool TryEnsureValidCache(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence, out FlybySequenceCache? cache)
     {
-        if (_cache == null && _editor.Level != null)
+        bool cacheMatches = _cache != null && _cacheSequence == sequence && MatchesCachedCameras(cameras);
+
+        if (!cacheMatches && _editor.Level != null)
         {
             bool useSmoothPause = _editor.Level.Settings.GameVersion == TRVersion.Game.TombEngine;
             _cache = new FlybySequenceCache(cameras, useSmoothPause);
+            _cacheSequence = sequence;
+            _cacheCameras = cameras.ToList();
         }
 
         cache = _cache;
         return cache != null && cache.IsValid;
+    }
+
+    private bool MatchesCachedCameras(IReadOnlyList<FlybyCameraInstance> cameras)
+    {
+        if (_cacheCameras == null || _cacheCameras.Count != cameras.Count)
+            return false;
+
+        for (int i = 0; i < cameras.Count; i++)
+        {
+            if (!ReferenceEquals(_cacheCameras[i], cameras[i]))
+                return false;
+        }
+
+        return true;
     }
 
     private void EnsurePreviewActive()

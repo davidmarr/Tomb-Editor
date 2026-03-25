@@ -181,7 +181,6 @@ public partial class FlybyTimelineView : UserControl
             return;
 
         var cameras = _viewModel.CameraList;
-        var cameraInstances = cameras.Select(vm => vm.Camera).ToList();
         var selectedIndices = _viewModel.GetSelectedIndices();
         var markers = new List<FlybyTimelineControl.TimelineMarker>();
 
@@ -207,19 +206,7 @@ public partial class FlybyTimelineView : UserControl
             var item = cameras[i];
             float timeSeconds = _viewModel.GetTimecodeForCamera(i);
 
-            // Compute cut bypass duration from static times.
-            float cutBypassDuration = 0;
-
-            if (_viewModel.GetCameraCutFlag(i))
-            {
-                int target = item.Camera.Timer;
-
-                if (target > i && target < cameras.Count)
-                {
-                    float targetTime = _viewModel.GetTimecodeForCamera(target);
-                    cutBypassDuration = Math.Max(0, targetTime - timeSeconds);
-                }
-            }
+            float cutBypassDuration = _viewModel.GetCutBypassDuration(i);
 
             markers.Add(new FlybyTimelineControl.TimelineMarker
             {
@@ -229,8 +216,9 @@ public partial class FlybyTimelineView : UserControl
                 HasCameraCut = _viewModel.GetCameraCutFlag(i),
                 IsInCutBypass = cutBypassed.Contains(i),
                 CutBypassDuration = cutBypassDuration,
-                SegmentDuration = i < cameras.Count - 1 ? FlybySequenceHelper.GetSegmentDuration(cameraInstances, i) : 0,
-                HasFreeze = (item.Camera.Flags & FlybyConstants.FlagFreezeCamera) != 0
+                SegmentDuration = i < cameras.Count - 1 ? _viewModel.GetSegmentDurationSeconds(i) : 0,
+                HasFreeze = (item.Camera.Flags & FlybyConstants.FlagFreezeCamera) != 0,
+                FreezeDuration = _viewModel.GetFreezeDurationSeconds(i)
             });
         }
 
