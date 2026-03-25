@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Windows.Threading;
 using TombLib.Forms;
@@ -101,12 +102,10 @@ public class FlybyPreviewController : IDisposable
         if (!TryEnsureValidCache(cameras, sequence, out var cache))
             return;
 
-        var validCache = cache!;
-
         _playbackPreview?.Dispose();
-        _playbackPreview = new FlybyPreview(validCache, camera);
+        _playbackPreview = new FlybyPreview(cache, camera);
 
-        float startOffset = PlayheadSeconds > 0 ? validCache.TimelineToPlaybackTime(PlayheadSeconds) : 0;
+        float startOffset = PlayheadSeconds > 0 ? cache.TimelineToPlaybackTime(PlayheadSeconds) : 0;
         _playbackPreview.BeginExternalUpdate(startOffset);
 
         IsPlaying = true;
@@ -142,7 +141,7 @@ public class FlybyPreviewController : IDisposable
 
         if (TryEnsureValidCache(cameras, sequence, out var cache))
         {
-            var frame = cache!.SampleAtTime(timeSeconds);
+            var frame = cache.SampleAtTime(timeSeconds);
             _editor.CameraPreviewScrub(frame);
         }
         else
@@ -231,7 +230,7 @@ public class FlybyPreviewController : IDisposable
         SetPlayheadSeconds(_playbackPreview.GetCurrentTimeSeconds());
     }
 
-    private bool TryEnsureValidCache(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence, out FlybySequenceCache? cache)
+    private bool TryEnsureValidCache(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence, [NotNullWhen(true)] out FlybySequenceCache? cache)
     {
         bool cacheMatches = _cache != null && _cacheSequence == sequence && MatchesCachedCameras(cameras);
 
