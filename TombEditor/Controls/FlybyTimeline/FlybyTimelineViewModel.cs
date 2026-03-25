@@ -550,7 +550,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         float prevTime = GetTimecodeForCamera(cameraIndex - 1);
         float freezeAtPrev = GetFreezeDurationSeconds(cameraIndex - 1);
-        float targetTime = Math.Max(newTimeSeconds - freezeAtPrev, prevTime + 0.01f);
+        float minTargetTime = prevTime + freezeAtPrev + 0.01f;
+        float targetTime = Math.Max(newTimeSeconds, minTargetTime);
 
         var cameras = GetCamerasAsList().ToList();
         float newSpeed = FlybySequenceHelper.SolveSegmentSpeedForTargetTime(
