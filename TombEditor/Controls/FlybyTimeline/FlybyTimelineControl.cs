@@ -111,9 +111,9 @@ public class FlybyTimelineControl : Control
         freezeBrush.Freeze();
         FreezeRegionBrush = freezeBrush;
 
-        // Diagonal hatch pen for camera cuts.
-        CameraCutPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 160, 160, 160)), 1.0f);
-        CameraCutPen.Freeze();
+        var cameraCutPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 160, 160, 160)), 1.0f);
+        cameraCutPen.Freeze();
+        CameraCutPen = cameraCutPen;
 
         var ghostFill = new SolidColorBrush(Color.FromArgb(160, 100, 100, 100));
         ghostFill.Freeze();
@@ -453,8 +453,11 @@ public class FlybyTimelineControl : Control
             else
                 fill = MarkerBrush;
 
-            // Draw square marker for cameras with freeze flag, circle otherwise.
-            if (marker.HasFreeze)
+            if (marker.HasCameraCut)
+            {
+                DrawTriangleMarker(context, fill, x, centerY, FlybyConstants.TimelineMarkerRadius);
+            }
+            else if (marker.HasFreeze)
             {
                 float half = FlybyConstants.TimelineMarkerRadius;
                 context.DrawRectangle(fill, MarkerOutlinePen, new Rect(x - half, centerY - half, half * 2, half * 2));
@@ -468,6 +471,21 @@ public class FlybyTimelineControl : Control
         // Draw ghost markers during reposition drag.
         if (_isRepositioning)
             DrawGhostMarkers(context, width, centerY);
+    }
+
+    private void DrawTriangleMarker(DrawingContext context, Brush fill, float centerX, float centerY, float radius)
+    {
+        var geometry = new StreamGeometry();
+
+        using (var streamContext = geometry.Open())
+        {
+            streamContext.BeginFigure(new Point(centerX + radius, centerY), true, true);
+            streamContext.LineTo(new Point(centerX - radius, centerY - radius), true, false);
+            streamContext.LineTo(new Point(centerX - radius, centerY + radius), true, false);
+        }
+
+        geometry.Freeze();
+        context.DrawGeometry(fill, MarkerOutlinePen, geometry);
     }
 
     private void DrawGhostMarkers(DrawingContext context, float width, float centerY)
