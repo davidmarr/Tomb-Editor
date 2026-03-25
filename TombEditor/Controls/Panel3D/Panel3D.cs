@@ -103,6 +103,7 @@ namespace TombEditor.Controls.Panel3D
         private float _lastCameraDist;
         private float _nextCameraDist;
         private readonly Timer _flyModeTimer;
+        private readonly Timer _cameraPreviewTimer;
         private Camera _oldCamera;
         private Frustum _frustum;
         private Matrix4x4 _viewProjection;
@@ -206,6 +207,9 @@ namespace TombEditor.Controls.Panel3D
                 _flyModeTimer = new Timer { Interval = 1 };
                 _flyModeTimer.Tick += FlyModeTimer_Tick;
 
+                _cameraPreviewTimer = new Timer { Interval = 16 };
+                _cameraPreviewTimer.Tick += PreviewTimer_Tick;
+
                 _renderingCachedRooms = new Cache<Room, RenderingDrawingRoom>(1024, CacheRoom);
             }
 
@@ -230,6 +234,7 @@ namespace TombEditor.Controls.Panel3D
                 _littleSphere?.Dispose();
                 _movementTimer?.Dispose();
                 _flyModeTimer?.Dispose();
+                _cameraPreviewTimer?.Dispose();
                 _flybyPreview?.Dispose();
                 _rasterizerStateDepthBias?.Dispose();
                 _currentContextMenu?.Dispose();

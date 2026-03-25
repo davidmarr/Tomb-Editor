@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using System.Numerics;
-using System.Windows.Forms;
 using TombLib;
 using TombLib.Graphics;
 using TombLib.LevelData;
@@ -26,7 +25,6 @@ public class FlybyPreview
 	}
 
 	private readonly Stopwatch _stopwatch = new();
-	private Timer _sequenceTimer;
 	private float _startTimeOffset;
 
 	public FlybySequenceCache Cache => _cache;
@@ -73,18 +71,6 @@ public class FlybyPreview
 		SavedCamera = savedCamera;
 		IsFinished = true;
 		_cache = new FlybySequenceCache(Array.Empty<FlybyCameraInstance>(), false);
-	}
-
-	/// <summary>
-	/// Starts playback with a WinForms timer (used by Panel3D's ESC-based preview).
-	/// </summary>
-	public void BeginSequence(EventHandler timerTick)
-	{
-		_stopwatch.Restart();
-		_startTimeOffset = 0;
-		_sequenceTimer = new Timer { Interval = 16 };
-		_sequenceTimer.Tick += timerTick;
-		_sequenceTimer.Start();
 	}
 
 	/// <summary>
@@ -143,14 +129,12 @@ public class FlybyPreview
 	public void Stop()
 	{
 		_stopwatch.Stop();
-		_sequenceTimer?.Stop();
 		IsFinished = true;
 	}
 
 	public void Dispose()
 	{
 		Stop();
-		_sequenceTimer?.Dispose();
 	}
 
 	#region Static frame helpers

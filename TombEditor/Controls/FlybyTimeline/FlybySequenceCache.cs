@@ -42,7 +42,6 @@ public class FlybySequenceCache
     private readonly int _frameCount;
     private readonly CutRegion[] _cutRegions;
     private readonly float[] _smoothedSpeeds;
-    private readonly float[] _segmentSpeedScales;
 
     public float TotalDuration => _totalDuration;
     public bool IsValid => _frameCount > 0;
@@ -54,7 +53,6 @@ public class FlybySequenceCache
             _frames = Array.Empty<CachedFrame>();
             _cutRegions = Array.Empty<CutRegion>();
             _smoothedSpeeds = Array.Empty<float>();
-            _segmentSpeedScales = Array.Empty<float>();
             _totalDuration = 0;
             _frameCount = 0;
             return;
@@ -68,11 +66,10 @@ public class FlybySequenceCache
 
         int numCameras = cameras.Count;
         int numSegments = numCameras - 1;
-        _segmentSpeedScales = BuildSegmentSpeedScales(cameras, speedKnots, numSegments);
 
         // Pass 1: sequentially build the spline parameter timeline using
         // spline-interpolated speed for smooth advancement between cameras.
-        float[] splineParams = BuildSplineTimeline(cameras, speedKnots, _segmentSpeedScales, numSegments, useSmoothPause, out var cutRegionsList);
+        float[] splineParams = BuildSplineTimeline(cameras, speedKnots, numSegments, useSmoothPause, out var cutRegionsList);
 
         _cutRegions = cutRegionsList.ToArray();
 
@@ -258,7 +255,6 @@ public class FlybySequenceCache
     private static float[] BuildSplineTimeline(
         IReadOnlyList<FlybyCameraInstance> cameras,
         float[] speedKnots,
-        float[] segmentSpeedScales,
         int numSegments,
         bool useSmoothPause,
         out List<CutRegion> cutRegions)
@@ -286,10 +282,10 @@ public class FlybySequenceCache
             {
                 // Advance to the ease-out zone with spline-interpolated speed.
                 float easeOutStartT = boundaryT - FlybyConstants.FreezeEaseDistance;
-                AdvanceToTarget(timeline, speedKnots, segmentSpeedScales, numSegments, easeOutStartT, ref currentT);
+                AdvanceToTarget(timeline, speedKnots, numSegments, easeOutStartT, ref currentT);
 
                 // Ease-out: decelerate to zero at the boundary.
-                EmitEaseOut(timeline, speedKnots, segmentSpeedScales, numSegments, boundaryT, ref currentT);
+                EmitEaseOut(timeline, speedKnots, numSegments, boundaryT, ref currentT);
                 currentT = boundaryT;
 
                 // Hold at boundary.
@@ -301,12 +297,12 @@ public class FlybySequenceCache
 
                 // Ease-in: accelerate from zero on the next region.
                 if (nextBoundary < numSegments)
-                    EmitEaseIn(timeline, speedKnots, segmentSpeedScales, numSegments, ref currentT);
+                    EmitEaseIn(timeline, speedKnots, numSegments, ref currentT);
             }
             else
             {
                 // Advance through the boundary with spline-interpolated speed.
-                AdvanceToTarget(timeline, speedKnots, segmentSpeedScales, numSegments, boundaryT, ref currentT);
+                AdvanceToTarget(timeline, speedKnots, numSegments, boundaryT, ref currentT);
                 currentT = boundaryT;
 
                 if (hasFreeze)
@@ -385,15 +381,14 @@ public class FlybySequenceCache
     /// Each tick evaluates the speed spline at the current position, producing
     /// smooth transitions between cameras.
     /// </summary>
-    private static void AdvanceToTarget(List<float> timeline, float[] speedKnots, float[] segmentSpeedScales,
-        int numSegments, float targetT, ref float currentT)
+    private static void AdvanceToTarget(List<float> timeline, float[] speedKnots, int numSegments, float targetT, ref float currentT)
     {
         float tickFactor = FlybyConstants.SpeedScale * FlybyConstants.TimeStep;
 
         while (currentT < targetT)
         {
             timeline.Add(currentT);
-            float speed = GetScaledSegmentSpeed(currentT, speedKnots, segmentSpeedScales, numSegments);
+            float speed = GetSplineSpeed(currentT, speedKnots, numSegments);
             currentT += Math.Max(speed, FlybyConstants.MinSpeed) * tickFactor;
         }
 
@@ -404,13 +399,12 @@ public class FlybySequenceCache
     /// Emits a quadratic ease-out deceleration from the current position to the boundary.
     /// Uses the spline-interpolated speed at the ease start as the initial speed.
     /// </summary>
-    private static void EmitEaseOut(List<float> timeline, float[] speedKnots, float[] segmentSpeedScales,
-        int numSegments, float boundaryT, ref float currentT)
+    private static void EmitEaseOut(List<float> timeline, float[] speedKnots, int numSegments, float boundaryT, ref float currentT)
     {
         float easeStartT = currentT;
         float remainingDist = Math.Max(boundaryT - easeStartT, FlybyConstants.MinSpeed);
 
-        float speed = GetScaledSegmentSpeed(easeStartT, speedKnots, segmentSpeedScales, numSegments);
+        float speed = GetSplineSpeed(easeStartT, speedKnots, numSegments);
         float speedPerSec = Math.Max(speed, FlybyConstants.MinSpeed) * FlybyConstants.SpeedScale;
 
         float easeStep = speedPerSec / (2.0f * remainingDist);
@@ -428,9 +422,9 @@ public class FlybySequenceCache
     /// Emits a quadratic ease-in acceleration from zero speed at the current position.
     /// Uses the spline-interpolated speed at the boundary as the target speed.
     /// </summary>
-    private static void EmitEaseIn(List<float> timeline, float[] speedKnots, float[] segmentSpeedScales, int numSegments, ref float currentT)
+    private static void EmitEaseIn(List<float> timeline, float[] speedKnots, int numSegments, ref float currentT)
     {
-        float speed = GetScaledSegmentSpeed(currentT, speedKnots, segmentSpeedScales, numSegments);
+        float speed = GetSplineSpeed(currentT, speedKnots, numSegments);
         float speedPerSec = Math.Max(speed, FlybyConstants.MinSpeed) * FlybyConstants.SpeedScale;
 
         float easeInStep = speedPerSec / (2.0f * FlybyConstants.FreezeEaseDistance);
@@ -447,49 +441,22 @@ public class FlybySequenceCache
 
     #endregion Pass 1: spline parameter timeline
 
-    private static float[] BuildSegmentSpeedScales(
-        IReadOnlyList<FlybyCameraInstance> cameras,
-        float[] speedKnots,
-        int numSegments)
-    {
-        var scales = new float[numSegments];
-
-        for (int segmentIndex = 0; segmentIndex < numSegments; segmentIndex++)
-        {
-            float inverseSpeedIntegral = IntegrateInverseSegmentSpeed(segmentIndex, speedKnots, numSegments);
-            float targetSpeed = Math.Max(cameras[segmentIndex].Speed, FlybyConstants.MinSpeed);
-            scales[segmentIndex] = targetSpeed * inverseSpeedIntegral;
-        }
-
-        return scales;
-    }
-
-    private static float IntegrateInverseSegmentSpeed(int segmentIndex, float[] speedKnots, int numSegments)
-    {
-        const int sampleCount = 64;
-        float integral = 0;
-
-        for (int sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++)
-        {
-            float localT = (sampleIndex + 0.5f) / sampleCount;
-            float splineT = Math.Clamp(segmentIndex + localT, 0, numSegments);
-            float speed = Math.Max(CatmullRomSpline.Evaluate(splineT, speedKnots), FlybyConstants.MinSpeed);
-            integral += 1.0f / speed;
-        }
-
-        return integral / sampleCount;
-    }
-
-    private static float GetScaledSegmentSpeed(float currentT, float[] speedKnots, float[] segmentSpeedScales, int numSegments)
+    private static float GetSplineSpeed(float currentT, float[] speedKnots, int numSegments)
     {
         float clampedT = Math.Clamp(currentT, 0, numSegments);
-        int segmentIndex = Math.Min((int)MathF.Floor(clampedT), segmentSpeedScales.Length - 1);
-        float baseSpeed = Math.Max(CatmullRomSpline.Evaluate(clampedT, speedKnots), FlybyConstants.MinSpeed);
+        float speed = Math.Max(CatmullRomSpline.Evaluate(clampedT, speedKnots), FlybyConstants.MinSpeed);
 
-        if (segmentIndex < 0)
-            return baseSpeed;
+        int span = Math.Min((int)clampedT, numSegments - 1);
 
-        return baseSpeed * segmentSpeedScales[segmentIndex];
+        if (span < 0)
+            return speed;
+
+        float p1 = Math.Max(speedKnots[span + 1], FlybyConstants.MinSpeed);
+        float p2 = Math.Max(speedKnots[span + 2], FlybyConstants.MinSpeed);
+        float minSpeed = Math.Min(p1, p2);
+        float maxSpeed = Math.Max(p1, p2);
+
+        return Math.Clamp(speed, minSpeed, maxSpeed);
     }
 
     #region Pass 2: parallel spline evaluation

@@ -468,12 +468,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         _editor.ObjectChange(SelectedCamera.Camera, ObjectChangeType.Change);
         _isApplyingProperty = false;
 
-        RecalculateTimecodes();
-
-        if (IsPreviewActive && SelectedSequence.HasValue && PlayheadSeconds >= 0)
-            _preview.ScrubToTime(GetCamerasAsList(), SelectedSequence.Value, PlayheadSeconds);
-        else
-            _preview.ShowCamera(SelectedCamera.Camera);
+        RefreshTimelineState(false);
     }
 
     #endregion Camera property editing
@@ -549,20 +544,21 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         float prevTime = GetTimecodeForCamera(cameraIndex - 1);
         float freezeAtPrev = GetFreezeDurationSeconds(cameraIndex - 1);
-        float gap = Math.Max(newTimeSeconds - prevTime - freezeAtPrev, 0.01f);
+        float targetTime = Math.Max(newTimeSeconds - freezeAtPrev, prevTime + 0.01f);
 
-        float newSpeed = 1.0f / (gap * FlybyConstants.SpeedScale);
+        var cameras = GetCamerasAsList().ToList();
+        float newSpeed = FlybySequenceHelper.SolveSegmentSpeedForTargetTime(
+            cameras,
+            cameraIndex - 1,
+            cameraIndex,
+            targetTime);
 
         _isApplyingProperty = true;
         CameraList[cameraIndex - 1].Camera.Speed = newSpeed;
         _editor.ObjectChange(CameraList[cameraIndex - 1].Camera, ObjectChangeType.Change);
         _isApplyingProperty = false;
 
-        RecalculateTimecodes();
-
-        // Update preview to reflect the changed timings.
-        if (IsPreviewActive && SelectedSequence.HasValue && PlayheadSeconds >= 0)
-            _preview.ScrubToTime(GetCamerasAsList(), SelectedSequence.Value, PlayheadSeconds);
+        RefreshTimelineState(false);
     }
 
     #endregion Preview and playback
@@ -668,18 +664,12 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
     private void OnDataChanged()
     {
-        RefreshCameraList();
-        RecalculateTimecodes();
-        TimelineRefreshRequested?.Invoke();
-
-        if (IsPreviewActive && SelectedSequence.HasValue && PlayheadSeconds >= 0)
-            _preview.ScrubToTime(GetCamerasAsList(), SelectedSequence.Value, PlayheadSeconds);
+        RefreshTimelineState(true);
     }
 
     private void RequestTimelineRefresh()
     {
-        RecalculateTimecodes();
-        TimelineRefreshRequested?.Invoke();
+        RefreshTimelineState(false, false);
     }
 
     private void RefreshSequenceList()
@@ -784,6 +774,48 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         if (item != null)
             SelectedCamera = item;
+    }
+
+    private void RefreshTimelineState(bool refreshCameraList, bool syncPreview = true)
+    {
+        if (refreshCameraList)
+            RefreshCameraList();
+
+        RecalculateTimecodes();
+        TimelineRefreshRequested?.Invoke();
+
+        if (syncPreview)
+            RefreshPreviewState();
+    }
+
+    private void RefreshPreviewState()
+    {
+        if (!TryGetSequenceContext(out var cameras, out var sequence))
+        {
+            if (SelectedCamera != null)
+                _preview.ShowCamera(SelectedCamera.Camera);
+
+            return;
+        }
+
+        if (IsPreviewActive && PlayheadSeconds >= 0)
+            _preview.ScrubToTime(cameras, sequence, PlayheadSeconds);
+        else if (SelectedCamera != null)
+            _preview.ShowCamera(SelectedCamera.Camera);
+    }
+
+    private bool TryGetSequenceContext(out IReadOnlyList<FlybyCameraInstance> cameras, out ushort sequence)
+    {
+        if (SelectedSequence.HasValue && CameraList.Count > 0)
+        {
+            sequence = SelectedSequence.Value;
+            cameras = GetCamerasAsList();
+            return true;
+        }
+
+        cameras = Array.Empty<FlybyCameraInstance>();
+        sequence = 0;
+        return false;
     }
 
     #endregion Data refresh

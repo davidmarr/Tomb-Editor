@@ -169,10 +169,7 @@ public partial class FlybyTimelineView : UserControl
             var item = _viewModel.CameraList.FirstOrDefault(c => c.Camera == flyby);
 
             if (item != null)
-            {
-                _viewModel.UpdateSelectedCameras(new[] { item });
-                _viewModel.SelectedCamera = item;
-            }
+                SelectSingleCamera(item);
         }
     }
 
@@ -252,8 +249,7 @@ public partial class FlybyTimelineView : UserControl
         _isUpdatingSelection = true;
 
         var item = _viewModel.CameraList[index];
-        _viewModel.UpdateSelectedCameras(new[] { item });
-        _viewModel.SelectedCamera = item;
+        SelectSingleCamera(item);
 
         _isUpdatingSelection = false;
 
@@ -269,8 +265,7 @@ public partial class FlybyTimelineView : UserControl
         var item = _viewModel.CameraList[index];
 
         _isUpdatingSelection = true;
-        _viewModel.UpdateSelectedCameras(new[] { item });
-        _viewModel.SelectedCamera = item;
+        SelectSingleCamera(item);
         _isUpdatingSelection = false;
 
         // Find parent WinForms control for the dialog owner.
@@ -344,6 +339,12 @@ public partial class FlybyTimelineView : UserControl
 
         _viewModel.MoveCameraToIndex(fromIndex, toIndex);
         RefreshTimeline();
+    }
+
+    private void SelectSingleCamera(FlybyCameraItemViewModel item)
+    {
+        _viewModel.UpdateSelectedCameras(new[] { item });
+        _viewModel.SelectedCamera = item;
     }
 
     #endregion Timeline event handlers
