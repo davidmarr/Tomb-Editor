@@ -331,7 +331,7 @@ public class FlybySequenceCache
                     for (int i = nextCamIdx; i < targetCam; i++)
                     {
                         if (i < numCameras - 1)
-                            bypassedTime += FlybySequenceHelper.GetSegmentDuration(cameras[i]);
+                            bypassedTime += FlybySequenceHelper.GetSegmentDuration(cameras, i);
                         bypassedTime += FlybySequenceHelper.GetFreezeDuration(cameras[i]);
                     }
 

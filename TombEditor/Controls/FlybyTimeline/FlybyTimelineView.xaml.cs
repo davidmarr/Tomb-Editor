@@ -181,6 +181,7 @@ public partial class FlybyTimelineView : UserControl
             return;
 
         var cameras = _viewModel.CameraList;
+        var cameraInstances = cameras.Select(vm => vm.Camera).ToList();
         var selectedIndices = _viewModel.GetSelectedIndices();
         var markers = new List<FlybyTimelineControl.TimelineMarker>();
 
@@ -228,12 +229,12 @@ public partial class FlybyTimelineView : UserControl
                 HasCameraCut = _viewModel.GetCameraCutFlag(i),
                 IsInCutBypass = cutBypassed.Contains(i),
                 CutBypassDuration = cutBypassDuration,
-                SegmentDuration = i < cameras.Count - 1 ? FlybySequenceHelper.GetSegmentDuration(item.Camera) : 0,
+                SegmentDuration = i < cameras.Count - 1 ? FlybySequenceHelper.GetSegmentDuration(cameraInstances, i) : 0,
                 HasFreeze = (item.Camera.Flags & FlybyConstants.FlagFreezeCamera) != 0
             });
         }
 
-        float totalDuration = _viewModel.GetDisplayDuration();
+        float totalDuration = _viewModel.GetCacheDisplayDuration(cache);
 
         if (totalDuration < 1.0f)
             totalDuration = 10.0f;

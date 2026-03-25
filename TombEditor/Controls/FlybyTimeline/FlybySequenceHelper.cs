@@ -59,6 +59,15 @@ public static class FlybySequenceHelper
         return 1.0f / (speed * FlybyConstants.SpeedScale);
     }
 
+    public static float GetSegmentDuration(IReadOnlyList<FlybyCameraInstance> cameras, int segmentIndex)
+    {
+        if (segmentIndex < 0 || segmentIndex >= cameras.Count - 1)
+            return 0;
+
+        var speedKnots = BuildSpeedKnots(cameras);
+        return GetSplineSegmentDuration(speedKnots, segmentIndex, cameras.Count - 1);
+    }
+
     public static float GetTimecodeForCamera(IReadOnlyList<FlybyCameraInstance> cameras, int index)
     {
         if (index <= 0 || cameras.Count == 0)
@@ -116,10 +125,11 @@ public static class FlybySequenceHelper
 
         float accumulatedTime = 0;
         int segmentCount = cameras.Count - 1;
+        var speedKnots = BuildSpeedKnots(cameras);
 
         for (int i = 0; i < segmentCount; i++)
         {
-            float segmentDuration = GetSegmentDuration(cameras[i]);
+            float segmentDuration = GetSplineSegmentDuration(speedKnots, i, segmentCount);
 
             if (accumulatedTime + segmentDuration > timeSeconds)
             {

@@ -226,22 +226,26 @@ public partial class FlybyTimelineViewModel : ObservableObject
         {
             float cursorTime = PlayheadSeconds;
             var cameras = GetCamerasAsList();
+            float clampedCursorTime = Math.Max(cursorTime, 0.01f);
 
             float lastCameraTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, cameras.Count - 1);
 
             // Cursor is at or past the last camera: append with appropriate speed.
             if (cursorTime >= lastCameraTime - 0.01f)
             {
-                float gap = cursorTime - lastCameraTime;
-
-                if (gap < 0.1f)
-                    gap = 1.0f;
-
-                cam.Speed = 1.0f / (gap * FlybyConstants.SpeedScale);
+                cam.Speed = cameras[^1].Speed;
                 cam.Number = (ushort)cameras.Count;
 
                 // Use editor camera view for cameras appended beyond existing spline.
                 ApplyEditorCameraPosition(cam, room);
+
+                var tempCameras = cameras.ToList();
+                tempCameras.Add(cam);
+                float targetTime = Math.Max(clampedCursorTime, lastCameraTime + 0.01f);
+                float newSpeed = FlybySequenceHelper.SolveSegmentSpeedForTargetTime(tempCameras, tempCameras.Count - 2, tempCameras.Count - 1, targetTime);
+
+                cameras[^1].Speed = newSpeed;
+                _editor.ObjectChange(cameras[^1], ObjectChangeType.Change);
 
                 room.AddObject(_editor.Level, cam);
                 _editor.UndoManager.PushObjectCreated(cam);
@@ -261,20 +265,20 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
                 float segStart = FlybySequenceHelper.GetTimecodeForCamera(cameras, prevIndex);
                 float segEnd = FlybySequenceHelper.GetTimecodeForCamera(cameras, insertIndex);
-
-                float leftDuration = Math.Max(cursorTime - segStart, 0.01f);
-                float rightDuration = Math.Max(segEnd - cursorTime, 0.01f);
-
-                // Adjust the previous camera's speed for the left portion.
-                cameras[prevIndex].Speed = 1.0f / (leftDuration * FlybyConstants.SpeedScale);
-                _editor.ObjectChange(cameras[prevIndex], ObjectChangeType.Change);
-
-                // Set new camera speed for the right portion.
-                cam.Speed = 1.0f / (rightDuration * FlybyConstants.SpeedScale);
                 cam.Number = (ushort)insertIndex;
+                cam.Speed = cameras[prevIndex].Speed;
 
                 // Always place new camera at the current editor viewport position.
                 ApplyEditorCameraPosition(cam, room);
+
+                var tempCameras = cameras.ToList();
+                tempCameras.Insert(insertIndex, cam);
+                float insertTime = Math.Clamp(clampedCursorTime, segStart + 0.01f, segEnd - 0.01f);
+
+                cameras[prevIndex].Speed = FlybySequenceHelper.SolveSegmentSpeedForTargetTime(tempCameras, prevIndex, insertIndex, insertTime);
+                cam.Speed = FlybySequenceHelper.SolveSegmentSpeedForTargetTime(tempCameras, insertIndex, insertIndex + 1, segEnd);
+
+                _editor.ObjectChange(cameras[prevIndex], ObjectChangeType.Change);
 
                 room.AddObject(_editor.Level, cam);
                 _editor.UndoManager.PushObjectCreated(cam);
@@ -738,6 +742,9 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private void RenumberSequence(ushort sequence, FlybyCameraInstance? excludeFromEvent = null)
     {
         var cameras = FlybySequenceHelper.GetCameras(_editor.Level, sequence);
+        var oldTargetByNumber = cameras
+            .GroupBy(camera => camera.Number)
+            .ToDictionary(group => (int)group.Key, group => group.First());
 
         _isApplyingProperty = true;
 
@@ -750,6 +757,28 @@ public partial class FlybyTimelineViewModel : ObservableObject
                 if (cameras[i] != excludeFromEvent)
                     _editor.ObjectChange(cameras[i], ObjectChangeType.Change);
             }
+        }
+
+        foreach (var camera in cameras)
+        {
+            if ((camera.Flags & FlybyConstants.FlagCameraCut) == 0)
+                continue;
+
+            ushort originalFlags = camera.Flags;
+            short originalTimer = camera.Timer;
+
+            if (oldTargetByNumber.TryGetValue(camera.Timer, out var targetCamera) && cameras.Contains(targetCamera))
+            {
+                camera.Timer = (short)targetCamera.Number;
+            }
+            else
+            {
+                camera.Flags = (ushort)(camera.Flags & ~FlybyConstants.FlagCameraCut);
+                camera.Timer = 0;
+            }
+
+            if ((camera.Flags != originalFlags || camera.Timer != originalTimer) && camera != excludeFromEvent)
+                _editor.ObjectChange(camera, ObjectChangeType.Change);
         }
 
         _isApplyingProperty = false;
