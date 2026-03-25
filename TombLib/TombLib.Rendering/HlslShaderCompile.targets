@@ -98,6 +98,7 @@
 				<TargetDirectory>$([System.IO.Path]::GetDirectoryName(%(_ShaderCompile.TargetPath)))</TargetDirectory>
 				<ObjectFileOutput Condition="'%(_ShaderCompile.ObjectFileOutput)' == ''">$(IntermediateOutputPath)$([System.IO.Path]::ChangeExtension(%(_ShaderCompile.TargetPath), '.cso'))</ObjectFileOutput>
 				<EntryPointName Condition="'%(_ShaderCompile.EntryPointName)' == ''">main</EntryPointName>
+				<ShaderDebugArguments Condition="'$(DebugSymbols)' == 'true'">/Zi</ShaderDebugArguments>
 				<ShaderProfile Condition="'%(_ShaderCompile.ShaderType)' == 'Effect'">fx_%(_ShaderCompile.ShaderModel)</ShaderProfile>
 				<ShaderProfile Condition="'%(_ShaderCompile.ShaderType)' == 'Vertex'">vs_%(_ShaderCompile.ShaderModel)</ShaderProfile>
 				<ShaderProfile Condition="'%(_ShaderCompile.ShaderType)' == 'Pixel'">ps_%(_ShaderCompile.ShaderModel)</ShaderProfile>
@@ -123,6 +124,8 @@
 			<FxcPath Condition="'$(FxcPath)' == '' and Exists('$(_WindowsKitsBinDir)\$(_FxcArchitecture)\fxc.exe')">$(_WindowsKitsBinDir)\$(_FxcArchitecture)\fxc.exe</FxcPath>
 		</PropertyGroup>
 
+		<MakeDir Condition="'@(_ShaderCompile)' != '' and '$(FxcPath)' == ''" Directories="$(IntermediateOutputPath)" />
+
 		<Exec Condition="'@(_ShaderCompile)' != '' and '$(FxcPath)' == ''"
 			  Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)ResolveFxcPath.ps1&quot; -BinRoot &quot;$(_WindowsKitsBinDir)&quot; -Architecture &quot;$(_FxcArchitecture)&quot; &gt; &quot;$(IntermediateOutputPath)fxc.path&quot;"
 			  IgnoreExitCode="true" />
@@ -146,7 +149,7 @@
 
 		<Exec Condition="'@(_ShaderCompile)' != ''"
 			  WorkingDirectory="$(MSBuildProjectDirectory)"
-			  Command="&quot;$(FxcPath)&quot; /nologo /E %(_ShaderCompile.EntryPointName) /T %(_ShaderCompile.ShaderProfile) /Fo &quot;%(_ShaderCompile.ObjectFileOutput)&quot; &quot;%(_ShaderCompile.Identity)&quot;"
+			  Command="&quot;$(FxcPath)&quot; /nologo %(_ShaderCompile.ShaderDebugArguments) /E %(_ShaderCompile.EntryPointName) /T %(_ShaderCompile.ShaderProfile) /Fo &quot;%(_ShaderCompile.ObjectFileOutput)&quot; &quot;%(_ShaderCompile.Identity)&quot;"
 			  StandardOutputImportance="Low"
 			  StandardErrorImportance="High" />
 

@@ -63,7 +63,7 @@
   <ItemGroup>
     <ProjectReference Include="..\TombLib\TombLib.csproj" />
   </ItemGroup>
-  <Target Name="EmbedShaderFilesTarget" AfterTargets="CompileHlslShaders;FxExport" BeforeTargets="EmbeddedResource">
+  <Target Name="EmbedShaderFilesTarget" AfterTargets="CompileHlslShaders" BeforeTargets="EmbeddedResource">
     <ItemGroup>
       <EmbeddedResource Include="$(IntermediateOutputPath)$([System.IO.Path]::ChangeExtension('%(VertexShader.Identity)', '.cso'))" Condition="'%(VertexShader.Identity)'!=''">
         <LogicalName>DxShaders.$([System.IO.Path]::GetFileNameWithoutExtension('%(Identity)'))</LogicalName>
