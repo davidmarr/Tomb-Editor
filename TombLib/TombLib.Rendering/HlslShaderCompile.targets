@@ -123,8 +123,9 @@
 			<FxcPath Condition="'$(FxcPath)' == '' and Exists('$(_WindowsKitsBinDir)\$(_FxcArchitecture)\fxc.exe')">$(_WindowsKitsBinDir)\$(_FxcArchitecture)\fxc.exe</FxcPath>
 		</PropertyGroup>
 
-		<Exec Condition="'@(_ShaderCompile)' != '' and '$(FxcPath)' == '' and Exists('$(_WindowsKitsBinDir)')"
-			  Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)ResolveFxcPath.ps1&quot; -BinRoot &quot;$(_WindowsKitsBinDir)&quot; -Architecture &quot;$(_FxcArchitecture)&quot; &gt; &quot;$(IntermediateOutputPath)fxc.path&quot;" />
+		<Exec Condition="'@(_ShaderCompile)' != '' and '$(FxcPath)' == ''"
+			  Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)ResolveFxcPath.ps1&quot; -BinRoot &quot;$(_WindowsKitsBinDir)&quot; -Architecture &quot;$(_FxcArchitecture)&quot; &gt; &quot;$(IntermediateOutputPath)fxc.path&quot;"
+			  IgnoreExitCode="true" />
 
 		<ReadLinesFromFile File="$(IntermediateOutputPath)fxc.path" Condition="'$(FxcPath)' == '' and Exists('$(IntermediateOutputPath)fxc.path')">
 			<Output TaskParameter="Lines" ItemName="_ResolvedFxcPath" />
@@ -136,20 +137,21 @@
 			<FxcPath>@(_ResolvedFxcPath)</FxcPath>
 		</PropertyGroup>
 
-		<Message Condition="'@(_ShaderCompile)' != ''" Text="Using fxc.exe from '$(FxcPath)'." Importance="High" />
+		<Message Condition="'@(_ShaderCompile)' != '' and '$(FxcPath)' != '' and Exists('$(FxcPath)')" Text="Using fxc.exe from '$(FxcPath)'." Importance="High" />
 		<Error Condition="'@(_ShaderCompile)' != '' and ('$(FxcPath)' == '' or !Exists('$(FxcPath)'))" Text="Unable to locate fxc.exe. Install a Windows 10 SDK that contains fxc.exe or pass /p:FxcPath=full-path-to-fxc.exe to the build." />
 	</Target>
 
 	<Target Name="CompileHlslShaders" DependsOnTargets="ResolveFxcPath" Inputs="@(_ShaderCompile)" Outputs="%(_ShaderCompile.ObjectFileOutput)">
-		<MakeDir Directories="@(_ShaderCompile->'%(ObjectFileOutput)'->DirectoryName())" />
+		<MakeDir Condition="'@(_ShaderCompile)' != ''" Directories="@(_ShaderCompile->'%(ObjectFileOutput)'->DirectoryName())" />
 
-		<Exec WorkingDirectory="$(MSBuildProjectDirectory)"
+		<Exec Condition="'@(_ShaderCompile)' != ''"
+			  WorkingDirectory="$(MSBuildProjectDirectory)"
 			  Command="&quot;$(FxcPath)&quot; /nologo /E %(_ShaderCompile.EntryPointName) /T %(_ShaderCompile.ShaderProfile) /Fo &quot;%(_ShaderCompile.ObjectFileOutput)&quot; &quot;%(_ShaderCompile.Identity)&quot;"
 			  StandardOutputImportance="Low"
 			  StandardErrorImportance="High" />
 
 		<ItemGroup>
-			<FileWrites Include="@(_ShaderCompile->'%(ObjectFileOutput)')" />
+			<FileWrites Include="@(_ShaderCompile->'%(ObjectFileOutput)')" Condition="'@(_ShaderCompile)' != ''" />
 		</ItemGroup>
 	</Target>
 </Project>
