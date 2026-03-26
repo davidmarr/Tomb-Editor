@@ -11,6 +11,7 @@ using System.Numerics;
 using System.Windows.Forms;
 using System.Windows.Threading;
 using TombLib.LevelData;
+using TombLib.WPF;
 
 namespace TombEditor.Controls.FlybyTimeline;
 
@@ -146,7 +147,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         if (cameras.Count > 0)
         {
-            var result = DarkMessageBox.Show($"Deleting sequence {seq} will remove {cameras.Count} flyby camera(s). Continue?",
+            var result = DarkMessageBox.Show(System.Windows.Application.Current.MainWindow.GetWin32Window(),
+                $"Deleting sequence {seq} will remove {cameras.Count} flyby camera(s). Continue?",
                 "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
             if (result != DialogResult.Yes)
@@ -194,7 +196,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         var toDelete = _selectedCameras.Select(vm => vm.Camera).ToList();
 
         _isApplyingProperty = true;
-        EditorActions.DeleteObjects(toDelete);
+        EditorActions.DeleteObjects(toDelete, System.Windows.Application.Current.MainWindow.GetWin32Window());
         _isApplyingProperty = false;
 
         _selectedCameras.Clear();
