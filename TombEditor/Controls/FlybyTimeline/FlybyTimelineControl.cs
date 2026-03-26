@@ -572,6 +572,9 @@ public class FlybyTimelineControl : Control
         else if (_isRangeSelecting && e.LeftButton == MouseButtonState.Pressed)
         {
             _rangeEndX = (float)pos.X;
+
+            if (Math.Abs(_rangeEndX - _rangeStartX) >= 3)
+                RangeSelected?.Invoke(GetRangeSelection());
         }
 
         InvalidateVisual();
@@ -689,15 +692,20 @@ public class FlybyTimelineControl : Control
 
     private void CommitRangeSelection()
     {
-        float leftX = Math.Min(_rangeStartX, _rangeEndX);
-        float rightX = Math.Max(_rangeStartX, _rangeEndX);
-
         // Treat a tiny drag as a click on empty space (deselect).
-        if (rightX - leftX < 3)
+        if (Math.Abs(_rangeEndX - _rangeStartX) < 3)
         {
             RangeSelected?.Invoke(new List<int>());
             return;
         }
+
+        RangeSelected?.Invoke(GetRangeSelection());
+    }
+
+    private List<int> GetRangeSelection()
+    {
+        float leftX = Math.Min(_rangeStartX, _rangeEndX);
+        float rightX = Math.Max(_rangeStartX, _rangeEndX);
 
         var selected = new List<int>();
 
@@ -709,7 +717,7 @@ public class FlybyTimelineControl : Control
                 selected.Add(i);
         }
 
-        RangeSelected?.Invoke(selected);
+        return selected;
     }
 
     #endregion Range selection
