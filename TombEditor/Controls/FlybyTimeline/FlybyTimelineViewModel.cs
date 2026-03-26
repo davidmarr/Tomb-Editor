@@ -2,14 +2,14 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DarkUI.Forms;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Numerics;
-using System.Windows;
+using System.Windows.Forms;
 using System.Windows.Threading;
-using TombLib;
 using TombLib.LevelData;
 
 namespace TombEditor.Controls.FlybyTimeline;
@@ -146,11 +146,10 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         if (cameras.Count > 0)
         {
-            var result = MessageBox.Show(
-                $"Deleting sequence {seq} will remove {cameras.Count} flyby camera(s). Continue?",
-                "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            var result = DarkMessageBox.Show($"Deleting sequence {seq} will remove {cameras.Count} flyby camera(s). Continue?",
+                "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
-            if (result != MessageBoxResult.Yes)
+            if (result != DialogResult.Yes)
                 return;
 
             var rooms = cameras.ToDictionary(c => c, c => c.Room);
