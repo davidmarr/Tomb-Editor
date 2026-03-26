@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using TombLib.Utils;
 
 namespace TombEditor.Controls.FlybyTimeline;
 
@@ -15,26 +16,26 @@ namespace TombEditor.Controls.FlybyTimeline;
 /// </summary>
 public class FlybyTimelineControl : Control
 {
-    private static readonly Brush BackgroundBrush = new SolidColorBrush(Color.FromRgb(43, 43, 43));
-    private static readonly Brush RulerBrush = new SolidColorBrush(Color.FromRgb(55, 55, 55));
-    private static readonly Brush GridLineBrush = new SolidColorBrush(Color.FromRgb(65, 65, 65));
-    private static readonly Brush RulerTextBrush = new SolidColorBrush(Color.FromRgb(180, 180, 180));
-    private static readonly Brush MarkerBrush = new SolidColorBrush(Color.FromRgb(104, 151, 187));
-    private static readonly Brush MarkerSelectedBrush = new SolidColorBrush(Color.FromRgb(230, 180, 60));
-    private static readonly Brush MarkerErrorBrush = new SolidColorBrush(Color.FromRgb(230, 80, 80));
-    private static readonly Brush TrackBrush = new SolidColorBrush(Color.FromRgb(49, 51, 53));
-    private static readonly Brush SelectionBrush;
-    private static readonly Brush PlayheadBrush;
-    private static readonly Brush FreezeRegionBrush;
+    private static readonly Brush BackgroundBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(43, 43, 43));
+    private static readonly Brush RulerBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(55, 55, 55));
+    private static readonly Brush GridLineBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(65, 65, 65));
+    private static readonly Brush RulerTextBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(180, 180, 180));
+    private static readonly Brush MarkerBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(104, 151, 187));
+    private static readonly Brush MarkerSelectedBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(230, 180, 60));
+    private static readonly Brush MarkerErrorBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(230, 80, 80));
+    private static readonly Brush TrackBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(49, 51, 53));
+    private static readonly Brush SelectionBrush = BrushHelpers.CreateFrozenBrush(Color.FromArgb(60, 104, 151, 187));
+    private static readonly Brush PlayheadBrush = BrushHelpers.CreateFrozenBrush(Color.FromArgb(153, 178, 178, 178));
+    private static readonly Brush FreezeRegionBrush = BrushHelpers.CreateFrozenBrush(Color.FromArgb(96, 120, 120, 120));
 
-    private static readonly Pen GridLinePen = new(GridLineBrush, 1.0f);
-    private static readonly Pen MarkerOutlinePen = new(new SolidColorBrush(Color.FromRgb(178, 178, 178)), 2.0f);
-    private static readonly Pen CursorLinePen = new(new SolidColorBrush(Color.FromArgb(100, 178, 178, 178)), 1.0f);
-    private static readonly Brush SpeedCurveFillBrush;
-    private static readonly Pen PlayheadPen;
-    private static readonly Pen CameraCutPen;
-    private static readonly Brush GhostMarkerBrush;
-    private static readonly Pen GhostMarkerPen;
+    private static readonly Pen MarkerOutlinePen = new Pen(BrushHelpers.CreateFrozenBrush(Color.FromRgb(178, 178, 178)), 2.0f);
+    private static readonly Pen CursorLinePen = new(BrushHelpers.CreateFrozenBrush(Color.FromArgb(100, 178, 178, 178)), 1.0f);
+    private static readonly Brush SpeedCurveFillBrush = BrushHelpers.CreateFrozenBrush(Color.FromArgb(64, 104, 151, 187));
+    private static readonly Pen CameraCutPen = new Pen(BrushHelpers.CreateFrozenBrush(Color.FromArgb(80, 160, 160, 160)), 1.0f);
+    private static readonly Brush GhostMarkerBrush = BrushHelpers.CreateFrozenBrush(Color.FromArgb(160, 100, 100, 100));
+    private static readonly Pen GhostMarkerPen = new Pen(BrushHelpers.CreateFrozenBrush(Color.FromArgb(140, 200, 200, 200)), 2.0f);
+    private static readonly Pen GridLinePen = new Pen(GridLineBrush, 1.0f);
+    private static readonly Pen PlayheadPen = new Pen(PlayheadBrush, 2.0f);
 
     private static readonly Typeface DefaultTypeface = new("Segoe UI");
 
@@ -93,36 +94,6 @@ public class FlybyTimelineControl : Control
         DefaultStyleKeyProperty.OverrideMetadata(
             typeof(FlybyTimelineControl),
             new FrameworkPropertyMetadata(typeof(FlybyTimelineControl)));
-
-        var selBrush = new SolidColorBrush(Color.FromArgb(60, 104, 151, 187));
-        selBrush.Freeze();
-        SelectionBrush = selBrush;
-
-        var phBrush = new SolidColorBrush(Color.FromArgb(153, 178, 178, 178));
-        phBrush.Freeze();
-        PlayheadBrush = phBrush;
-        PlayheadPen = new Pen(phBrush, 2.0f);
-        PlayheadPen.Freeze();
-
-        var scBrush = new SolidColorBrush(Color.FromArgb(64, 104, 151, 187));
-        scBrush.Freeze();
-        SpeedCurveFillBrush = scBrush;
-
-        var freezeBrush = new SolidColorBrush(Color.FromArgb(96, 120, 120, 120));
-        freezeBrush.Freeze();
-        FreezeRegionBrush = freezeBrush;
-
-        var cameraCutPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 160, 160, 160)), 1.0f);
-        cameraCutPen.Freeze();
-        CameraCutPen = cameraCutPen;
-
-        var ghostFill = new SolidColorBrush(Color.FromArgb(160, 100, 100, 100));
-        ghostFill.Freeze();
-        GhostMarkerBrush = ghostFill;
-
-        var ghostPen = new Pen(new SolidColorBrush(Color.FromArgb(140, 200, 200, 200)), 2.0f);
-        ghostPen.Freeze();
-        GhostMarkerPen = ghostPen;
     }
 
     public FlybyTimelineControl()
