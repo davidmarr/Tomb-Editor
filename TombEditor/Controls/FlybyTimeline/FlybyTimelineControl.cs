@@ -56,6 +56,7 @@ public class FlybyTimelineControl : Control
     private int _dragIndex = -1;
     private bool _isDragging;
     private float _dragStartX;
+    private float _dragMouseOffsetSeconds;
 
     // Mouse cursor tracking.
     private float _mouseX = -1;
@@ -551,6 +552,7 @@ public class FlybyTimelineControl : Control
                 _dragIndex = hitIndex;
                 _isDragging = false;
                 _dragStartX = (float)pos.X;
+                _dragMouseOffsetSeconds = PixelToTime((float)pos.X, (float)ActualWidth) - _markers[hitIndex].TimeSeconds;
                 CaptureMouse();
                 MarkerClicked?.Invoke(hitIndex);
             }
@@ -581,12 +583,12 @@ public class FlybyTimelineControl : Control
         }
         else if (_dragIndex >= 0 && e.LeftButton == MouseButtonState.Pressed)
         {
-            if (!_isDragging && Math.Abs((float)pos.X - _dragStartX) > 3)
+            if (!_isDragging && Math.Abs((float)pos.X - _dragStartX) > 0)
                 _isDragging = true;
 
             if (_isDragging)
             {
-                float newTime = PixelToTime((float)pos.X, (float)ActualWidth);
+                float newTime = PixelToTime((float)pos.X, (float)ActualWidth) - _dragMouseOffsetSeconds;
                 newTime = Math.Max(0, newTime);
                 MarkerDragged?.Invoke(_dragIndex, newTime);
             }
@@ -622,6 +624,7 @@ public class FlybyTimelineControl : Control
         _isScrubbing = false;
         _dragIndex = -1;
         _isDragging = false;
+        _dragMouseOffsetSeconds = 0;
         ReleaseMouseCapture();
         InvalidateVisual();
     }
