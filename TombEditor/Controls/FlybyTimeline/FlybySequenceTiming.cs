@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using TombLib.LevelData;
 using TombLib.Utils;
 
@@ -19,13 +20,15 @@ public class FlybySequenceTiming
     private readonly float[] _cutBypassDurations;
     private readonly float[] _splineTimeline;
     private readonly FlybyCutRegion[] _cutRegions;
+    private readonly ReadOnlyCollection<float> _splineTimelineView;
+    private readonly ReadOnlyCollection<FlybyCutRegion> _cutRegionsView;
 
     public static FlybySequenceTiming Empty { get; } = new(Array.Empty<float>(), Array.Empty<float>(), Array.Empty<float>(), Array.Empty<float>(), Array.Empty<float>(), Array.Empty<FlybyCutRegion>(), 0);
 
     public float TotalDuration { get; }
     public int CameraCount => _cameraTimes.Length;
-    public float[] SplineTimeline => _splineTimeline;
-    public FlybyCutRegion[] CutRegions => _cutRegions;
+    public IReadOnlyList<float> SplineTimeline => _splineTimelineView;
+    public IReadOnlyList<FlybyCutRegion> CutRegions => _cutRegionsView;
 
     private FlybySequenceTiming(float[] cameraTimes, float[] segmentDurations, float[] freezeDurations, float[] cutBypassDurations,
         float[] splineTimeline, FlybyCutRegion[] cutRegions, float totalDuration)
@@ -36,6 +39,8 @@ public class FlybySequenceTiming
         _cutBypassDurations = cutBypassDurations;
         _splineTimeline = splineTimeline;
         _cutRegions = cutRegions;
+        _splineTimelineView = Array.AsReadOnly(_splineTimeline);
+        _cutRegionsView = Array.AsReadOnly(_cutRegions);
         TotalDuration = totalDuration;
     }
 
@@ -78,11 +83,8 @@ public class FlybySequenceTiming
 
         var cameraTimes = new float[cameras.Count];
         var segmentDurations = new float[Math.Max(0, cameras.Count - 1)];
-        var freezeDurations = new float[cameras.Count];
+        var freezeDurations = BuildFreezeDurations(cameras);
         var cutBypassDurations = new float[cameras.Count];
-
-        for (int i = 0; i < cameras.Count; i++)
-            freezeDurations[i] = FlybySequenceHelper.GetFreezeDuration(cameras[i]);
 
         if (cameras.Count < 2)
             return new FlybySequenceTiming(cameraTimes, segmentDurations, freezeDurations, cutBypassDurations,
@@ -90,51 +92,7 @@ public class FlybySequenceTiming
 
         float[] speedKnots = BuildSpeedKnots(cameras);
         int numSegments = cameras.Count - 1;
-        int emittedSlots = 0;
-        float currentT = 0;
-        int processedBoundary = 0;
-
-        while (processedBoundary < numSegments)
-        {
-            int nextBoundary = processedBoundary + 1;
-            int nextCamIdx = nextBoundary;
-            ushort nextFlags = cameras[nextCamIdx].Flags;
-            short nextTimer = cameras[nextCamIdx].Timer;
-
-            bool hasCut = (nextFlags & FlybyConstants.FlagCameraCut) != 0;
-            bool hasFreeze = !hasCut && (nextFlags & FlybyConstants.FlagFreezeCamera) != 0 && nextTimer > 0;
-            float boundaryT = nextBoundary;
-
-            if (useSmoothPause && hasFreeze)
-            {
-                float easeOutStartT = boundaryT - FlybyConstants.FreezeEaseDistance;
-                AdvanceToTarget(speedKnots, numSegments, easeOutStartT, ref currentT, ref emittedSlots);
-                EmitEaseOut(speedKnots, numSegments, boundaryT, ref currentT, ref emittedSlots);
-                currentT = boundaryT;
-                cameraTimes[nextCamIdx] = emittedSlots * FlybyConstants.TimeStep;
-
-                int holdFrames = cameras[nextCamIdx].TimerToFrames;
-                int holdSlots = Math.Max(0, (int)(holdFrames / FlybyConstants.TickRate / FlybyConstants.TimeStep));
-                emittedSlots += holdSlots;
-
-                if (nextBoundary < numSegments)
-                    EmitEaseIn(speedKnots, numSegments, ref currentT, ref emittedSlots);
-            }
-            else
-            {
-                AdvanceToTarget(speedKnots, numSegments, boundaryT, ref currentT, ref emittedSlots);
-                currentT = boundaryT;
-                cameraTimes[nextCamIdx] = emittedSlots * FlybyConstants.TimeStep;
-
-                if (hasFreeze)
-                {
-                    int freezeSlots = (int)(Math.Max(0, cameras[nextCamIdx].TimerToFrames) / FlybyConstants.TickRate / FlybyConstants.TimeStep);
-                    emittedSlots += freezeSlots;
-                }
-            }
-
-            processedBoundary = nextBoundary;
-        }
+        PopulateCameraTimes(cameras, speedKnots, useSmoothPause, cameraTimes);
 
         for (int i = 0; i < segmentDurations.Length; i++)
             segmentDurations[i] = Math.Max(0, cameraTimes[i + 1] - cameraTimes[i]);
@@ -157,14 +115,103 @@ public class FlybySequenceTiming
             splineTimeline, cutRegions, totalDuration);
     }
 
-    private static float[] BuildSpeedKnots(IReadOnlyList<FlybyCameraInstance> cameras)
+    internal static float GetCameraTimeForSpeed(IReadOnlyList<FlybyCameraInstance> cameras,
+        int targetIndex, bool useSmoothPause, int speedCameraIndex, float speed)
+    {
+        if (cameras.Count == 0)
+            return 0;
+
+        int clampedTargetIndex = Math.Clamp(targetIndex, 0, cameras.Count - 1);
+
+        if (clampedTargetIndex <= 0 || cameras.Count < 2)
+            return 0;
+
+        float[] speedKnots = BuildSpeedKnots(cameras, speedCameraIndex, speed);
+        var cameraTimes = new float[clampedTargetIndex + 1];
+        PopulateCameraTimes(cameras, speedKnots, useSmoothPause, cameraTimes, clampedTargetIndex);
+        return cameraTimes[clampedTargetIndex];
+    }
+
+    private static float[] BuildFreezeDurations(IReadOnlyList<FlybyCameraInstance> cameras)
+    {
+        var freezeDurations = new float[cameras.Count];
+
+        for (int i = 0; i < cameras.Count; i++)
+            freezeDurations[i] = FlybySequenceHelper.GetFreezeDuration(cameras[i]);
+
+        return freezeDurations;
+    }
+
+    private static float[] BuildSpeedKnots(IReadOnlyList<FlybyCameraInstance> cameras,
+        int overrideCameraIndex = -1, float overrideSpeed = 0)
     {
         var rawSpeed = new float[cameras.Count];
 
         for (int i = 0; i < cameras.Count; i++)
-            rawSpeed[i] = Math.Max(cameras[i].Speed, FlybyConstants.MinSpeed);
+        {
+            float speed = i == overrideCameraIndex ? overrideSpeed : cameras[i].Speed;
+            rawSpeed[i] = Math.Max(speed, FlybyConstants.MinSpeed);
+        }
 
         return CatmullRomSpline.PadKnots(rawSpeed);
+    }
+
+    private static void PopulateCameraTimes(IReadOnlyList<FlybyCameraInstance> cameras,
+        float[] speedKnots, bool useSmoothPause, float[] cameraTimes, int lastCameraIndexToPopulate = int.MaxValue)
+    {
+        int numSegments = cameras.Count - 1;
+        int emittedSlots = 0;
+        float currentT = 0;
+        int processedBoundary = 0;
+        int lastCameraIndex = Math.Min(lastCameraIndexToPopulate, cameras.Count - 1);
+
+        while (processedBoundary < numSegments)
+        {
+            int nextBoundary = processedBoundary + 1;
+            int nextCamIdx = nextBoundary;
+            ushort nextFlags = cameras[nextCamIdx].Flags;
+            short nextTimer = cameras[nextCamIdx].Timer;
+
+            bool hasCut = (nextFlags & FlybyConstants.FlagCameraCut) != 0;
+            bool hasFreeze = !hasCut && (nextFlags & FlybyConstants.FlagFreezeCamera) != 0 && nextTimer > 0;
+            float boundaryT = nextBoundary;
+
+            if (useSmoothPause && hasFreeze)
+            {
+                float easeOutStartT = boundaryT - FlybyConstants.FreezeEaseDistance;
+                AdvanceToTarget(speedKnots, numSegments, easeOutStartT, ref currentT, ref emittedSlots);
+                EmitEaseOut(speedKnots, numSegments, boundaryT, ref currentT, ref emittedSlots);
+                currentT = boundaryT;
+                cameraTimes[nextCamIdx] = emittedSlots * FlybyConstants.TimeStep;
+
+                if (nextCamIdx >= lastCameraIndex)
+                    return;
+
+                int holdFrames = cameras[nextCamIdx].TimerToFrames;
+                int holdSlots = Math.Max(0, (int)(holdFrames / FlybyConstants.TickRate / FlybyConstants.TimeStep));
+                emittedSlots += holdSlots;
+
+                if (nextBoundary < numSegments)
+                    EmitEaseIn(speedKnots, numSegments, ref currentT, ref emittedSlots);
+            }
+            else
+            {
+                AdvanceToTarget(speedKnots, numSegments, boundaryT, ref currentT, ref emittedSlots);
+                currentT = boundaryT;
+                cameraTimes[nextCamIdx] = emittedSlots * FlybyConstants.TimeStep;
+
+                if (nextCamIdx >= lastCameraIndex)
+                    return;
+
+                if (hasFreeze)
+                {
+                    int freezeSlots = (int)(Math.Max(0, cameras[nextCamIdx].TimerToFrames) / FlybyConstants.TickRate / FlybyConstants.TimeStep);
+                    emittedSlots += freezeSlots;
+                }
+            }
+
+            processedBoundary = nextBoundary;
+        }
     }
 
     private static float[] BuildPlaybackTimeline(IReadOnlyList<FlybyCameraInstance> cameras,

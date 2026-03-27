@@ -12,11 +12,13 @@ namespace TombLib.LevelData
     public class ObjectGroup : PositionBasedObjectInstance, IRotateableY, IColorable, IEnumerable<PositionBasedObjectInstance>
     {
         private readonly HashSet<PositionBasedObjectInstance> _objects = new HashSet<PositionBasedObjectInstance>();
+        private PositionBasedObjectInstance _rootObject;
 
         public ObjectGroup(PositionBasedObjectInstance initialObject)
         {
             Room = initialObject.Room;
             Position = initialObject.Position;
+            _rootObject = initialObject;
 
             _objects.Add(initialObject);
         }
@@ -27,6 +29,7 @@ namespace TombLib.LevelData
 
             Room = initialObject.Room;
             Position = initialObject.Position;
+            _rootObject = initialObject;
 
             foreach (var obj in objects)
             {
@@ -34,16 +37,42 @@ namespace TombLib.LevelData
             }
         }
 
+        public ObjectGroup(ObjectGroup other)
+        {
+            Room = other.Room;
+            Position = other.Position;
+            _rotationY = other._rotationY;
+            _rootObject = other.RootObject;
+
+            foreach (var obj in other)
+                _objects.Add(obj);
+        }
+
         public override ObjectInstance Clone()
         {
             return new ObjectGroup(_objects.Select(o => o.Clone() as PositionBasedObjectInstance).ToList());
         }
 
-        public void Add(PositionBasedObjectInstance objectInstance) => _objects.Add(objectInstance);
-        public void Remove(PositionBasedObjectInstance objectInstance) => _objects.Remove(objectInstance);
+        public void Add(PositionBasedObjectInstance objectInstance)
+        {
+            _objects.Add(objectInstance);
+
+            if (_rootObject == null)
+                _rootObject = objectInstance;
+        }
+
+        public void Remove(PositionBasedObjectInstance objectInstance)
+        {
+            if (!_objects.Remove(objectInstance))
+                return;
+
+            if (_rootObject == objectInstance)
+                _rootObject = _objects.FirstOrDefault();
+        }
+
         public bool Contains(PositionBasedObjectInstance obInstance) => _objects.Contains(obInstance);
         public bool Any() => _objects.Any();
-        public PositionBasedObjectInstance RootObject => _objects.FirstOrDefault();
+        public PositionBasedObjectInstance RootObject => _rootObject;
 
         public void AddOrRemove(PositionBasedObjectInstance objectInstance)
         {

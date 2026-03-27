@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using TombLib;
@@ -41,9 +42,13 @@ public class FlybySequenceCache
 
     public FlybySequenceCache(IReadOnlyList<FlybyCameraInstance> cameras, bool useSmoothPause)
     {
-        Timing = FlybySequenceTiming.Build(cameras, useSmoothPause);
+        var validCameras = cameras
+            .Where(camera => camera.Room is not null)
+            .ToList();
 
-        if (cameras.Count < 2)
+        Timing = FlybySequenceTiming.Build(validCameras, useSmoothPause);
+
+        if (validCameras.Count < 2)
         {
             _frames = Array.Empty<CachedFrame>();
             _cutRegions = Array.Empty<FlybyCutRegion>();
@@ -54,18 +59,18 @@ public class FlybySequenceCache
         }
 
         // Build Catmull-Rom knot arrays (includes speed as a spline channel).
-        BuildKnotArrays(cameras,
+        BuildKnotArrays(validCameras,
             out float[] posX, out float[] posY, out float[] posZ,
             out float[] tgtX, out float[] tgtY, out float[] tgtZ,
             out float[] rollKnots, out float[] fovKnots, out float[] speedKnots);
 
-        int numCameras = cameras.Count;
+        int numCameras = validCameras.Count;
         int numSegments = numCameras - 1;
 
         // Precomputed spline timeline and cut regions come from FlybySequenceTiming.
-        float[] splineParams = Timing.SplineTimeline;
+        float[] splineParams = Timing.SplineTimeline.ToArray();
 
-        _cutRegions = Timing.CutRegions;
+        _cutRegions = Timing.CutRegions.ToArray();
 
         // Evaluate all spline channels in parallel.
         _frames = EvaluateFramesParallel(splineParams, posX, posY, posZ, tgtX, tgtY, tgtZ, rollKnots, fovKnots, numSegments);

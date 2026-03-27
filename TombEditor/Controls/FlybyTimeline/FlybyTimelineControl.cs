@@ -83,6 +83,7 @@ public class FlybyTimelineControl : Control
     public event Action<int, float>? MarkerDragged;
     public event Action<int>? MarkerClicked;
     public event Action<int>? MarkerDoubleClicked;
+    public event Action<int>? MarkerDragCompleted;
     public event Action<List<int>>? RangeSelected;
     public event Action<float>? ScrubRequested;
     public event Action? PlayStopRequested;
@@ -595,6 +596,9 @@ public class FlybyTimelineControl : Control
             CommitRangeSelection();
         }
 
+        if (_isDragging && _dragIndex >= 0)
+            MarkerDragCompleted?.Invoke(_dragIndex);
+
         _isScrubbing = false;
         _dragIndex = -1;
         _isDragging = false;
@@ -619,6 +623,16 @@ public class FlybyTimelineControl : Control
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
         base.OnMouseWheel(e);
+
+        if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0)
+        {
+            if (e.Delta > 0)
+                PanLeft();
+            else if (e.Delta < 0)
+                PanRight();
+
+            return;
+        }
 
         var pos = e.GetPosition(this);
         float pivotTime = PixelToTime((float)pos.X, (float)ActualWidth);
@@ -670,6 +684,16 @@ public class FlybyTimelineControl : Control
         InvalidateVisual();
     }
 
+    public void PanLeft()
+    {
+        PanBy(-(_visibleEndSeconds - _visibleStartSeconds) * FlybyConstants.TimelinePanStepFraction);
+    }
+
+    public void PanRight()
+    {
+        PanBy((_visibleEndSeconds - _visibleStartSeconds) * FlybyConstants.TimelinePanStepFraction);
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
@@ -682,6 +706,16 @@ public class FlybyTimelineControl : Control
         else if (e.Key == Key.Delete || e.Key == Key.Back)
         {
             DeleteRequested?.Invoke();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Left)
+        {
+            PanLeft();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Right)
+        {
+            PanRight();
             e.Handled = true;
         }
     }
@@ -742,6 +776,23 @@ public class FlybyTimelineControl : Control
     #endregion Reposition
 
     #region Coordinate conversion
+
+    private void PanBy(float deltaSeconds)
+    {
+        float visibleRange = _visibleEndSeconds - _visibleStartSeconds;
+
+        if (visibleRange <= 0)
+            return;
+
+        float maxEnd = Math.Max(_totalDurationSeconds * 1.5f, visibleRange);
+        float maxStart = Math.Max(0.0f, maxEnd - visibleRange);
+        float newStart = Math.Clamp(_visibleStartSeconds + deltaSeconds, 0.0f, maxStart);
+
+        _visibleStartSeconds = newStart;
+        _visibleEndSeconds = newStart + visibleRange;
+
+        InvalidateVisual();
+    }
 
     private float TimeToPixel(float timeSeconds, float width)
     {

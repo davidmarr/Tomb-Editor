@@ -47,15 +47,16 @@ public class FlybyPreviewController : IDisposable
 
     public void EnterPreview(FlybyCameraInstance? camera)
     {
-        if (_editor.FlyMode || IsPreviewActive)
-            return;
+        var previousMode = _editor.CameraPreviewMode;
 
-        SetPreviewActive(true);
+        if (!EnsureStaticPreviewActive())
+            return;
 
         if (camera != null)
             _editor.CameraPreviewUpdated(camera);
 
-        StateChanged?.Invoke();
+        if (previousMode != CameraPreviewType.Static)
+            StateChanged?.Invoke();
     }
 
     public void ExitPreview()
@@ -80,8 +81,13 @@ public class FlybyPreviewController : IDisposable
 
     public void ShowCamera(FlybyCameraInstance camera)
     {
-        if (IsPreviewActive && !IsPlaying)
-            _editor.CameraPreviewUpdated(camera);
+        if (!IsPreviewActive || IsPlaying)
+            return;
+
+        if (!EnsureStaticPreviewActive())
+            return;
+
+        _editor.CameraPreviewUpdated(camera);
     }
 
     public void StartPlayback(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence)
@@ -92,7 +98,8 @@ public class FlybyPreviewController : IDisposable
             return;
         }
 
-        EnsurePreviewActive();
+        if (!EnsureStaticPreviewActive())
+            return;
 
         var camera = _editor.GetViewportCamera?.Invoke();
 
@@ -137,7 +144,8 @@ public class FlybyPreviewController : IDisposable
         if (IsPlaying)
             StopPlayback();
 
-        EnsurePreviewActive();
+        if (!EnsureStaticPreviewActive())
+            return;
 
         if (TryEnsureValidCache(cameras, sequence, out var cache))
         {
@@ -210,7 +218,7 @@ public class FlybyPreviewController : IDisposable
             return;
         }
 
-        if (_editor.CameraPreviewMode == CameraPreviewType.None)
+        if (_editor.CameraPreviewMode != CameraPreviewType.Static)
         {
             OnExternalPreviewExit();
             return;
@@ -260,10 +268,19 @@ public class FlybyPreviewController : IDisposable
         return true;
     }
 
-    private void EnsurePreviewActive()
+    private bool EnsureStaticPreviewActive()
     {
-        if (!IsPreviewActive)
-            SetPreviewActive(true);
+        if (_editor.FlyMode)
+            return false;
+
+        if (_editor.CameraPreviewMode == CameraPreviewType.Static)
+            return true;
+
+        if (IsPreviewActive)
+            SetPreviewActive(false);
+
+        SetPreviewActive(true);
+        return _editor.CameraPreviewMode == CameraPreviewType.Static;
     }
 
     private void SetPreviewActive(bool enabled)

@@ -207,7 +207,7 @@ namespace TombEditor.Controls.Panel3D
                 _flyModeTimer = new Timer { Interval = 1 };
                 _flyModeTimer.Tick += FlyModeTimer_Tick;
 
-                _cameraPreviewTimer = new Timer { Interval = 16 };
+                _cameraPreviewTimer = new Timer { Interval = FlybyConstants.PreviewTimerInterval };
                 _cameraPreviewTimer.Tick += PreviewTimer_Tick;
 
                 _renderingCachedRooms = new Cache<Room, RenderingDrawingRoom>(1024, CacheRoom);

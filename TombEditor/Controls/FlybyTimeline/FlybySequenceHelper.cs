@@ -148,32 +148,37 @@ public static class FlybySequenceHelper
             targetCameraIndex < 0 || targetCameraIndex >= cameras.Count)
             return cameras[Math.Clamp(speedCameraIndex, 0, cameras.Count - 1)].Speed;
 
-        var targetCamera = cameras[speedCameraIndex];
-        float originalSpeed = targetCamera.Speed;
+        float originalSpeed = cameras[speedCameraIndex].Speed;
 
         float low = FlybyConstants.MinSpeed;
-        float high = Math.Max(originalSpeed, 1.0f);
+        float high = Math.Min(Math.Max(originalSpeed, 1.0f), FlybyConstants.MaxSpeed);
 
-        targetCamera.Speed = low;
-        float lowTime = GetTimecodeForCamera(cameras, targetCameraIndex, useSmoothPause);
+        float lowTime = FlybySequenceTiming.GetCameraTimeForSpeed(cameras,
+            targetCameraIndex, useSmoothPause, speedCameraIndex, low);
 
-        targetCamera.Speed = high;
-        float highTime = GetTimecodeForCamera(cameras, targetCameraIndex, useSmoothPause);
+        if (lowTime <= targetTimeSeconds)
+            return low;
 
-        while (highTime > targetTimeSeconds && high < 65535.0f / 655.0f)
+        float highTime = FlybySequenceTiming.GetCameraTimeForSpeed(cameras,
+            targetCameraIndex, useSmoothPause, speedCameraIndex, high);
+
+        while (highTime > targetTimeSeconds && high < FlybyConstants.MaxSpeed)
         {
-            high *= 2.0f;
-            targetCamera.Speed = high;
-            highTime = GetTimecodeForCamera(cameras, targetCameraIndex, useSmoothPause);
+            high = Math.Min(high * 2.0f, FlybyConstants.MaxSpeed);
+            highTime = FlybySequenceTiming.GetCameraTimeForSpeed(cameras,
+                targetCameraIndex, useSmoothPause, speedCameraIndex, high);
         }
+
+        if (highTime > targetTimeSeconds)
+            return FlybyConstants.MaxSpeed;
 
         const int iterations = 24;
 
         for (int i = 0; i < iterations; i++)
         {
             float mid = (low + high) * 0.5f;
-            targetCamera.Speed = mid;
-            float midTime = GetTimecodeForCamera(cameras, targetCameraIndex, useSmoothPause);
+            float midTime = FlybySequenceTiming.GetCameraTimeForSpeed(cameras,
+                targetCameraIndex, useSmoothPause, speedCameraIndex, mid);
 
             if (midTime > targetTimeSeconds)
                 low = mid;
@@ -181,7 +186,6 @@ public static class FlybySequenceHelper
                 high = mid;
         }
 
-        targetCamera.Speed = originalSpeed;
         return (low + high) * 0.5f;
     }
 

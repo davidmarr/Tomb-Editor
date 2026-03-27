@@ -185,9 +185,11 @@ namespace TombEditor.Controls.Panel3D
 
         private void DrawFlybyPath(Effect effect)
         {
+            if (!TryGetSelectedFlybySequence(out int sequence))
+                return;
+
             // Add the path of the flyby
-            if (_editor.SelectedObject is FlybyCameraInstance &&
-                AddFlybyPath(((FlybyCameraInstance)_editor.SelectedObject).Sequence))
+            if (AddFlybyPath(sequence))
             {
                 _legacyDevice.SetRasterizerState(_legacyDevice.RasterizerStates.CullNone);
                 _legacyDevice.SetVertexBuffer(_flybyPathVertexBuffer);
@@ -197,6 +199,32 @@ namespace TombEditor.Controls.Panel3D
                 effect.CurrentTechnique.Passes[0].Apply();
                 _legacyDevice.Draw(PrimitiveType.TriangleList, _flybyPathVertexBuffer.ElementCount);
             }
+        }
+
+        private bool TryGetSelectedFlybySequence(out int sequence)
+        {
+            if (_editor.SelectedObject is FlybyCameraInstance flyby)
+            {
+                sequence = flyby.Sequence;
+                return true;
+            }
+
+            if (_editor.SelectedObject is ObjectGroup group)
+            {
+                var selectedFlybys = group.OfType<FlybyCameraInstance>().ToList();
+
+                if (selectedFlybys.Count > 0)
+                {
+                    int seq = selectedFlybys[0].Sequence;
+                    sequence = seq;
+
+                    if (selectedFlybys.All(camera => camera.Sequence == seq))
+                        return true;
+                }
+            }
+
+            sequence = 0;
+            return false;
         }
 
         private void DrawSectorSplitHighlights(Effect effect)
@@ -1114,7 +1142,7 @@ namespace TombEditor.Controls.Panel3D
 
                         var color = new Vector4(0.0f, 0.0f, 1.0f, 1.0f);
 
-                        if (_editor.SelectedObject is FlybyCameraInstance && (_editor.SelectedObject as FlybyCameraInstance).Sequence == instance.Sequence)
+                        if (TryGetSelectedFlybySequence(out int selectedSequence) && selectedSequence == instance.Sequence)
                             color = MathC.GetRandomColorByIndex(instance.Sequence, 32, 0.7f);
 
                         if (_highlightedObjects.Contains(instance))
