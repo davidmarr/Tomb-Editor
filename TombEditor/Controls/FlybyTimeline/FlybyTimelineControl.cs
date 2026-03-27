@@ -5,7 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using TombLib.Utils;
+using TombLib.WPF;
 
 namespace TombEditor.Controls.FlybyTimeline;
 
@@ -28,14 +28,14 @@ public class FlybyTimelineControl : Control
     private static readonly Brush PlayheadBrush = BrushHelpers.CreateFrozenBrush(Color.FromArgb(153, 178, 178, 178));
     private static readonly Brush FreezeRegionBrush = BrushHelpers.CreateFrozenBrush(Color.FromArgb(96, 120, 120, 120));
 
-    private static readonly Pen MarkerOutlinePen = new Pen(BrushHelpers.CreateFrozenBrush(Color.FromRgb(178, 178, 178)), 2.0f);
-    private static readonly Pen CursorLinePen = new(BrushHelpers.CreateFrozenBrush(Color.FromArgb(100, 178, 178, 178)), 1.0f);
+    private static readonly Pen MarkerOutlinePen = BrushHelpers.CreateFrozenPen(Color.FromRgb(178, 178, 178), 2.0f);
+    private static readonly Pen CursorLinePen = BrushHelpers.CreateFrozenPen(Color.FromArgb(100, 178, 178, 178), 1.0f);
     private static readonly Brush SpeedCurveFillBrush = BrushHelpers.CreateFrozenBrush(Color.FromArgb(64, 104, 151, 187));
-    private static readonly Pen CameraCutPen = new Pen(BrushHelpers.CreateFrozenBrush(Color.FromArgb(80, 160, 160, 160)), 1.0f);
+    private static readonly Pen CameraCutPen = BrushHelpers.CreateFrozenPen(Color.FromArgb(80, 160, 160, 160), 1.0f);
     private static readonly Brush GhostMarkerBrush = BrushHelpers.CreateFrozenBrush(Color.FromArgb(160, 100, 100, 100));
-    private static readonly Pen GhostMarkerPen = new Pen(BrushHelpers.CreateFrozenBrush(Color.FromArgb(140, 200, 200, 200)), 2.0f);
-    private static readonly Pen GridLinePen = new Pen(GridLineBrush, 1.0f);
-    private static readonly Pen PlayheadPen = new Pen(PlayheadBrush, 2.0f);
+    private static readonly Pen GhostMarkerPen = BrushHelpers.CreateFrozenPen(Color.FromArgb(140, 200, 200, 200), 2.0f);
+    private static readonly Pen GridLinePen = BrushHelpers.CreateFrozenPen(GridLineBrush, 1.0f);
+    private static readonly Pen PlayheadPen = BrushHelpers.CreateFrozenPen(PlayheadBrush, 2.0f);
 
     private static readonly Typeface DefaultTypeface = new("Segoe UI");
 
@@ -631,6 +631,7 @@ public class FlybyTimelineControl : Control
             else if (e.Delta < 0)
                 PanRight();
 
+            e.Handled = true;
             return;
         }
 

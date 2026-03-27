@@ -32,7 +32,7 @@ public partial class FlybyTimelineView : UserControl
 
         _parentForm = parentForm;
 
-        _viewModel = new FlybyTimelineViewModel(Editor.Instance, Dispatcher);
+        _viewModel = new FlybyTimelineViewModel(Editor.Instance, Dispatcher, parentForm);
         DataContext = _viewModel;
 
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;

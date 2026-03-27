@@ -211,15 +211,32 @@ namespace TombEditor.Controls.Panel3D
 
             if (_editor.SelectedObject is ObjectGroup group)
             {
-                var selectedFlybys = group.OfType<FlybyCameraInstance>().ToList();
+                bool hasFlyby = false;
+                int selectedSequence = 0;
 
-                if (selectedFlybys.Count > 0)
+                foreach (var item in group)
                 {
-                    int seq = selectedFlybys[0].Sequence;
-                    sequence = seq;
+                    if (item is not FlybyCameraInstance selectedFlyby)
+                        continue;
 
-                    if (selectedFlybys.All(camera => camera.Sequence == seq))
-                        return true;
+                    if (!hasFlyby)
+                    {
+                        selectedSequence = selectedFlyby.Sequence;
+                        hasFlyby = true;
+                        continue;
+                    }
+
+                    if (selectedFlyby.Sequence != selectedSequence)
+                    {
+                        sequence = 0;
+                        return false;
+                    }
+                }
+
+                if (hasFlyby)
+                {
+                    sequence = selectedSequence;
+                    return true;
                 }
             }
 

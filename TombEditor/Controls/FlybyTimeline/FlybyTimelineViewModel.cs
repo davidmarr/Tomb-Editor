@@ -25,6 +25,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private readonly Editor _editor;
     private readonly FlybyPreviewController _preview;
     private readonly Dispatcher _dispatcher;
+    private readonly IWin32Window? _dialogOwner;
 
     private bool _isUpdating;
     private bool _isApplyingProperty;
@@ -97,10 +98,11 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// </summary>
     public event Action? TimelineRefreshRequested;
 
-    public FlybyTimelineViewModel(Editor editor, Dispatcher dispatcher)
+    public FlybyTimelineViewModel(Editor editor, Dispatcher dispatcher, IWin32Window? dialogOwner = null)
     {
         _editor = editor;
         _dispatcher = dispatcher;
+        _dialogOwner = dialogOwner;
 
         _preview = new FlybyPreviewController(editor);
         _preview.StateChanged += OnPreviewStateChanged;
@@ -149,7 +151,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         if (cameras.Count > 0)
         {
-            var result = DarkMessageBox.Show(System.Windows.Application.Current.MainWindow.GetWin32Window(),
+            var result = DarkMessageBox.Show(GetDialogOwner(),
                 $"Deleting sequence {seq} will remove {cameras.Count} flyby camera(s). Continue?",
                 "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
@@ -214,8 +216,15 @@ public partial class FlybyTimelineViewModel : ObservableObject
         undoList.AddRange(CreateFlybyCameraDeletionUndo(selectedCameras));
 
         _isApplyingProperty = true;
-        EditorActions.DeleteObjects(selectedCameras.Cast<ObjectInstance>(), System.Windows.Application.Current.MainWindow.GetWin32Window(), false);
-        _isApplyingProperty = false;
+
+        try
+        {
+            EditorActions.DeleteObjects(selectedCameras.Cast<ObjectInstance>(), GetDialogOwner(), false);
+        }
+        finally
+        {
+            _isApplyingProperty = false;
+        }
 
         if (selectedCameras.Any(camera => camera.Room != null))
             return;
@@ -410,7 +419,9 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         var movedCamera = CameraList[fromIndex].Camera;
         var cameras = CameraList.Select(vm => vm.Camera).ToList();
-        var oldTargetByNumber = cameras.ToDictionary(camera => (int)camera.Number, camera => camera);
+        var oldTargetByNumber = cameras
+            .GroupBy(camera => (int)camera.Number)
+            .ToDictionary(group => group.Key, group => group.First());
         var originalTimerByCamera = cameras.ToDictionary(camera => camera, camera => camera.Timer);
         var undoList = CreateFlybyCameraPropertyUndo(cameras);
 
@@ -992,6 +1003,11 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         PushUndoIfAny(CreateFlybyCameraPropertyUndo(new[] { CameraList[speedCameraIndex].Camera }));
         _activeDraggedCameraIndex = speedCameraIndex;
+    }
+
+    private IWin32Window? GetDialogOwner()
+    {
+        return Form.ActiveForm ?? _dialogOwner;
     }
 
     private void SetSelectedCameras(IEnumerable<FlybyCameraInstance> cameras, bool syncEditorSelection)

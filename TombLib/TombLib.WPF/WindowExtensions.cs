@@ -45,6 +45,7 @@ public static class WindowExtensions
 	public static IWinFormsWindow GetWin32Window(this Window window)
 	{
 		var helper = new WindowInteropHelper(window);
+		
 		if (helper.Handle == IntPtr.Zero)
 			helper.EnsureHandle();
 
