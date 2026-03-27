@@ -24,6 +24,11 @@ public static class FlybyConstants
 	// Timeline constants.
 	public const float TimelineZoomOutScale = 1.05f;
 	public const float TimelinePanStepFraction = 0.15f;
+	public const int TimelineSmoothViewportTimerInterval = 8;
+	public static readonly bool TimelineSmoothPanEnabled = true;
+	public static readonly bool TimelineSmoothZoomEnabled = true;
+	public const float TimelineSmoothViewportLerpFactor = 0.3f;
+	public const float TimelineSmoothViewportEpsilon = 0.001f;
 	public const float TimelineMarkerRadius = 6.375f;
 	public const float TimelineMinTickSpacing = 40.0f;
 	public const float TimelineRulerHeight = 20.0f;
