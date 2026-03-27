@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Threading;
-using TombLib.LevelData;
 
 namespace TombEditor.Controls.FlybyTimeline;
 
@@ -14,16 +13,12 @@ namespace TombEditor.Controls.FlybyTimeline;
 /// </summary>
 public partial class FlybyTimelineView : UserControl
 {
-    private readonly Editor _editor;
-
     private FlybyTimelineViewModel _viewModel;
-    private bool _isUpdatingSelection;
     private System.Windows.Forms.IWin32Window _parentForm;
 
     public FlybyTimelineView()
     {
         InitializeComponent();
-        _editor = Editor.Instance;
     }
 
     /// <summary>
@@ -37,7 +32,7 @@ public partial class FlybyTimelineView : UserControl
 
         _parentForm = parentForm;
 
-        _viewModel = new FlybyTimelineViewModel(_editor, Dispatcher);
+        _viewModel = new FlybyTimelineViewModel(Editor.Instance, Dispatcher, parentForm);
         DataContext = _viewModel;
 
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -46,13 +41,12 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.MarkerClicked += OnTimelineMarkerClicked;
         timelineControl.MarkerDoubleClicked += OnTimelineMarkerDoubleClicked;
         timelineControl.MarkerDragged += OnTimelineMarkerDragged;
+        timelineControl.MarkerDragCompleted += OnTimelineMarkerDragCompleted;
         timelineControl.RangeSelected += OnTimelineRangeSelected;
         timelineControl.ScrubRequested += OnTimelineScrubRequested;
         timelineControl.PlayStopRequested += OnTimelinePlayStopRequested;
         timelineControl.DeleteRequested += OnTimelineDeleteRequested;
         timelineControl.MarkerReordered += OnTimelineMarkerReordered;
-
-        _editor.EditorEventRaised += OnEditorEventRaised;
 
         RefreshTimeline();
     }
@@ -71,36 +65,15 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.MarkerClicked -= OnTimelineMarkerClicked;
         timelineControl.MarkerDoubleClicked -= OnTimelineMarkerDoubleClicked;
         timelineControl.MarkerDragged -= OnTimelineMarkerDragged;
+        timelineControl.MarkerDragCompleted -= OnTimelineMarkerDragCompleted;
         timelineControl.RangeSelected -= OnTimelineRangeSelected;
         timelineControl.ScrubRequested -= OnTimelineScrubRequested;
         timelineControl.PlayStopRequested -= OnTimelinePlayStopRequested;
         timelineControl.DeleteRequested -= OnTimelineDeleteRequested;
         timelineControl.MarkerReordered -= OnTimelineMarkerReordered;
 
-        _editor.EditorEventRaised -= OnEditorEventRaised;
-
         _viewModel.Cleanup();
         _viewModel = null;
-    }
-
-    /// <summary>
-    /// Synchronizes timeline selection when flyby cameras are selected externally (e.g. Panel3D multiselect).
-    /// </summary>
-    public void SyncMultiselection(IEnumerable<FlybyCameraInstance> selectedCameras)
-    {
-        if (_viewModel == null || _isUpdatingSelection)
-            return;
-
-        _isUpdatingSelection = true;
-
-        var matching = _viewModel.CameraList
-            .Where(vm => selectedCameras.Contains(vm.Camera))
-            .ToList();
-
-        _viewModel.UpdateSelectedCameras(matching);
-        RefreshTimeline();
-
-        _isUpdatingSelection = false;
     }
 
     private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -119,60 +92,6 @@ public partial class FlybyTimelineView : UserControl
             case nameof(FlybyTimelineViewModel.PlayheadSeconds):
                 timelineControl.SetPlayheadSeconds(_viewModel.PlayheadSeconds);
                 break;
-        }
-    }
-
-    private void OnEditorEventRaised(IEditorEvent obj)
-    {
-        if (_viewModel == null)
-            return;
-
-        if (!Dispatcher.CheckAccess())
-        {
-            Dispatcher.BeginInvoke(() => OnEditorEventRaised(obj));
-            return;
-        }
-
-        // Handle multiselection sync from Panel3D.
-        if (obj is Editor.SelectedObjectChangedEvent && !_isUpdatingSelection)
-        {
-            var editor = Editor.Instance;
-            var selectedObject = editor.SelectedObject;
-
-            if (selectedObject is FlybyCameraInstance flyby)
-            {
-                _isUpdatingSelection = true;
-                SyncSingleFlybySelection(flyby);
-                _isUpdatingSelection = false;
-                RefreshTimeline();
-            }
-            else if (selectedObject is ObjectGroup group)
-            {
-                var flybyCameras = group.OfType<FlybyCameraInstance>().ToList();
-
-                if (flybyCameras.Count > 0)
-                {
-                    _isUpdatingSelection = true;
-                    SyncMultiselection(flybyCameras);
-                    _isUpdatingSelection = false;
-                }
-            }
-        }
-    }
-
-    private void SyncSingleFlybySelection(FlybyCameraInstance flyby)
-    {
-        if (_viewModel.AvailableSequences.Contains(flyby.Sequence))
-        {
-            _viewModel.SelectedSequence = flyby.Sequence;
-
-            var item = _viewModel.CameraList.FirstOrDefault(c => c.Camera == flyby);
-
-            if (item != null)
-            {
-                _viewModel.UpdateSelectedCameras(new[] { item });
-                _viewModel.SelectedCamera = item;
-            }
         }
     }
 
@@ -209,19 +128,7 @@ public partial class FlybyTimelineView : UserControl
             var item = cameras[i];
             float timeSeconds = _viewModel.GetTimecodeForCamera(i);
 
-            // Compute cut bypass duration from static times.
-            float cutBypassDuration = 0;
-
-            if (_viewModel.GetCameraCutFlag(i))
-            {
-                int target = item.Camera.Timer;
-
-                if (target > i && target < cameras.Count)
-                {
-                    float targetTime = _viewModel.GetTimecodeForCamera(target);
-                    cutBypassDuration = Math.Max(0, targetTime - timeSeconds);
-                }
-            }
+            float cutBypassDuration = _viewModel.GetCutBypassDuration(i);
 
             markers.Add(new FlybyTimelineControl.TimelineMarker
             {
@@ -231,12 +138,13 @@ public partial class FlybyTimelineView : UserControl
                 HasCameraCut = _viewModel.GetCameraCutFlag(i),
                 IsInCutBypass = cutBypassed.Contains(i),
                 CutBypassDuration = cutBypassDuration,
-                SegmentDuration = i < cameras.Count - 1 ? FlybySequenceHelper.GetSegmentDuration(item.Camera) : 0,
-                HasFreeze = (item.Camera.Flags & FlybyConstants.FlagFreezeCamera) != 0
+                SegmentDuration = i < cameras.Count - 1 ? _viewModel.GetSegmentDurationSeconds(i) : 0,
+                HasFreeze = (item.Camera.Flags & FlybyConstants.FlagFreezeCamera) != 0,
+                FreezeDuration = _viewModel.GetFreezeDurationSeconds(i)
             });
         }
 
-        float totalDuration = _viewModel.GetDisplayDuration();
+        float totalDuration = _viewModel.GetCacheDisplayDuration(cache);
 
         if (totalDuration < 1.0f)
             totalDuration = 10.0f;
@@ -249,13 +157,8 @@ public partial class FlybyTimelineView : UserControl
         if (_viewModel == null || index < 0 || index >= _viewModel.CameraList.Count)
             return;
 
-        _isUpdatingSelection = true;
-
         var item = _viewModel.CameraList[index];
-        _viewModel.UpdateSelectedCameras(new[] { item });
-        _viewModel.SelectedCamera = item;
-
-        _isUpdatingSelection = false;
+        SelectSingleCamera(item);
 
         _viewModel.UpdateSelectedRoomByPosition(item.Camera.WorldPosition);
         RefreshTimeline();
@@ -268,13 +171,10 @@ public partial class FlybyTimelineView : UserControl
 
         var item = _viewModel.CameraList[index];
 
-        _isUpdatingSelection = true;
-        _viewModel.UpdateSelectedCameras(new[] { item });
-        _viewModel.SelectedCamera = item;
-        _isUpdatingSelection = false;
+        SelectSingleCamera(item);
 
         // Find parent WinForms control for the dialog owner.
-        EditorActions.EditObject(item.Camera, _parentForm);
+        EditorActions.EditObject(item.Camera, GetDialogOwner());
     }
 
     private void OnTimelineMarkerDragged(int index, float newTimeSeconds)
@@ -286,6 +186,11 @@ public partial class FlybyTimelineView : UserControl
         RefreshTimeline();
     }
 
+    private void OnTimelineMarkerDragCompleted(int index)
+    {
+        _viewModel?.OnTimelineCameraDragCompleted();
+    }
+
     private void OnTimelineRangeSelected(List<int> selectedIndices)
     {
         if (_viewModel == null)
@@ -294,16 +199,10 @@ public partial class FlybyTimelineView : UserControl
         // Empty range selection means deselection.
         if (selectedIndices.Count == 0)
         {
-            _isUpdatingSelection = true;
             _viewModel.UpdateSelectedCameras(Array.Empty<FlybyCameraItemViewModel>());
-            _viewModel.SelectedCamera = null;
-            _isUpdatingSelection = false;
-
             RefreshTimeline();
             return;
         }
-
-        _isUpdatingSelection = true;
 
         var selectedItems = new List<FlybyCameraItemViewModel>();
 
@@ -315,8 +214,6 @@ public partial class FlybyTimelineView : UserControl
 
         _viewModel.UpdateSelectedCameras(selectedItems);
 
-        _isUpdatingSelection = false;
-
         RefreshTimeline();
     }
 
@@ -327,8 +224,10 @@ public partial class FlybyTimelineView : UserControl
 
     private void OnTimelinePlayStopRequested()
     {
-        if (_viewModel?.IsPreviewActive == true)
-            _viewModel.TogglePlayStopCommand.Execute(null);
+        if (_viewModel == null)
+            return;
+
+        _viewModel.TogglePlayStopCommand.Execute(null);
     }
 
     private void OnTimelineDeleteRequested()
@@ -344,6 +243,16 @@ public partial class FlybyTimelineView : UserControl
 
         _viewModel.MoveCameraToIndex(fromIndex, toIndex);
         RefreshTimeline();
+    }
+
+    private void SelectSingleCamera(FlybyCameraItemViewModel item)
+    {
+        _viewModel.UpdateSelectedCameras(new[] { item });
+    }
+
+    private System.Windows.Forms.IWin32Window GetDialogOwner()
+    {
+        return System.Windows.Forms.Form.ActiveForm ?? _parentForm;
     }
 
     #endregion Timeline event handlers

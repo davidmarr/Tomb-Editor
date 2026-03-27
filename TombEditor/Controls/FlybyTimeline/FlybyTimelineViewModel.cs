@@ -2,14 +2,17 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DarkUI.Forms;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Numerics;
-using System.Windows;
+using System.Windows.Forms;
 using System.Windows.Threading;
 using TombLib.LevelData;
+using TombLib.Utils;
+using TombLib.WPF;
 
 namespace TombEditor.Controls.FlybyTimeline;
 
@@ -22,10 +25,12 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private readonly Editor _editor;
     private readonly FlybyPreviewController _preview;
     private readonly Dispatcher _dispatcher;
+    private readonly IWin32Window? _dialogOwner;
 
     private bool _isUpdating;
     private bool _isApplyingProperty;
     private bool _isSyncingSelection;
+    private int _activeDraggedCameraIndex = -1;
 
     public ObservableCollection<ushort> AvailableSequences { get; } = new();
     public ObservableCollection<FlybyCameraItemViewModel> CameraList { get; } = new();
@@ -43,6 +48,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private bool _isPlaying;
 
     public bool IsPreviewActive => _editor.CameraPreviewMode != CameraPreviewType.None;
+    private bool UseSmoothPause => _editor.Level?.Settings.GameVersion == TRVersion.Game.TombEngine;
 
     // Camera properties for the selected camera.
     [ObservableProperty]
@@ -80,9 +86,9 @@ public partial class FlybyTimelineViewModel : ObservableObject
     public bool HasSequenceSelected => SelectedSequence.HasValue;
     public bool CanEditProperties => SelectedCamera != null && !IsPlaying;
 
-    // Selected items for multi-select support.
-    private readonly List<FlybyCameraItemViewModel> _selectedCameras = new();
-    public IReadOnlyList<FlybyCameraItemViewModel> SelectedCameras => _selectedCameras;
+    // Selected cameras are tracked by instance so refreshes do not invalidate selection state.
+    private readonly HashSet<FlybyCameraInstance> _selectedCameras = new();
+    public IReadOnlyCollection<FlybyCameraInstance> SelectedCameras => _selectedCameras;
 
     // Temporary sequences added by user (persist until window closes).
     private readonly HashSet<ushort> _userAddedSequences = new();
@@ -92,10 +98,11 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// </summary>
     public event Action? TimelineRefreshRequested;
 
-    public FlybyTimelineViewModel(Editor editor, Dispatcher dispatcher)
+    public FlybyTimelineViewModel(Editor editor, Dispatcher dispatcher, IWin32Window? dialogOwner = null)
     {
         _editor = editor;
         _dispatcher = dispatcher;
+        _dialogOwner = dialogOwner;
 
         _preview = new FlybyPreviewController(editor);
         _preview.StateChanged += OnPreviewStateChanged;
@@ -144,20 +151,28 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         if (cameras.Count > 0)
         {
-            var result = MessageBox.Show(
+            var result = DarkMessageBox.Show(GetDialogOwner(),
                 $"Deleting sequence {seq} will remove {cameras.Count} flyby camera(s). Continue?",
-                "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
-            if (result != MessageBoxResult.Yes)
+            if (result != DialogResult.Yes)
                 return;
 
-            var rooms = cameras.ToDictionary(c => c, c => c.Room);
+            var undoList = CreateFlybyCameraDeletionUndo(cameras).ToList();
 
-            foreach (var cam in cameras)
-                EditorActions.DeleteObjectWithoutUpdate(cam);
+            _isApplyingProperty = true;
 
-            foreach (var cam in cameras)
-                _editor.ObjectChange(cam, ObjectChangeType.Remove, rooms[cam]);
+            try
+            {
+                EditorActions.DeleteObjects(cameras.Cast<ObjectInstance>(), null, false);
+            }
+            finally
+            {
+                _isApplyingProperty = false;
+            }
+
+            _preview.InvalidateCache();
+            PushUndoIfAny(undoList);
         }
 
         _userAddedSequences.Remove(seq);
@@ -174,8 +189,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
         RefreshCameraList();
         RecalculateTimecodes();
 
-        // Auto-select first camera in the new sequence.
-        SelectedCamera = CameraList.Count > 0 ? CameraList[0] : null;
+        if (!_isSyncingSelection && _selectedCameras.Count == 0 && CameraList.Count > 0)
+            SetSelectedCameras(new[] { CameraList[0].Camera }, true);
     }
 
     #endregion Sequence management
@@ -190,18 +205,36 @@ public partial class FlybyTimelineViewModel : ObservableObject
         if (_selectedCameras.Count == 0 || !SelectedSequence.HasValue)
             return;
 
-        var toDelete = _selectedCameras.Select(vm => vm.Camera).ToList();
+        var selectedCameras = _selectedCameras
+            .ToList();
+
+        var remainingCameras = GetCamerasForCurrentSequence()
+            .Where(camera => !selectedCameras.Contains(camera))
+            .ToList();
+
+        var undoList = CreateFlybyCameraPropertyUndo(remainingCameras);
+        undoList.AddRange(CreateFlybyCameraDeletionUndo(selectedCameras));
 
         _isApplyingProperty = true;
-        EditorActions.DeleteObjects(toDelete);
-        _isApplyingProperty = false;
 
-        _selectedCameras.Clear();
+        try
+        {
+            EditorActions.DeleteObjects(selectedCameras.Cast<ObjectInstance>(), GetDialogOwner(), false);
+        }
+        finally
+        {
+            _isApplyingProperty = false;
+        }
+
+        if (selectedCameras.Any(camera => camera.Room != null))
+            return;
+
+        _preview.InvalidateCache();
 
         RenumberSequence(SelectedSequence.Value);
         OnDataChanged();
-
-        SelectedCamera = null;
+        SetSelectedCameras(Array.Empty<FlybyCameraInstance>(), true);
+        PushUndoIfAny(undoList);
     }
 
     [RelayCommand]
@@ -209,6 +242,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
     {
         if (!SelectedSequence.HasValue || _editor.Level == null)
             return;
+
+        const float minimumSegmentDuration = FlybyConstants.TimeStep;
 
         ushort seq = SelectedSequence.Value;
         var room = _editor.SelectedRoom;
@@ -226,62 +261,76 @@ public partial class FlybyTimelineViewModel : ObservableObject
         {
             float cursorTime = PlayheadSeconds;
             var cameras = GetCamerasAsList();
+            float clampedCursorTime = Math.Max(cursorTime, 0.01f);
 
-            float lastCameraTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, cameras.Count - 1);
+            float lastCameraTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, cameras.Count - 1, UseSmoothPause);
 
             // Cursor is at or past the last camera: append with appropriate speed.
             if (cursorTime >= lastCameraTime - 0.01f)
             {
-                float gap = cursorTime - lastCameraTime;
+                var undoList = CreateFlybyCameraPropertyUndo(cameras);
 
-                if (gap < 0.1f)
-                    gap = 1.0f;
-
-                cam.Speed = 1.0f / (gap * FlybyConstants.SpeedScale);
+                cam.Speed = cameras[^1].Speed;
                 cam.Number = (ushort)cameras.Count;
 
                 // Use editor camera view for cameras appended beyond existing spline.
                 ApplyEditorCameraPosition(cam, room);
 
+                var tempCameras = cameras.ToList();
+                tempCameras.Add(cam);
+                float targetTime = Math.Max(clampedCursorTime, lastCameraTime + minimumSegmentDuration);
+                float newSpeed = FlybySequenceHelper.SolveSegmentSpeedForTargetTime(tempCameras, tempCameras.Count - 2, tempCameras.Count - 1, targetTime, UseSmoothPause);
+
+                cameras[^1].Speed = newSpeed;
+                _editor.ObjectChange(cameras[^1], ObjectChangeType.Change);
+
                 room.AddObject(_editor.Level, cam);
-                _editor.UndoManager.PushObjectCreated(cam);
                 _editor.ObjectChange(cam, ObjectChangeType.Add);
+                undoList.Add(new AddRemoveObjectUndoInstance(_editor.UndoManager, cam, true));
 
                 RenumberSequence(seq, cam);
                 OnDataChanged();
+                PushUndoIfAny(undoList);
                 SelectCameraByInstance(cam);
                 return;
             }
 
-            int insertIndex = FlybySequenceHelper.FindInsertionIndex(cameras, cursorTime);
+            int insertIndex = FlybySequenceHelper.FindInsertionIndex(cameras, cursorTime, UseSmoothPause);
 
             if (insertIndex > 0 && insertIndex < cameras.Count)
             {
                 int prevIndex = insertIndex - 1;
+                var undoList = CreateFlybyCameraPropertyUndo(cameras);
 
-                float segStart = FlybySequenceHelper.GetTimecodeForCamera(cameras, prevIndex);
-                float segEnd = FlybySequenceHelper.GetTimecodeForCamera(cameras, insertIndex);
-
-                float leftDuration = Math.Max(cursorTime - segStart, 0.01f);
-                float rightDuration = Math.Max(segEnd - cursorTime, 0.01f);
-
-                // Adjust the previous camera's speed for the left portion.
-                cameras[prevIndex].Speed = 1.0f / (leftDuration * FlybyConstants.SpeedScale);
-                _editor.ObjectChange(cameras[prevIndex], ObjectChangeType.Change);
-
-                // Set new camera speed for the right portion.
-                cam.Speed = 1.0f / (rightDuration * FlybyConstants.SpeedScale);
+                float segStart = FlybySequenceHelper.GetTimecodeForCamera(cameras, prevIndex, UseSmoothPause);
+                float segEnd = FlybySequenceHelper.GetTimecodeForCamera(cameras, insertIndex, UseSmoothPause);
                 cam.Number = (ushort)insertIndex;
+                cam.Speed = cameras[prevIndex].Speed;
 
                 // Always place new camera at the current editor viewport position.
                 ApplyEditorCameraPosition(cam, room);
 
+                var tempCameras = cameras.ToList();
+                tempCameras.Insert(insertIndex, cam);
+                float minimumInsertTime = segStart + minimumSegmentDuration;
+                float maximumInsertTime = segEnd - minimumSegmentDuration;
+                float insertTime = maximumInsertTime >= minimumInsertTime
+                    ? Math.Clamp(clampedCursorTime, minimumInsertTime, maximumInsertTime)
+                    : minimumInsertTime;
+                float nextTargetTime = Math.Max(segEnd, insertTime + minimumSegmentDuration);
+
+                cameras[prevIndex].Speed = FlybySequenceHelper.SolveSegmentSpeedForTargetTime(tempCameras, prevIndex, insertIndex, insertTime, UseSmoothPause);
+                cam.Speed = FlybySequenceHelper.SolveSegmentSpeedForTargetTime(tempCameras, insertIndex, insertIndex + 1, nextTargetTime, UseSmoothPause);
+
+                _editor.ObjectChange(cameras[prevIndex], ObjectChangeType.Change);
+
                 room.AddObject(_editor.Level, cam);
-                _editor.UndoManager.PushObjectCreated(cam);
                 _editor.ObjectChange(cam, ObjectChangeType.Add);
+                undoList.Add(new AddRemoveObjectUndoInstance(_editor.UndoManager, cam, true));
 
                 RenumberSequence(seq, cam);
                 OnDataChanged();
+                PushUndoIfAny(undoList);
                 SelectCameraByInstance(cam);
                 return;
             }
@@ -300,7 +349,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         OnDataChanged();
 
         if (CameraList.Count > 0)
-            SelectedCamera = CameraList.Last();
+            SetSelectedCameras(new[] { CameraList.Last().Camera }, true);
     }
 
     private void ApplyEditorCameraPosition(FlybyCameraInstance cam, Room room)
@@ -320,15 +369,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
     public void UpdateSelectedCameras(IEnumerable<FlybyCameraItemViewModel> items)
     {
-        _selectedCameras.Clear();
-        _selectedCameras.AddRange(items);
-
-        if (_selectedCameras.Count == 1)
-            SelectedCamera = _selectedCameras[0];
-        else if (_selectedCameras.Count == 0)
-            SelectedCamera = null;
-
-        SyncEditorSelection();
+        SetSelectedCameras(items.Select(item => item.Camera), true);
     }
 
     /// <summary>
@@ -340,26 +381,14 @@ public partial class FlybyTimelineViewModel : ObservableObject
             return;
 
         _isSyncingSelection = true;
-
-        if (_selectedCameras.Count == 0)
+        try
         {
-            if (_editor.SelectedObject is FlybyCameraInstance || _editor.SelectedObject is ObjectGroup)
-                _editor.SelectedObject = null;
+            SetEditorSelection(GetMergedEditorSelection());
         }
-        else if (_selectedCameras.Count == 1)
+        finally
         {
-            _editor.SelectedObject = _selectedCameras[0].Camera;
+            _isSyncingSelection = false;
         }
-        else
-        {
-            var objects = _selectedCameras
-                .Select(vm => (PositionBasedObjectInstance)vm.Camera)
-                .ToList();
-
-            _editor.SelectedObject = new ObjectGroup(objects);
-        }
-
-        _isSyncingSelection = false;
     }
 
     /// <summary>
@@ -371,7 +400,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         for (int i = 0; i < CameraList.Count; i++)
         {
-            if (_selectedCameras.Contains(CameraList[i]))
+            if (_selectedCameras.Contains(CameraList[i].Camera))
                 result.Add(i);
         }
 
@@ -390,6 +419,11 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         var movedCamera = CameraList[fromIndex].Camera;
         var cameras = CameraList.Select(vm => vm.Camera).ToList();
+        var oldTargetByNumber = cameras
+            .GroupBy(camera => (int)camera.Number)
+            .ToDictionary(group => group.Key, group => group.First());
+        var originalTimerByCamera = cameras.ToDictionary(camera => camera, camera => camera.Timer);
+        var undoList = CreateFlybyCameraPropertyUndo(cameras);
 
         cameras.RemoveAt(fromIndex);
         cameras.Insert(toIndex, movedCamera);
@@ -405,9 +439,32 @@ public partial class FlybyTimelineViewModel : ObservableObject
             }
         }
 
+        foreach (var camera in cameras)
+        {
+            if ((camera.Flags & FlybyConstants.FlagCameraCut) == 0)
+                continue;
+
+            ushort originalFlags = camera.Flags;
+            short originalTimer = originalTimerByCamera[camera];
+
+            if (oldTargetByNumber.TryGetValue(originalTimer, out var targetCamera) && cameras.Contains(targetCamera))
+            {
+                camera.Timer = (short)targetCamera.Number;
+            }
+            else
+            {
+                camera.Flags = (ushort)(camera.Flags & ~FlybyConstants.FlagCameraCut);
+                camera.Timer = 0;
+            }
+
+            if ((camera.Flags != originalFlags || camera.Timer != originalTimer))
+                _editor.ObjectChange(camera, ObjectChangeType.Change);
+        }
+
         _isApplyingProperty = false;
 
         OnDataChanged();
+        PushUndoIfAny(undoList);
         SelectCameraByInstance(movedCamera);
     }
 
@@ -463,17 +520,15 @@ public partial class FlybyTimelineViewModel : ObservableObject
         if (_isUpdating || SelectedCamera == null)
             return;
 
+        var undoInstance = new ChangeObjectPropertyUndoInstance(_editor.UndoManager, SelectedCamera.Camera);
+
         _isApplyingProperty = true;
         setter(SelectedCamera.Camera);
         _editor.ObjectChange(SelectedCamera.Camera, ObjectChangeType.Change);
         _isApplyingProperty = false;
 
-        RecalculateTimecodes();
-
-        if (IsPreviewActive && SelectedSequence.HasValue && PlayheadSeconds >= 0)
-            _preview.ScrubToTime(GetCamerasAsList(), SelectedSequence.Value, PlayheadSeconds);
-        else
-            _preview.ShowCamera(SelectedCamera.Camera);
+        RefreshTimelineState(false);
+        PushUndoIfAny(new[] { undoInstance });
     }
 
     #endregion Camera property editing
@@ -547,22 +602,32 @@ public partial class FlybyTimelineViewModel : ObservableObject
         if (cameraIndex <= 0 || cameraIndex >= CameraList.Count)
             return;
 
+        EnsureTimelineDragUndoSnapshot(cameraIndex);
+
         float prevTime = GetTimecodeForCamera(cameraIndex - 1);
         float freezeAtPrev = GetFreezeDurationSeconds(cameraIndex - 1);
-        float gap = Math.Max(newTimeSeconds - prevTime - freezeAtPrev, 0.01f);
+        float minTargetTime = prevTime + freezeAtPrev + FlybyConstants.TimeStep;
+        float targetTime = Math.Max(newTimeSeconds, minTargetTime);
 
-        float newSpeed = 1.0f / (gap * FlybyConstants.SpeedScale);
+        var cameras = GetCamerasAsList().ToList();
+        float newSpeed = FlybySequenceHelper.SolveSegmentSpeedForTargetTime(
+            cameras,
+            cameraIndex - 1,
+            cameraIndex,
+            targetTime,
+            UseSmoothPause);
 
         _isApplyingProperty = true;
         CameraList[cameraIndex - 1].Camera.Speed = newSpeed;
         _editor.ObjectChange(CameraList[cameraIndex - 1].Camera, ObjectChangeType.Change);
         _isApplyingProperty = false;
 
-        RecalculateTimecodes();
+        RefreshTimelineState(false);
+    }
 
-        // Update preview to reflect the changed timings.
-        if (IsPreviewActive && SelectedSequence.HasValue && PlayheadSeconds >= 0)
-            _preview.ScrubToTime(GetCamerasAsList(), SelectedSequence.Value, PlayheadSeconds);
+    public void OnTimelineCameraDragCompleted()
+    {
+        _activeDraggedCameraIndex = -1;
     }
 
     #endregion Preview and playback
@@ -580,9 +645,14 @@ public partial class FlybyTimelineViewModel : ObservableObject
         return _preview.GetOrBuildCache(GetCamerasAsList(), SelectedSequence.Value);
     }
 
+    public FlybySequenceTiming GetSequenceTiming()
+    {
+        return GetSequenceCache()?.Timing ?? FlybySequenceHelper.AnalyzeSequence(GetCamerasAsList(), UseSmoothPause);
+    }
+
     public float GetTimecodeForCamera(int index)
     {
-        return FlybySequenceHelper.GetTimecodeForCamera(GetCamerasAsList(), index);
+        return GetSequenceTiming().GetCameraTime(index);
     }
 
     /// <summary>
@@ -591,15 +661,10 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// </summary>
     public float GetCacheDisplayDuration(FlybySequenceCache? cache)
     {
-        if (cache != null && cache.IsValid)
-            return Math.Max(cache.TotalDuration, 1.0f);
+        if (cache != null)
+            return Math.Max(cache.Timing.TotalDuration, 1.0f);
 
-        return FlybySequenceHelper.GetDisplayDuration(GetCamerasAsList());
-    }
-
-    public float GetDisplayDuration()
-    {
-        return FlybySequenceHelper.GetDisplayDuration(GetCamerasAsList());
+        return Math.Max(GetSequenceTiming().TotalDuration, 1.0f);
     }
 
     /// <summary>
@@ -615,10 +680,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
     public float GetFreezeDurationSeconds(int index)
     {
-        if (index < 0 || index >= CameraList.Count)
-            return 0;
-
-        return FlybySequenceHelper.GetFreezeDuration(CameraList[index].Camera);
+        return GetSequenceTiming().GetFreezeDuration(index);
     }
 
     /// <summary>
@@ -628,32 +690,21 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// </summary>
     public float GetCutBypassDuration(int index)
     {
-        if (index < 0 || index >= CameraList.Count)
-            return 0;
+        return GetSequenceTiming().GetCutBypassDuration(index);
+    }
 
-        var cam = CameraList[index].Camera;
-
-        if ((cam.Flags & FlybyConstants.FlagCameraCut) == 0)
-            return 0;
-
-        int targetIndex = cam.Timer;
-
-        if (targetIndex <= index || targetIndex >= CameraList.Count)
-            return 0;
-
-        var cameras = GetCamerasAsList();
-        float fromTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, index);
-        float toTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, targetIndex);
-        return Math.Max(0, toTime - fromTime);
+    public float GetSegmentDurationSeconds(int index)
+    {
+        return GetSequenceTiming().GetSegmentDuration(index);
     }
 
     private void RecalculateTimecodes()
     {
-        var cameras = GetCamerasAsList();
+        var timing = GetSequenceTiming();
 
         for (int i = 0; i < CameraList.Count; i++)
             CameraList[i].Timecode = FlybySequenceHelper.FormatTimecode(
-                FlybySequenceHelper.GetTimecodeForCamera(cameras, i));
+                timing.GetCameraTime(i));
     }
 
     private void UpdatePlayheadTimecode()
@@ -668,18 +719,12 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
     private void OnDataChanged()
     {
-        RefreshCameraList();
-        RecalculateTimecodes();
-        TimelineRefreshRequested?.Invoke();
-
-        if (IsPreviewActive && SelectedSequence.HasValue && PlayheadSeconds >= 0)
-            _preview.ScrubToTime(GetCamerasAsList(), SelectedSequence.Value, PlayheadSeconds);
+        RefreshTimelineState(true);
     }
 
     private void RequestTimelineRefresh()
     {
-        RecalculateTimecodes();
-        TimelineRefreshRequested?.Invoke();
+        RefreshTimelineState(false, false);
     }
 
     private void RefreshSequenceList()
@@ -711,7 +756,10 @@ public partial class FlybyTimelineViewModel : ObservableObject
         CameraList.Clear();
 
         if (!SelectedSequence.HasValue || _editor.Level == null)
+        {
+            RestoreSelectedCameraState();
             return;
+        }
 
         var cameras = FlybySequenceHelper.GetCameras(_editor.Level, SelectedSequence.Value);
 
@@ -728,6 +776,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
                 IsDuplicateIndex = duplicateNumbers.Contains(cam.Number)
             });
         }
+
+        RestoreSelectedCameraState();
     }
 
     private void InsertSequenceSorted(ushort sequence)
@@ -748,6 +798,9 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private void RenumberSequence(ushort sequence, FlybyCameraInstance? excludeFromEvent = null)
     {
         var cameras = FlybySequenceHelper.GetCameras(_editor.Level, sequence);
+        var oldTargetByNumber = cameras
+            .GroupBy(camera => camera.Number)
+            .ToDictionary(group => (int)group.Key, group => group.First());
 
         _isApplyingProperty = true;
 
@@ -760,6 +813,28 @@ public partial class FlybyTimelineViewModel : ObservableObject
                 if (cameras[i] != excludeFromEvent)
                     _editor.ObjectChange(cameras[i], ObjectChangeType.Change);
             }
+        }
+
+        foreach (var camera in cameras)
+        {
+            if ((camera.Flags & FlybyConstants.FlagCameraCut) == 0)
+                continue;
+
+            ushort originalFlags = camera.Flags;
+            short originalTimer = camera.Timer;
+
+            if (oldTargetByNumber.TryGetValue(camera.Timer, out var targetCamera) && cameras.Contains(targetCamera))
+            {
+                camera.Timer = (short)targetCamera.Number;
+            }
+            else
+            {
+                camera.Flags = (ushort)(camera.Flags & ~FlybyConstants.FlagCameraCut);
+                camera.Timer = 0;
+            }
+
+            if ((camera.Flags != originalFlags || camera.Timer != originalTimer) && camera != excludeFromEvent)
+                _editor.ObjectChange(camera, ObjectChangeType.Change);
         }
 
         _isApplyingProperty = false;
@@ -780,10 +855,49 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
     private void SelectCameraByInstance(FlybyCameraInstance camera)
     {
-        var item = CameraList.FirstOrDefault(c => c.Camera == camera);
+        SetSelectedCameras(new[] { camera }, true);
+    }
 
-        if (item != null)
-            SelectedCamera = item;
+    private void RefreshTimelineState(bool refreshCameraList, bool syncPreview = true)
+    {
+        if (refreshCameraList)
+            RefreshCameraList();
+
+        RecalculateTimecodes();
+        TimelineRefreshRequested?.Invoke();
+
+        if (syncPreview)
+            RefreshPreviewState();
+    }
+
+    private void RefreshPreviewState()
+    {
+        if (!TryGetSequenceContext(out var cameras, out var sequence))
+        {
+            if (SelectedCamera != null)
+                _preview.ShowCamera(SelectedCamera.Camera);
+
+            return;
+        }
+
+        if (IsPreviewActive && PlayheadSeconds >= 0)
+            _preview.ScrubToTime(cameras, sequence, PlayheadSeconds);
+        else if (SelectedCamera != null)
+            _preview.ShowCamera(SelectedCamera.Camera);
+    }
+
+    private bool TryGetSequenceContext(out IReadOnlyList<FlybyCameraInstance> cameras, out ushort sequence)
+    {
+        if (SelectedSequence.HasValue && CameraList.Count > 0)
+        {
+            sequence = SelectedSequence.Value;
+            cameras = GetCamerasAsList();
+            return true;
+        }
+
+        cameras = Array.Empty<FlybyCameraInstance>();
+        sequence = 0;
+        return false;
     }
 
     #endregion Data refresh
@@ -850,21 +964,177 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         // Selection changed in editor - sync to flyby manager.
         if (obj is Editor.SelectedObjectChangedEvent selEvent && !_isSyncingSelection)
-        {
-            if (selEvent.Current is FlybyCameraInstance flyby && !_isUpdating)
-            {
-                _isSyncingSelection = true;
-
-                if (AvailableSequences.Contains(flyby.Sequence))
-                {
-                    SelectedSequence = flyby.Sequence;
-                    SelectCameraByInstance(flyby);
-                }
-
-                _isSyncingSelection = false;
-            }
-        }
+            SyncSelectionFromEditor(selEvent.Current);
     }
 
     #endregion Editor event handling
+
+    private List<UndoRedoInstance> CreateFlybyCameraPropertyUndo(IEnumerable<FlybyCameraInstance> cameras)
+    {
+        return cameras
+            .Where(camera => camera != null && camera.Room != null)
+            .Distinct()
+            .Select(camera => (UndoRedoInstance)new ChangeObjectPropertyUndoInstance(_editor.UndoManager, camera))
+            .ToList();
+    }
+
+    private IEnumerable<UndoRedoInstance> CreateFlybyCameraDeletionUndo(IEnumerable<FlybyCameraInstance> cameras)
+    {
+        return cameras
+            .Where(camera => camera != null && camera.Room != null)
+            .Distinct()
+            .Select(camera => (UndoRedoInstance)new AddRemoveObjectUndoInstance(_editor.UndoManager, camera, false));
+    }
+
+    private void PushUndoIfAny(IEnumerable<UndoRedoInstance> undoInstances)
+    {
+        var undoList = undoInstances.Where(instance => instance != null).ToList();
+
+        if (undoList.Count > 0)
+            _editor.UndoManager.Push(undoList);
+    }
+
+    private void EnsureTimelineDragUndoSnapshot(int cameraIndex)
+    {
+        int speedCameraIndex = cameraIndex - 1;
+
+        if (_activeDraggedCameraIndex == speedCameraIndex || speedCameraIndex < 0 || speedCameraIndex >= CameraList.Count)
+            return;
+
+        PushUndoIfAny(CreateFlybyCameraPropertyUndo(new[] { CameraList[speedCameraIndex].Camera }));
+        _activeDraggedCameraIndex = speedCameraIndex;
+    }
+
+    private IWin32Window? GetDialogOwner()
+    {
+        return Form.ActiveForm ?? _dialogOwner;
+    }
+
+    private void SetSelectedCameras(IEnumerable<FlybyCameraInstance> cameras, bool syncEditorSelection)
+    {
+        var normalizedSelection = SelectedSequence.HasValue
+            ? cameras.Where(camera => camera.Sequence == SelectedSequence.Value).ToHashSet()
+            : new HashSet<FlybyCameraInstance>();
+
+        _selectedCameras.Clear();
+
+        foreach (var camera in normalizedSelection)
+            _selectedCameras.Add(camera);
+
+        RestoreSelectedCameraState();
+
+        if (syncEditorSelection)
+            SyncEditorSelection();
+
+        TimelineRefreshRequested?.Invoke();
+    }
+
+    private void RestoreSelectedCameraState()
+    {
+        if (!SelectedSequence.HasValue)
+        {
+            _selectedCameras.Clear();
+            SelectedCamera = null;
+            return;
+        }
+
+        var visibleCameras = CameraList.Select(item => item.Camera).ToHashSet();
+        _selectedCameras.RemoveWhere(camera => camera.Sequence != SelectedSequence.Value || !visibleCameras.Contains(camera));
+
+        if (_selectedCameras.Count == 1)
+            SelectedCamera = CameraList.FirstOrDefault(item => _selectedCameras.Contains(item.Camera));
+        else
+            SelectedCamera = null;
+    }
+
+    private void SyncSelectionFromEditor(ObjectInstance currentSelection)
+    {
+        var selectedCameras = GetSelectedFlybyCameras(currentSelection);
+
+        _isSyncingSelection = true;
+
+        try
+        {
+            AlignSequenceToSelection(selectedCameras);
+            SetSelectedCameras(selectedCameras, false);
+        }
+        finally
+        {
+            _isSyncingSelection = false;
+        }
+    }
+
+    private void AlignSequenceToSelection(IReadOnlyCollection<FlybyCameraInstance> selectedCameras)
+    {
+        if (selectedCameras.Count == 0)
+            return;
+
+        if (SelectedSequence.HasValue && selectedCameras.Any(camera => camera.Sequence == SelectedSequence.Value))
+            return;
+
+        var sequence = selectedCameras
+            .Select(camera => camera.Sequence)
+            .Where(sequenceValue => AvailableSequences.Contains(sequenceValue))
+            .OrderBy(sequenceValue => sequenceValue)
+            .FirstOrDefault();
+
+        if (AvailableSequences.Contains(sequence))
+            SelectedSequence = sequence;
+    }
+
+    private static List<FlybyCameraInstance> GetSelectedFlybyCameras(ObjectInstance currentSelection)
+    {
+        if (currentSelection is FlybyCameraInstance flybyCamera)
+            return new List<FlybyCameraInstance> { flybyCamera };
+
+        if (currentSelection is ObjectGroup group)
+            return group.OfType<FlybyCameraInstance>().ToList();
+
+        return new List<FlybyCameraInstance>();
+    }
+
+    private List<PositionBasedObjectInstance> GetMergedEditorSelection()
+    {
+        var mergedSelection = GetEditorSelectionObjects()
+            .Where(objectInstance => objectInstance is not FlybyCameraInstance flybyCamera ||
+                                     !SelectedSequence.HasValue ||
+                                     flybyCamera.Sequence != SelectedSequence.Value)
+            .ToList();
+
+        mergedSelection.AddRange(_selectedCameras);
+
+        return mergedSelection.Distinct().ToList();
+    }
+
+    private List<PositionBasedObjectInstance> GetEditorSelectionObjects()
+    {
+        if (_editor.SelectedObject is ObjectGroup group)
+            return group.Cast<PositionBasedObjectInstance>().ToList();
+
+        if (_editor.SelectedObject is PositionBasedObjectInstance positionBased)
+            return new List<PositionBasedObjectInstance> { positionBased };
+
+        return new List<PositionBasedObjectInstance>();
+    }
+
+    private void SetEditorSelection(IReadOnlyList<PositionBasedObjectInstance> selectedObjects)
+    {
+        var currentSelection = GetEditorSelectionObjects();
+
+        if (currentSelection.Count == selectedObjects.Count && currentSelection.All(selectedObjects.Contains))
+            return;
+
+        _editor.SelectedObject = BuildSelectionObject(selectedObjects);
+    }
+
+    private static ObjectInstance? BuildSelectionObject(IReadOnlyList<PositionBasedObjectInstance> selectedObjects)
+    {
+        if (selectedObjects.Count == 0)
+            return null;
+
+        if (selectedObjects.Count == 1)
+            return selectedObjects[0];
+
+        return new ObjectGroup(selectedObjects.ToList());
+    }
 }

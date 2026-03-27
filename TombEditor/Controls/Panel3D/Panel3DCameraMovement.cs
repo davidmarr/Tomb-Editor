@@ -209,28 +209,14 @@ namespace TombEditor.Controls.Panel3D
 
                 if (obj is FlybyCameraInstance flyby)
                 {
-                    // Flyby sequence preview - derive sequence from the camera.
-                    _flybyPreview = new FlybyPreview(_editor.Level, flyby.Sequence, savedCamera);
-
-                    if (_flybyPreview.IsFinished)
-                    {
-                        Camera = savedCamera;
-                        _flybyPreview.Dispose();
-                        _flybyPreview = null;
-                        _editor.SendMessage("Flyby sequence needs at least 2 cameras to preview.", PopupType.Info);
-
+                    if (!TryStartSequencePreview(flyby, savedCamera))
                         return;
-                    }
-
-                    _flybyPreview.BeginSequence(PreviewTimer_Tick);
-                    _editor.CameraPreviewMode = CameraPreviewType.Sequence;
-                    _editor.SendMessage("Flyby preview playing... Press ESC or click to stop.", PopupType.Info);
                 }
                 else if (obj is CameraInstance cam)
                 {
                     // Static camera preview: position the camera at the instance's world position
                     // and orient it towards the trigger-defined target or Lara.
-                    _flybyPreview = new FlybyPreview(savedCamera);
+                    var preview = new FlybyPreview(savedCamera);
                     Camera.Position = cam.WorldPosition;
 
                     var targetPos = ResolveCameraTarget(cam);
@@ -243,35 +229,17 @@ namespace TombEditor.Controls.Panel3D
                     Camera.RotationY = (float)Math.Atan2(direction.X, direction.Z);
                     Camera.RotationX = (float)Math.Asin(-direction.Y);
 
-                    _editor.CameraPreviewMode = CameraPreviewType.Static;
-                    _editor.SendMessage("Camera preview active. Press ESC or click to exit.", PopupType.Info);
-
-                    Invalidate();
+                    EnterStaticPreview(preview, "Camera preview active. Press ESC or click to exit.");
                 }
                 else
                 {
                     // No specific object - enter static preview mode for external control (e.g. FormFlybyCamera).
-                    _flybyPreview = new FlybyPreview(savedCamera);
-
-                    _editor.CameraPreviewMode = CameraPreviewType.Static;
-                    _editor.SendMessage("Camera preview active. Change parameters to update.", PopupType.Info);
-
-                    Invalidate();
+                    EnterStaticPreview(new FlybyPreview(savedCamera), "Camera preview active. Change parameters to update.");
                 }
             }
             else
             {
-                if (_flybyPreview != null)
-                {
-                    Camera = _flybyPreview.SavedCamera;
-                    _flybyPreview.Dispose();
-                    _flybyPreview = null;
-                }
-
-                _editor.CameraPreviewMode = CameraPreviewType.None;
-                _editor.SendMessage("Camera preview ended.", PopupType.Info);
-
-                Invalidate();
+                ExitCameraPreview();
             }
         }
 
@@ -310,6 +278,54 @@ namespace TombEditor.Controls.Panel3D
 
             // Apply frame to camera, updating target to prevent portal culling issues.
             FlybyPreview.ApplyFrame(Camera, frame);
+            Invalidate();
+        }
+
+        private bool TryStartSequencePreview(FlybyCameraInstance flyby, Camera savedCamera)
+        {
+            _flybyPreview = new FlybyPreview(_editor.Level, flyby.Sequence, savedCamera);
+
+            if (_flybyPreview.IsFinished)
+            {
+                Camera = savedCamera;
+                _flybyPreview.Dispose();
+                _flybyPreview = null;
+                _editor.SendMessage("Flyby sequence needs at least 2 cameras to preview.", PopupType.Info);
+                return false;
+            }
+
+            _flybyPreview.BeginExternalUpdate();
+            _cameraPreviewTimer.Start();
+            _editor.CameraPreviewMode = CameraPreviewType.Sequence;
+            _editor.SendMessage("Flyby preview playing... Press ESC or click to stop.", PopupType.Info);
+            return true;
+        }
+
+        private void EnterStaticPreview(FlybyPreview preview, string message)
+        {
+            _cameraPreviewTimer.Stop();
+            _flybyPreview = preview;
+
+            _editor.CameraPreviewMode = CameraPreviewType.Static;
+            _editor.SendMessage(message, PopupType.Info);
+
+            Invalidate();
+        }
+
+        private void ExitCameraPreview()
+        {
+            _cameraPreviewTimer.Stop();
+
+            if (_flybyPreview != null)
+            {
+                Camera = _flybyPreview.SavedCamera;
+                _flybyPreview.Dispose();
+                _flybyPreview = null;
+            }
+
+            _editor.CameraPreviewMode = CameraPreviewType.None;
+            _editor.SendMessage("Camera preview ended.", PopupType.Info);
+
             Invalidate();
         }
 

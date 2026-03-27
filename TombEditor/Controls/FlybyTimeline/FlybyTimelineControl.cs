@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -5,35 +7,39 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
+using TombLib.WPF;
 
 namespace TombEditor.Controls.FlybyTimeline;
 
 /// <summary>
 /// A custom WPF timeline control that displays draggable camera keyframes.
-/// Supports zoom via mouse wheel, full-zoom-out via double-click, cursor line,
+/// Supports zoom via mouse wheel, panning, full-zoom-out via double-click, cursor line,
 /// and range selection by dragging on empty space.
 /// </summary>
 public class FlybyTimelineControl : Control
 {
-    private static readonly Brush BackgroundBrush = new SolidColorBrush(Color.FromRgb(43, 43, 43));
-    private static readonly Brush RulerBrush = new SolidColorBrush(Color.FromRgb(55, 55, 55));
-    private static readonly Brush GridLineBrush = new SolidColorBrush(Color.FromRgb(65, 65, 65));
-    private static readonly Brush RulerTextBrush = new SolidColorBrush(Color.FromRgb(180, 180, 180));
-    private static readonly Brush MarkerBrush = new SolidColorBrush(Color.FromRgb(104, 151, 187));
-    private static readonly Brush MarkerSelectedBrush = new SolidColorBrush(Color.FromRgb(230, 180, 60));
-    private static readonly Brush MarkerErrorBrush = new SolidColorBrush(Color.FromRgb(230, 80, 80));
-    private static readonly Brush TrackBrush = new SolidColorBrush(Color.FromRgb(49, 51, 53));
-    private static readonly Brush SelectionBrush;
-    private static readonly Brush PlayheadBrush;
+    private static readonly Brush BackgroundBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(43, 43, 43));
+    private static readonly Brush RulerBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(55, 55, 55));
+    private static readonly Brush GridLineBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(65, 65, 65));
+    private static readonly Brush RulerTextBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(180, 180, 180));
+    private static readonly Brush MarkerBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(104, 151, 187));
+    private static readonly Brush MarkerSelectedBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(230, 180, 60));
+    private static readonly Brush MarkerErrorBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(230, 80, 80));
+    private static readonly Brush TrackBrush = BrushHelpers.CreateFrozenBrush(Color.FromRgb(49, 51, 53));
+    private static readonly Brush SelectionBrush = BrushHelpers.CreateFrozenBrush(Color.FromArgb(60, 104, 151, 187));
+    private static readonly Brush PlayheadBrush = BrushHelpers.CreateFrozenBrush(Color.FromArgb(153, 178, 178, 178));
+    private static readonly Brush FreezeRegionBrush = BrushHelpers.CreateFrozenBrush(Color.FromArgb(96, 120, 120, 120));
 
-    private static readonly Pen GridLinePen = new(GridLineBrush, 1.0f);
-    private static readonly Pen MarkerOutlinePen = new(new SolidColorBrush(Color.FromRgb(178, 178, 178)), 2.0f);
-    private static readonly Pen CursorLinePen = new(new SolidColorBrush(Color.FromArgb(100, 178, 178, 178)), 1.0f);
-    private static readonly Brush SpeedCurveFillBrush;
-    private static readonly Pen PlayheadPen;
-    private static readonly Pen CameraCutPen;
-    private static readonly Brush GhostMarkerBrush;
-    private static readonly Pen GhostMarkerPen;
+    private static readonly Pen MarkerOutlinePen = BrushHelpers.CreateFrozenPen(Color.FromRgb(178, 178, 178), 2.0f);
+    private static readonly Pen CursorLinePen = BrushHelpers.CreateFrozenPen(Color.FromArgb(100, 178, 178, 178), 1.0f);
+    private static readonly Brush SpeedCurveFillBrush = BrushHelpers.CreateFrozenBrush(Color.FromArgb(64, 104, 151, 187));
+    private static readonly Pen CameraCutPen = BrushHelpers.CreateFrozenPen(Color.FromArgb(80, 160, 160, 160), 1.0f);
+    private static readonly Brush GhostMarkerBrush = BrushHelpers.CreateFrozenBrush(Color.FromArgb(160, 100, 100, 100));
+    private static readonly Pen GhostMarkerPen = BrushHelpers.CreateFrozenPen(Color.FromArgb(140, 200, 200, 200), 2.0f);
+    private static readonly Pen GridLinePen = BrushHelpers.CreateFrozenPen(GridLineBrush, 1.0f);
+    private static readonly Pen PlayheadPen = BrushHelpers.CreateFrozenPen(PlayheadBrush, 2.0f);
+    private static readonly StreamGeometry CameraCutMarkerGeometry = CreateTriangleMarkerGeometry();
 
     private static readonly Typeface DefaultTypeface = new("Segoe UI");
 
@@ -50,11 +56,15 @@ public class FlybyTimelineControl : Control
     private float _visibleStartSeconds;
     private float _visibleEndSeconds = 10.0f;
     private float _totalDurationSeconds = 10.0f;
+    private readonly DispatcherTimer _smoothViewportTimer;
+    private float _smoothViewportTargetStartSeconds;
+    private float _smoothViewportTargetEndSeconds;
 
     // Drag state for marker dragging.
     private int _dragIndex = -1;
     private bool _isDragging;
-    private float _dragStartX;
+    private Point _dragStartPoint;
+    private float _dragMouseOffsetSeconds;
 
     // Mouse cursor tracking.
     private float _mouseX = -1;
@@ -80,6 +90,7 @@ public class FlybyTimelineControl : Control
     public event Action<int, float>? MarkerDragged;
     public event Action<int>? MarkerClicked;
     public event Action<int>? MarkerDoubleClicked;
+    public event Action<int>? MarkerDragCompleted;
     public event Action<List<int>>? RangeSelected;
     public event Action<float>? ScrubRequested;
     public event Action? PlayStopRequested;
@@ -91,38 +102,20 @@ public class FlybyTimelineControl : Control
         DefaultStyleKeyProperty.OverrideMetadata(
             typeof(FlybyTimelineControl),
             new FrameworkPropertyMetadata(typeof(FlybyTimelineControl)));
-
-        var selBrush = new SolidColorBrush(Color.FromArgb(60, 104, 151, 187));
-        selBrush.Freeze();
-        SelectionBrush = selBrush;
-
-        var phBrush = new SolidColorBrush(Color.FromArgb(153, 178, 178, 178));
-        phBrush.Freeze();
-        PlayheadBrush = phBrush;
-        PlayheadPen = new Pen(phBrush, 2.0f);
-        PlayheadPen.Freeze();
-
-        var scBrush = new SolidColorBrush(Color.FromArgb(64, 104, 151, 187));
-        scBrush.Freeze();
-        SpeedCurveFillBrush = scBrush;
-
-        // Diagonal hatch pen for camera cuts.
-        CameraCutPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 160, 160, 160)), 1.0f);
-        CameraCutPen.Freeze();
-
-        var ghostFill = new SolidColorBrush(Color.FromArgb(160, 100, 100, 100));
-        ghostFill.Freeze();
-        GhostMarkerBrush = ghostFill;
-
-        var ghostPen = new Pen(new SolidColorBrush(Color.FromArgb(140, 200, 200, 200)), 2.0f);
-        ghostPen.Freeze();
-        GhostMarkerPen = ghostPen;
     }
 
     public FlybyTimelineControl()
     {
         ClipToBounds = true;
         Focusable = true;
+        Unloaded += OnUnloaded;
+
+        _smoothViewportTimer = new DispatcherTimer(DispatcherPriority.Render)
+        {
+            Interval = TimeSpan.FromMilliseconds(FlybyConstants.TimelineSmoothViewportTimerInterval)
+        };
+
+        _smoothViewportTimer.Tick += OnSmoothViewportTick;
     }
 
     public struct TimelineMarker
@@ -135,6 +128,7 @@ public class FlybyTimelineControl : Control
         public float CutBypassDuration;
         public float SegmentDuration;
         public bool HasFreeze;
+        public float FreezeDuration;
     }
 
     /// <summary>
@@ -156,8 +150,34 @@ public class FlybyTimelineControl : Control
         _cache = cache;
         _peakSpeed = ComputePeakSpeed();
 
-        if (_visibleStartSeconds >= _visibleEndSeconds)
-            _visibleStartSeconds = 0;
+        StopSmoothViewport(false);
+        NormalizeVisibleViewport();
+
+        InvalidateVisual();
+    }
+
+    private void OnUnloaded(object? sender, RoutedEventArgs e)
+    {
+        StopSmoothViewport(false);
+    }
+
+    private void OnSmoothViewportTick(object? sender, EventArgs e)
+    {
+        float startDelta = _smoothViewportTargetStartSeconds - _visibleStartSeconds;
+        float endDelta = _smoothViewportTargetEndSeconds - _visibleEndSeconds;
+
+        if (Math.Abs(startDelta) <= FlybyConstants.TimelineSmoothViewportEpsilon &&
+            Math.Abs(endDelta) <= FlybyConstants.TimelineSmoothViewportEpsilon)
+        {
+            _visibleStartSeconds = _smoothViewportTargetStartSeconds;
+            _visibleEndSeconds = _smoothViewportTargetEndSeconds;
+            StopSmoothViewport(false);
+            InvalidateVisual();
+            return;
+        }
+
+        _visibleStartSeconds += startDelta * FlybyConstants.TimelineSmoothViewportLerpFactor;
+        _visibleEndSeconds += endDelta * FlybyConstants.TimelineSmoothViewportLerpFactor;
 
         InvalidateVisual();
     }
@@ -286,6 +306,15 @@ public class FlybyTimelineControl : Control
             var marker = _markers[i];
             float startX = TimeToPixel(marker.TimeSeconds, width);
 
+            if (marker.HasFreeze && marker.FreezeDuration > 0)
+            {
+                float freezeRight = Math.Min(width, TimeToPixel(marker.TimeSeconds + marker.FreezeDuration, width));
+                float freezeLeft = Math.Max(0.0f, startX);
+
+                if (freezeRight > freezeLeft)
+                    context.DrawRectangle(FreezeRegionBrush, null, new Rect(freezeLeft, trackY, freezeRight - freezeLeft, trackHeight));
+            }
+
             // Draw camera cut region as diagonal hatch lines.
             if (marker.HasCameraCut)
             {
@@ -302,7 +331,7 @@ public class FlybyTimelineControl : Control
         }
     }
 
-    private void DrawDiagonalHatch(DrawingContext context, float x, float y, float w, float h, Pen pen)
+    private static void DrawDiagonalHatch(DrawingContext context, float x, float y, float w, float h, Pen pen)
     {
         float spacing = 6.0f;
         var clip = new RectangleGeometry(new Rect(x, y, w, h));
@@ -438,8 +467,11 @@ public class FlybyTimelineControl : Control
             else
                 fill = MarkerBrush;
 
-            // Draw square marker for cameras with freeze flag, circle otherwise.
-            if (marker.HasFreeze)
+            if (marker.HasCameraCut)
+            {
+                DrawTriangleMarker(context, fill, x, centerY);
+            }
+            else if (marker.HasFreeze)
             {
                 float half = FlybyConstants.TimelineMarkerRadius;
                 context.DrawRectangle(fill, MarkerOutlinePen, new Rect(x - half, centerY - half, half * 2, half * 2));
@@ -453,6 +485,29 @@ public class FlybyTimelineControl : Control
         // Draw ghost markers during reposition drag.
         if (_isRepositioning)
             DrawGhostMarkers(context, width, centerY);
+    }
+
+    private static StreamGeometry CreateTriangleMarkerGeometry()
+    {
+        var geometry = new StreamGeometry();
+        float radius = FlybyConstants.TimelineMarkerRadius;
+
+        using (var streamContext = geometry.Open())
+        {
+            streamContext.BeginFigure(new Point(radius, 0.0f), true, true);
+            streamContext.LineTo(new Point(-radius, -radius), true, false);
+            streamContext.LineTo(new Point(-radius, radius), true, false);
+        }
+
+        geometry.Freeze();
+        return geometry;
+    }
+
+    private static void DrawTriangleMarker(DrawingContext context, Brush fill, float centerX, float centerY)
+    {
+        context.PushTransform(new TranslateTransform(centerX, centerY));
+        context.DrawGeometry(fill, MarkerOutlinePen, CameraCutMarkerGeometry);
+        context.Pop();
     }
 
     private void DrawGhostMarkers(DrawingContext context, float width, float centerY)
@@ -517,7 +572,8 @@ public class FlybyTimelineControl : Control
             {
                 _dragIndex = hitIndex;
                 _isDragging = false;
-                _dragStartX = (float)pos.X;
+                _dragStartPoint = pos;
+                _dragMouseOffsetSeconds = PixelToTime((float)pos.X, (float)ActualWidth) - _markers[hitIndex].TimeSeconds;
                 CaptureMouse();
                 MarkerClicked?.Invoke(hitIndex);
             }
@@ -548,12 +604,12 @@ public class FlybyTimelineControl : Control
         }
         else if (_dragIndex >= 0 && e.LeftButton == MouseButtonState.Pressed)
         {
-            if (!_isDragging && Math.Abs((float)pos.X - _dragStartX) > 3)
+            if (!_isDragging && HasExceededDragThreshold(pos))
                 _isDragging = true;
 
             if (_isDragging)
             {
-                float newTime = PixelToTime((float)pos.X, (float)ActualWidth);
+                float newTime = PixelToTime((float)pos.X, (float)ActualWidth) - _dragMouseOffsetSeconds;
                 newTime = Math.Max(0, newTime);
                 MarkerDragged?.Invoke(_dragIndex, newTime);
             }
@@ -566,9 +622,18 @@ public class FlybyTimelineControl : Control
         else if (_isRangeSelecting && e.LeftButton == MouseButtonState.Pressed)
         {
             _rangeEndX = (float)pos.X;
+
+            if (Math.Abs(_rangeEndX - _rangeStartX) >= 3)
+                RangeSelected?.Invoke(GetRangeSelection());
         }
 
         InvalidateVisual();
+    }
+
+    private bool HasExceededDragThreshold(Point currentPoint)
+    {
+        return Math.Abs(currentPoint.X - _dragStartPoint.X) >= SystemParameters.MinimumHorizontalDragDistance ||
+               Math.Abs(currentPoint.Y - _dragStartPoint.Y) >= SystemParameters.MinimumVerticalDragDistance;
     }
 
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
@@ -586,9 +651,13 @@ public class FlybyTimelineControl : Control
             CommitRangeSelection();
         }
 
+        if (_isDragging && _dragIndex >= 0)
+            MarkerDragCompleted?.Invoke(_dragIndex);
+
         _isScrubbing = false;
         _dragIndex = -1;
         _isDragging = false;
+        _dragMouseOffsetSeconds = 0;
         ReleaseMouseCapture();
         InvalidateVisual();
     }
@@ -610,29 +679,31 @@ public class FlybyTimelineControl : Control
     {
         base.OnMouseWheel(e);
 
+        if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0)
+        {
+            if (e.Delta > 0)
+                PanLeft(FlybyConstants.TimelineSmoothPanEnabled);
+            else if (e.Delta < 0)
+                PanRight(FlybyConstants.TimelineSmoothPanEnabled);
+
+            e.Handled = true;
+            return;
+        }
+
         var pos = e.GetPosition(this);
-        float pivotTime = PixelToTime((float)pos.X, (float)ActualWidth);
+        GetInteractiveViewport(out float baseStart, out float baseEnd);
+        float pivotTime = PixelToTime((float)pos.X, (float)ActualWidth, baseStart, baseEnd);
         float zoomFactor = e.Delta > 0 ? 0.8f : 1.25f;
 
-        float newStart = pivotTime - (pivotTime - _visibleStartSeconds) * zoomFactor;
-        float newEnd = pivotTime + (_visibleEndSeconds - pivotTime) * zoomFactor;
+        float newStart = pivotTime - (pivotTime - baseStart) * zoomFactor;
+        float newEnd = pivotTime + (baseEnd - pivotTime) * zoomFactor;
 
-        // Clamp to reasonable bounds.
-        float maxEnd = _totalDurationSeconds * 1.5f;
-
-        if (newStart < 0)
-            newStart = 0;
-
-        if (newEnd > maxEnd)
-            newEnd = maxEnd;
+        ClampViewportToBounds(ref newStart, ref newEnd);
 
         if (newEnd - newStart < 0.1f)
             return;
 
-        _visibleStartSeconds = newStart;
-        _visibleEndSeconds = newEnd;
-
-        InvalidateVisual();
+        ApplyViewport(newStart, newEnd, FlybyConstants.TimelineSmoothZoomEnabled);
     }
 
     protected override void OnMouseDoubleClick(MouseButtonEventArgs e)
@@ -655,9 +726,17 @@ public class FlybyTimelineControl : Control
 
     public void ZoomToFit()
     {
-        _visibleStartSeconds = 0;
-        _visibleEndSeconds = _totalDurationSeconds * FlybyConstants.TimelineZoomOutScale;
-        InvalidateVisual();
+        ApplyViewport(0.0f, _totalDurationSeconds * FlybyConstants.TimelineZoomOutScale, false);
+    }
+
+    public void PanLeft(bool smooth = false)
+    {
+        PanBy(-(_visibleEndSeconds - _visibleStartSeconds) * FlybyConstants.TimelinePanStepFraction, smooth);
+    }
+
+    public void PanRight(bool smooth = false)
+    {
+        PanBy((_visibleEndSeconds - _visibleStartSeconds) * FlybyConstants.TimelinePanStepFraction, smooth);
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -674,6 +753,16 @@ public class FlybyTimelineControl : Control
             DeleteRequested?.Invoke();
             e.Handled = true;
         }
+        else if (e.Key == Key.Left)
+        {
+            PanLeft();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Right)
+        {
+            PanRight();
+            e.Handled = true;
+        }
     }
 
     #endregion Input handling
@@ -682,15 +771,20 @@ public class FlybyTimelineControl : Control
 
     private void CommitRangeSelection()
     {
-        float leftX = Math.Min(_rangeStartX, _rangeEndX);
-        float rightX = Math.Max(_rangeStartX, _rangeEndX);
-
         // Treat a tiny drag as a click on empty space (deselect).
-        if (rightX - leftX < 3)
+        if (Math.Abs(_rangeEndX - _rangeStartX) < 3)
         {
             RangeSelected?.Invoke(new List<int>());
             return;
         }
+
+        RangeSelected?.Invoke(GetRangeSelection());
+    }
+
+    private List<int> GetRangeSelection()
+    {
+        float leftX = Math.Min(_rangeStartX, _rangeEndX);
+        float rightX = Math.Max(_rangeStartX, _rangeEndX);
 
         var selected = new List<int>();
 
@@ -702,7 +796,7 @@ public class FlybyTimelineControl : Control
                 selected.Add(i);
         }
 
-        RangeSelected?.Invoke(selected);
+        return selected;
     }
 
     #endregion Range selection
@@ -728,6 +822,100 @@ public class FlybyTimelineControl : Control
 
     #region Coordinate conversion
 
+    private void PanBy(float deltaSeconds, bool smooth)
+    {
+        GetInteractiveViewport(out float startSeconds, out float endSeconds);
+        float visibleRange = endSeconds - startSeconds;
+
+        if (visibleRange <= 0)
+            return;
+
+        float targetStart = ClampVisibleStart(startSeconds + deltaSeconds, visibleRange);
+        ApplyViewport(targetStart, targetStart + visibleRange, smooth);
+    }
+
+    private float ClampVisibleStart(float newStart, float visibleRange)
+    {
+        float maxEnd = Math.Max(_totalDurationSeconds * 1.5f, visibleRange);
+        float maxStart = Math.Max(0.0f, maxEnd - visibleRange);
+        return Math.Clamp(newStart, 0.0f, maxStart);
+    }
+
+    private void NormalizeVisibleViewport()
+    {
+        if (_visibleStartSeconds >= _visibleEndSeconds)
+            _visibleStartSeconds = 0;
+
+        float visibleRange = _visibleEndSeconds - _visibleStartSeconds;
+
+        if (visibleRange <= 0)
+            return;
+
+        _visibleStartSeconds = ClampVisibleStart(_visibleStartSeconds, visibleRange);
+        _visibleEndSeconds = _visibleStartSeconds + visibleRange;
+    }
+
+    private void GetInteractiveViewport(out float startSeconds, out float endSeconds)
+    {
+        if (_smoothViewportTimer.IsEnabled)
+        {
+            startSeconds = _smoothViewportTargetStartSeconds;
+            endSeconds = _smoothViewportTargetEndSeconds;
+            return;
+        }
+
+        startSeconds = _visibleStartSeconds;
+        endSeconds = _visibleEndSeconds;
+    }
+
+    private void ClampViewportToBounds(ref float startSeconds, ref float endSeconds)
+    {
+        float maxEnd = _totalDurationSeconds * 1.5f;
+
+        if (startSeconds < 0.0f)
+            startSeconds = 0.0f;
+
+        if (endSeconds > maxEnd)
+            endSeconds = maxEnd;
+    }
+
+    private void ApplyViewport(float startSeconds, float endSeconds, bool smooth)
+    {
+        if (smooth)
+        {
+            StartSmoothViewport(startSeconds, endSeconds);
+            return;
+        }
+
+        StopSmoothViewport(false);
+        _visibleStartSeconds = startSeconds;
+        _visibleEndSeconds = endSeconds;
+        InvalidateVisual();
+    }
+
+    private void StartSmoothViewport(float targetStart, float targetEnd)
+    {
+        _smoothViewportTargetStartSeconds = targetStart;
+        _smoothViewportTargetEndSeconds = targetEnd;
+
+        if (!_smoothViewportTimer.IsEnabled)
+            _smoothViewportTimer.Start();
+    }
+
+    private void StopSmoothViewport(bool snapToTarget)
+    {
+        if (!_smoothViewportTimer.IsEnabled)
+            return;
+
+        _smoothViewportTimer.Stop();
+
+        if (snapToTarget)
+        {
+            _visibleStartSeconds = _smoothViewportTargetStartSeconds;
+            _visibleEndSeconds = _smoothViewportTargetEndSeconds;
+        }
+    }
+
     private float TimeToPixel(float timeSeconds, float width)
     {
         float range = _visibleEndSeconds - _visibleStartSeconds;
@@ -740,12 +928,17 @@ public class FlybyTimelineControl : Control
 
     private float PixelToTime(float pixel, float width)
     {
-        float range = _visibleEndSeconds - _visibleStartSeconds;
+        return PixelToTime(pixel, width, _visibleStartSeconds, _visibleEndSeconds);
+    }
+
+    private static float PixelToTime(float pixel, float width, float visibleStartSeconds, float visibleEndSeconds)
+    {
+        float range = visibleEndSeconds - visibleStartSeconds;
 
         if (width <= 0)
-            return _visibleStartSeconds;
+            return visibleStartSeconds;
 
-        return _visibleStartSeconds + pixel / width * range;
+        return visibleStartSeconds + pixel / width * range;
     }
 
     private int HitTestMarker(Point pos)

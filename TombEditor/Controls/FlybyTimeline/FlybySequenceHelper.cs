@@ -11,7 +11,8 @@ using TombLib.LevelData;
 namespace TombEditor.Controls.FlybyTimeline;
 
 /// <summary>
-/// Pure static helpers for flyby sequence data queries and timecode calculations.
+/// Static helpers for flyby sequence discovery, formatting, and editor-camera conversions.
+/// Timing analysis is centralized in <see cref="FlybySequenceTiming"/>.
 /// </summary>
 public static class FlybySequenceHelper
 {
@@ -48,69 +49,35 @@ public static class FlybySequenceHelper
         return frames > 0 ? frames / FlybyConstants.TickRate : 0;
     }
 
-    public static float GetSegmentDuration(FlybyCameraInstance camera)
+    public static FlybySequenceTiming AnalyzeSequence(IReadOnlyList<FlybyCameraInstance> cameras, bool useSmoothPause)
     {
-        float speed = camera.Speed;
-
-        if (speed <= 0.001f)
-            speed = 0.001f;
-
-        return 1.0f / (speed * FlybyConstants.SpeedScale);
+        return FlybySequenceTiming.Build(cameras, useSmoothPause);
     }
 
-    public static float GetTimecodeForCamera(IReadOnlyList<FlybyCameraInstance> cameras, int index)
+    public static float GetTimecodeForCamera(IReadOnlyList<FlybyCameraInstance> cameras, int index, bool useSmoothPause)
     {
-        float time = 0;
-
-        for (int i = 0; i < index && i < cameras.Count; i++)
-        {
-            if (i < cameras.Count - 1)
-                time += GetSegmentDuration(cameras[i]);
-
-            time += GetFreezeDuration(cameras[i]);
-        }
-
-        return time;
-    }
-
-    public static float GetTotalDuration(IReadOnlyList<FlybyCameraInstance> cameras)
-    {
-        if (cameras.Count < 2)
+        if (index <= 0 || cameras.Count == 0)
             return 0;
 
-        float total = 0;
-
-        for (int i = 0; i < cameras.Count; i++)
-        {
-            if (i < cameras.Count - 1)
-                total += GetSegmentDuration(cameras[i]);
-
-            total += GetFreezeDuration(cameras[i]);
-        }
-
-        return total;
-    }
-
-    public static float GetDisplayDuration(IReadOnlyList<FlybyCameraInstance> cameras)
-    {
-        return Math.Max(GetTotalDuration(cameras), 1.0f);
+        return AnalyzeSequence(cameras, useSmoothPause).GetCameraTime(index);
     }
 
     /// <summary>
     /// Converts a time in seconds to a normalized progress (0-1) on the spline.
     /// Freeze regions are skipped: scrubbing into a freeze zone maps to the camera boundary.
     /// </summary>
-    public static float TimeToProgress(IReadOnlyList<FlybyCameraInstance> cameras, float timeSeconds)
+    public static float TimeToProgress(IReadOnlyList<FlybyCameraInstance> cameras, float timeSeconds, bool useSmoothPause)
     {
         if (cameras.Count < 2)
             return 0;
 
-        float accumulatedTime = 0;
+        var timing = AnalyzeSequence(cameras, useSmoothPause);
         int segmentCount = cameras.Count - 1;
 
         for (int i = 0; i < segmentCount; i++)
         {
-            float segmentDuration = GetSegmentDuration(cameras[i]);
+            float accumulatedTime = timing.GetCameraTime(i);
+            float segmentDuration = timing.GetSegmentDuration(i);
 
             if (accumulatedTime + segmentDuration > timeSeconds)
             {
@@ -118,28 +85,25 @@ public static class FlybySequenceHelper
                 return (i + Math.Min(localT, 0.999f)) / segmentCount;
             }
 
-            accumulatedTime += segmentDuration;
-
             // Skip freeze region at camera i+1.
-            float freeze = GetFreezeDuration(cameras[i + 1]);
+            float freeze = timing.GetFreezeDuration(i + 1);
 
-            if (accumulatedTime + freeze > timeSeconds)
+            if (accumulatedTime + segmentDuration + freeze > timeSeconds)
                 return (float)(i + 1) / segmentCount;
-
-            accumulatedTime += freeze;
         }
 
         return 1.0f;
     }
 
-    public static int FindCameraIndexAtTime(IReadOnlyList<FlybyCameraInstance> cameras, float timeSeconds)
+    public static int FindCameraIndexAtTime(IReadOnlyList<FlybyCameraInstance> cameras, float timeSeconds, bool useSmoothPause)
     {
         int bestIndex = 0;
         float bestDist = float.MaxValue;
+        var timing = AnalyzeSequence(cameras, useSmoothPause);
 
         for (int i = 0; i < cameras.Count; i++)
         {
-            float tc = GetTimecodeForCamera(cameras, i);
+            float tc = timing.GetCameraTime(i);
             float dist = Math.Abs(tc - timeSeconds);
 
             if (dist < bestDist)
@@ -152,12 +116,14 @@ public static class FlybySequenceHelper
         return bestIndex;
     }
 
-    public static int FindInsertionIndex(IReadOnlyList<FlybyCameraInstance> cameras, float timeSeconds)
+    public static int FindInsertionIndex(IReadOnlyList<FlybyCameraInstance> cameras, float timeSeconds, bool useSmoothPause)
     {
+        var timing = AnalyzeSequence(cameras, useSmoothPause);
+
         for (int i = 0; i < cameras.Count - 1; i++)
         {
-            float startTime = GetTimecodeForCamera(cameras, i);
-            float endTime = GetTimecodeForCamera(cameras, i + 1);
+            float startTime = timing.GetCameraTime(i);
+            float endTime = timing.GetCameraTime(i + 1);
 
             if (timeSeconds >= startTime && timeSeconds < endTime)
                 return i + 1;
@@ -173,6 +139,54 @@ public static class FlybySequenceHelper
         int secs = (totalCs % 6000) / 100;
         int cs = totalCs % 100;
         return $"{minutes:D2}:{secs:D2}.{cs:D2}";
+    }
+
+    public static float SolveSegmentSpeedForTargetTime(IReadOnlyList<FlybyCameraInstance> cameras,
+        int speedCameraIndex, int targetCameraIndex, float targetTimeSeconds, bool useSmoothPause)
+    {
+        if (speedCameraIndex < 0 || speedCameraIndex >= cameras.Count ||
+            targetCameraIndex < 0 || targetCameraIndex >= cameras.Count)
+            return cameras[Math.Clamp(speedCameraIndex, 0, cameras.Count - 1)].Speed;
+
+        float originalSpeed = cameras[speedCameraIndex].Speed;
+
+        float low = FlybyConstants.MinSpeed;
+        float high = Math.Min(Math.Max(originalSpeed, 1.0f), FlybyConstants.MaxSpeed);
+
+        float lowTime = FlybySequenceTiming.GetCameraTimeForSpeed(cameras,
+            targetCameraIndex, useSmoothPause, speedCameraIndex, low);
+
+        if (lowTime <= targetTimeSeconds)
+            return low;
+
+        float highTime = FlybySequenceTiming.GetCameraTimeForSpeed(cameras,
+            targetCameraIndex, useSmoothPause, speedCameraIndex, high);
+
+        while (highTime > targetTimeSeconds && high < FlybyConstants.MaxSpeed)
+        {
+            high = Math.Min(high * 2.0f, FlybyConstants.MaxSpeed);
+            highTime = FlybySequenceTiming.GetCameraTimeForSpeed(cameras,
+                targetCameraIndex, useSmoothPause, speedCameraIndex, high);
+        }
+
+        if (highTime > targetTimeSeconds)
+            return FlybyConstants.MaxSpeed;
+
+        const int iterations = 24;
+
+        for (int i = 0; i < iterations; i++)
+        {
+            float mid = (low + high) * 0.5f;
+            float midTime = FlybySequenceTiming.GetCameraTimeForSpeed(cameras,
+                targetCameraIndex, useSmoothPause, speedCameraIndex, mid);
+
+            if (midTime > targetTimeSeconds)
+                low = mid;
+            else
+                high = mid;
+        }
+
+        return (low + high) * 0.5f;
     }
 
     /// <summary>

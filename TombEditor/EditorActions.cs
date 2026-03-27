@@ -2516,7 +2516,9 @@ namespace TombEditor
             {
                 // Selected object is also multi-selectable or already an object-group
 
-                var objectGroup = selectedItemInstance as ObjectGroup ?? new ObjectGroup(selectedItemInstance);
+                var objectGroup = selectedItemInstance is ObjectGroup existingGroup
+                    ? new ObjectGroup(existingGroup)
+                    : new ObjectGroup(selectedItemInstance);
 
                 objectGroup.AddOrRemove(objPositionBased);
 
