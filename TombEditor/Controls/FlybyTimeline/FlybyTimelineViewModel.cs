@@ -193,10 +193,17 @@ public partial class FlybyTimelineViewModel : ObservableObject
         if (_selectedCameras.Count == 0 || !SelectedSequence.HasValue)
             return;
 
-        var toDelete = _selectedCameras.Select(vm => vm.Camera).ToList();
+        if (_editor.SelectedObject == null)
+            return;
+
+        if (_selectedCameras.Count > 0 && (_editor.SelectedObject is not ObjectGroup selectedGroup || _selectedCameras.Any(vm => !selectedGroup.Contains(vm.Camera))))
+            return;
+
+        if (_selectedCameras.Count == 1 && (_editor.SelectedObject is not FlybyCameraInstance selectedCameraInstance || _selectedCameras[0].Camera != selectedCameraInstance))
+            return;
 
         _isApplyingProperty = true;
-        EditorActions.DeleteObjects(toDelete, System.Windows.Application.Current.MainWindow.GetWin32Window());
+        EditorActions.DeleteObject(_editor.SelectedObject, System.Windows.Application.Current.MainWindow.GetWin32Window());
         _isApplyingProperty = false;
 
         _selectedCameras.Clear();
