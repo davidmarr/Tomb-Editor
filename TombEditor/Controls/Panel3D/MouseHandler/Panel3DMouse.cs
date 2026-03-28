@@ -122,7 +122,9 @@ namespace TombEditor.Controls.Panel3D
             if (!redrawWindow)
             {
                 // Hover effect on gizmo
-                redrawWindow = _gizmo.GizmoUpdateHoverEffect(_gizmo.DoPicking(GetRay(location.X, location.Y)));
+                redrawWindow = CanUseGizmo()
+                    ? _gizmo.GizmoUpdateHoverEffect(_gizmo.DoPicking(GetRay(location.X, location.Y)))
+                    : _gizmo.GizmoUpdateHoverEffect(null);
             }
 
             if (redrawWindow)

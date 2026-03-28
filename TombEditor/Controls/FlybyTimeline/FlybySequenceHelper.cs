@@ -279,7 +279,7 @@ public static class FlybySequenceHelper
         var lookDir = targetPos - cameraPos;
         float fieldOfView = editorCamera.FieldOfView;
 
-        if (!float.IsFinite(lookDir.X) || !float.IsFinite(lookDir.Y) || !float.IsFinite(lookDir.Z))
+        if (!lookDir.IsFinite())
             return;
 
         if (!float.IsFinite(fieldOfView))
@@ -293,9 +293,9 @@ public static class FlybySequenceHelper
         float yaw = MathF.Atan2(lookDir.X, lookDir.Z);
         float pitch = -MathF.Asin(Math.Clamp(lookDir.Y, -1.0f, 1.0f));
 
-        flyby.RotationY = MathC.RadToDeg(yaw);
-        flyby.RotationX = -MathC.RadToDeg(pitch);
-        flyby.Fov = MathC.RadToDeg(fieldOfView);
+        flyby.RotationY = MathC.SignedRadToDeg(yaw);
+        flyby.RotationX = -MathC.SignedRadToDeg(pitch);
+        flyby.Fov = MathC.SignedRadToDeg(fieldOfView);
     }
 
     private static float GetClampedSpeed(float speed)

@@ -196,6 +196,11 @@ public partial class FlybyTimelineViewModel : ObservableObject
     public event Action? TimelineRefreshRequested;
 
     /// <summary>
+    /// Fired when the timeline should zoom to fit the current sequence.
+    /// </summary>
+    public event Action? ZoomToFitRequested;
+
+    /// <summary>
     /// Creates the main view model for the flyby timeline UI.
     /// </summary>
     /// <param name="editor">Editor instance providing level, selection, and undo services.</param>
@@ -224,9 +229,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
         _editor.EditorEventRaised += OnEditorEventRaised;
 
         RefreshSequenceList();
-
-        if (AvailableSequences.Count > 0)
-            SelectedSequence = AvailableSequences[0];
     }
 
     /// <summary>
@@ -321,6 +323,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     {
         _preview.StopPlayback();
         _preview.InvalidateCache();
+        ResetPlayhead();
 
         RefreshCameraList();
         RecalculateTimecodes();
@@ -372,9 +375,11 @@ public partial class FlybyTimelineViewModel : ObservableObject
         _preview.InvalidateCache();
 
         RenumberSequence(SelectedSequence.Value);
-        OnDataChanged();
-        SetSelectedCameras([], true);
         PushUndoIfAny(undoList);
+        OnDataChanged();
+
+        SetSelectedCameras([], true);
+        RefreshSequenceList();
     }
 
     /// <summary>
@@ -386,7 +391,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
         if (!SelectedSequence.HasValue || _editor.Level is null)
             return;
 
-        ushort seq = SelectedSequence.Value;
         var room = _editor.SelectedRoom;
 
         if (room is null)
@@ -396,10 +400,10 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         var cam = new FlybyCameraInstance
         {
-            Sequence = seq,
+            Sequence = SelectedSequence.Value,
         };
 
-        if (TryAddCameraAtPlayhead(cam, room, seq))
+        if (TryAddCameraAtPlayhead(cam, room))
             return;
 
         AddCameraAtSequenceEnd(cam, room);
@@ -410,23 +414,27 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// </summary>
     /// <param name="cam">Camera instance being inserted.</param>
     /// <param name="room">Room that will own the inserted camera.</param>
-    /// <param name="sequence">Sequence id receiving the new camera.</param>
     /// <returns><see langword="true"/> when the camera was placed using the current playhead time; otherwise <see langword="false"/>.</returns>
-    private bool TryAddCameraAtPlayhead(FlybyCameraInstance cam, Room room, ushort sequence)
+    private bool TryAddCameraAtPlayhead(FlybyCameraInstance cam, Room room)
     {
         if (!float.IsFinite(PlayheadSeconds) || PlayheadSeconds < 0.0f || CameraList.Count < 1)
             return false;
 
         const float minimumSegmentDuration = FlybyConstants.TimeStep;
+        const float lastCameraTolerance = 0.0001f;
 
         float cursorTime = PlayheadSeconds;
         float clampedCursorTime = Math.Max(cursorTime, 0.01f);
+ 
         var cameras = GetCamerasAsList();
         float lastCameraTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, cameras.Count - 1, UseSmoothPause);
 
-        if (cursorTime >= lastCameraTime - 0.01f)
+        if (MathF.Abs(cursorTime - lastCameraTime) <= lastCameraTolerance)
+            return false; // Cursor is at the end of the sequence, fall back to AddCameraAtSequenceEnd
+
+        if (cursorTime > lastCameraTime + lastCameraTolerance)
         {
-            AppendCameraAtPlayhead(cam, room, sequence, cameras, clampedCursorTime, lastCameraTime, minimumSegmentDuration);
+            AppendCameraAtPlayhead(cam, room, cameras, clampedCursorTime, lastCameraTime, minimumSegmentDuration);
             return true;
         }
 
@@ -435,7 +443,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         if (insertIndex <= 0 || insertIndex >= cameras.Count)
             return false;
 
-        InsertCameraAtPlayhead(cam, room, sequence, cameras, insertIndex, clampedCursorTime, minimumSegmentDuration);
+        InsertCameraAtPlayhead(cam, room, cameras, insertIndex, clampedCursorTime, minimumSegmentDuration);
         return true;
     }
 
@@ -444,19 +452,18 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// </summary>
     /// <param name="cam">Camera instance being inserted.</param>
     /// <param name="room">Room that will own the inserted camera.</param>
-    /// <param name="sequence">Sequence id receiving the new camera.</param>
     /// <param name="cameras">Existing cameras in the selected sequence.</param>
     /// <param name="clampedCursorTime">Playhead time clamped into the valid append range.</param>
     /// <param name="lastCameraTime">Timeline time of the current last camera.</param>
     /// <param name="minimumSegmentDuration">Minimum allowed duration for the final segment.</param>
-    private void AppendCameraAtPlayhead(FlybyCameraInstance cam, Room room, ushort sequence,
+    private void AppendCameraAtPlayhead(FlybyCameraInstance cam, Room room,
         IReadOnlyList<FlybyCameraInstance> cameras, float clampedCursorTime, float lastCameraTime,
         float minimumSegmentDuration)
     {
         var undoList = CreateFlybyCameraPropertyUndo(cameras);
 
         cam.Speed = cameras[^1].Speed;
-        cam.Number = (ushort)cameras.Count;
+        cam.Number = GetNextCameraNumber(cameras);
         ApplyEditorCameraPosition(cam, room);
 
         var tempCameras = cameras.ToList();
@@ -477,9 +484,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
         _editor.ObjectChange(cam, ObjectChangeType.Add);
         undoList.Add(new AddRemoveObjectUndoInstance(_editor.UndoManager, cam, true));
 
-        RenumberSequence(sequence, cam);
-        OnDataChanged();
         PushUndoIfAny(undoList);
+        FinalizeAddedCamera(cam, zoomToFit: true);
     }
 
     /// <summary>
@@ -487,12 +493,11 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// </summary>
     /// <param name="cam">Camera instance being inserted.</param>
     /// <param name="room">Room that will own the inserted camera.</param>
-    /// <param name="sequence">Sequence id receiving the new camera.</param>
     /// <param name="cameras">Existing cameras in the selected sequence.</param>
     /// <param name="insertIndex">Index where the camera should be inserted.</param>
     /// <param name="clampedCursorTime">Playhead time clamped into the target segment.</param>
     /// <param name="minimumSegmentDuration">Minimum allowed duration for each adjacent segment.</param>
-    private void InsertCameraAtPlayhead(FlybyCameraInstance cam, Room room, ushort sequence,
+    private void InsertCameraAtPlayhead(FlybyCameraInstance cam, Room room,
         IReadOnlyList<FlybyCameraInstance> cameras, int insertIndex, float clampedCursorTime,
         float minimumSegmentDuration)
     {
@@ -507,8 +512,10 @@ public partial class FlybyTimelineViewModel : ObservableObject
             ? Math.Clamp(clampedCursorTime, minimumInsertTime, maximumInsertTime)
             : minimumInsertTime;
         float nextTargetTime = Math.Max(segmentEnd, insertTime + minimumSegmentDuration);
+        ushort insertionNumber = GetInsertionNumber(cameras, prevIndex, insertIndex);
+        bool requiresNumberShift = cameras.Any(camera => camera.Number == insertionNumber);
 
-        cam.Number = (ushort)insertIndex;
+        cam.Number = insertionNumber;
         cam.Speed = cameras[prevIndex].Speed;
         ApplyEditorCameraPosition(cam, room);
 
@@ -529,15 +536,17 @@ public partial class FlybyTimelineViewModel : ObservableObject
             nextTargetTime,
             UseSmoothPause);
 
+        if (requiresNumberShift)
+            PrepareCamerasForInsertion(cameras, insertionNumber);
+
         _editor.ObjectChange(cameras[prevIndex], ObjectChangeType.Change);
 
         room.AddObject(_editor.Level, cam);
         _editor.ObjectChange(cam, ObjectChangeType.Add);
         undoList.Add(new AddRemoveObjectUndoInstance(_editor.UndoManager, cam, true));
 
-        RenumberSequence(sequence, cam);
-        OnDataChanged();
         PushUndoIfAny(undoList);
+        FinalizeAddedCamera(cam, zoomToFit: false);
     }
 
     /// <summary>
@@ -545,8 +554,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// </summary>
     private void AddCameraAtSequenceEnd(FlybyCameraInstance cam, Room room)
     {
-        int nextNumber = CameraList.Count > 0 ? CameraList.Max(c => c.Number) + 1 : 0;
-        cam.Number = (ushort)nextNumber;
+        cam.Number = GetNextCameraNumber(GetCamerasAsList());
 
         ApplyEditorCameraPosition(cam, room);
 
@@ -554,7 +562,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         _editor.UndoManager.PushObjectCreated(cam);
         _editor.ObjectChange(cam, ObjectChangeType.Add);
 
-        OnDataChanged();
+        FinalizeAddedCamera(cam, zoomToFit: true);
     }
 
     /// <summary>
@@ -572,6 +580,92 @@ public partial class FlybyTimelineViewModel : ObservableObject
         else
         {
             cam.Position = room.GetLocalCenter();
+        }
+    }
+
+    /// <summary>
+    /// Returns the next available camera number after the current highest numbered camera.
+    /// </summary>
+    private static ushort GetNextCameraNumber(IReadOnlyList<FlybyCameraInstance> cameras)
+    {
+        return cameras.Count > 0
+            ? (ushort)(cameras.Max(camera => (int)camera.Number) + 1)
+            : (ushort)0;
+    }
+
+    /// <summary>
+    /// Returns the number a new camera should receive when inserted at the given list position.
+    /// </summary>
+    private static ushort GetInsertionNumber(IReadOnlyList<FlybyCameraInstance> cameras, int prevIndex, int insertIndex)
+    {
+        int previousNumber = cameras[prevIndex].Number;
+        int nextNumber = cameras[insertIndex].Number;
+
+        return nextNumber > previousNumber + 1
+            ? (ushort)(previousNumber + 1)
+            : (ushort)nextNumber;
+    }
+
+    /// <summary>
+    /// Shifts existing camera numbers and cut targets to make room for an inserted camera number.
+    /// </summary>
+    private void PrepareCamerasForInsertion(IReadOnlyList<FlybyCameraInstance> cameras, ushort insertionNumber)
+    {
+        _isApplyingProperty = true;
+
+        try
+        {
+            foreach (var camera in cameras)
+            {
+                bool changed = false;
+
+                if (camera.Number >= insertionNumber)
+                {
+                    camera.Number++;
+                    changed = true;
+                }
+
+                if ((camera.Flags & FlybyConstants.FlagCameraCut) != 0 && camera.Timer >= insertionNumber)
+                {
+                    camera.Timer++;
+                    changed = true;
+                }
+
+                if (changed)
+                    _editor.ObjectChange(camera, ObjectChangeType.Change);
+            }
+        }
+        finally
+        {
+            _isApplyingProperty = false;
+        }
+    }
+
+    /// <summary>
+    /// Refreshes timeline data after inserting a camera, then focuses it in selection and playhead state.
+    /// </summary>
+    private void FinalizeAddedCamera(FlybyCameraInstance camera, bool zoomToFit)
+    {
+        OnDataChanged();
+        SelectCameraByInstance(camera);
+        MovePlayheadToCamera(camera);
+
+        if (zoomToFit)
+            RequestZoomToFit();
+    }
+
+    /// <summary>
+    /// Moves the playhead to the given camera's current timecode.
+    /// </summary>
+    private void MovePlayheadToCamera(FlybyCameraInstance camera)
+    {
+        for (int i = 0; i < CameraList.Count; i++)
+        {
+            if (CameraList[i].Camera != camera)
+                continue;
+
+            PlayheadSeconds = GetTimecodeForCamera(i);
+            return;
         }
     }
 
@@ -671,8 +765,9 @@ public partial class FlybyTimelineViewModel : ObservableObject
             _isApplyingProperty = false;
         }
 
-        OnDataChanged();
         PushUndoIfAny(undoList);
+        OnDataChanged();
+
         SelectCameraByInstance(movedCamera);
     }
 
@@ -701,7 +796,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
             _isUpdating = false;
         }
 
-        OnPropertyChanged(nameof(CanEditProperties));
+        if (value is not null && IsPreviewActive && !IsPlaying)
+            _preview.ShowCamera(value.Camera);
     }
 
     #endregion Camera list management
@@ -1008,13 +1104,18 @@ public partial class FlybyTimelineViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Updates the playhead timecode string from the current playhead position.
+    /// Updates the formatted playhead timecode whenever the playhead position changes.
     /// </summary>
-    private void UpdatePlayheadTimecode()
+    partial void OnPlayheadSecondsChanged(float value)
     {
-        float seconds = float.IsFinite(PlayheadSeconds) && PlayheadSeconds >= 0.0f ? PlayheadSeconds : 0.0f;
+        float seconds = float.IsFinite(value) && value >= 0.0f ? value : 0.0f;
         PlayheadTimecode = FlybySequenceHelper.FormatTimecode(seconds);
     }
+
+    /// <summary>
+    /// Clears the visible playhead when sequence context changes.
+    /// </summary>
+    private void ResetPlayhead() => PlayheadSeconds = -1.0f;
 
     #endregion Timecode helpers
 
@@ -1026,9 +1127,9 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private void OnDataChanged() => RefreshTimelineState(true);
 
     /// <summary>
-    /// Requests a lightweight timeline refresh without rebuilding the camera list.
+    /// Requests the view to zoom the timeline to fit the current sequence.
     /// </summary>
-    private void RequestTimelineRefresh() => RefreshTimelineState(false, false);
+    private void RequestZoomToFit() => ZoomToFitRequested?.Invoke();
 
     /// <summary>
     /// Rebuilds the available sequence list and preserves selection when possible.
@@ -1284,7 +1385,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private void OnPreviewPlayheadChanged()
     {
         PlayheadSeconds = _preview.PlayheadSeconds;
-        UpdatePlayheadTimecode();
     }
 
     #endregion Preview state sync
@@ -1310,24 +1410,30 @@ public partial class FlybyTimelineViewModel : ObservableObject
                 _preview.ExitPreview();
 
             _preview.InvalidateCache();
+            ResetPlayhead();
 
             if (obj is Editor.LevelChangedEvent)
                 _userAddedSequences.Clear();
 
             RefreshSequenceList();
-            RequestTimelineRefresh();
+            RefreshTimelineState(true, false);
             return;
         }
 
         if (obj is Editor.ObjectChangedEvent changeEvent)
         {
-            if (changeEvent.Object is FlybyCameraInstance flyby &&
-                SelectedSequence.HasValue && flyby.Sequence == SelectedSequence.Value)
+            if (changeEvent.Object is FlybyCameraInstance flyby)
             {
-                _preview.InvalidateCache();
+                if (!_isApplyingProperty && changeEvent.ChangeType != ObjectChangeType.Change)
+                    RefreshSequenceList();
 
-                if (!_isApplyingProperty)
-                    OnDataChanged();
+                if (SelectedSequence.HasValue && flyby.Sequence == SelectedSequence.Value)
+                {
+                    _preview.InvalidateCache();
+
+                    if (!_isApplyingProperty)
+                        OnDataChanged();
+                }
             }
         }
 
@@ -1367,12 +1473,10 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// <summary>
     /// Pushes undo instances only when there is captured undo state.
     /// </summary>
-    private void PushUndoIfAny(IEnumerable<UndoRedoInstance> undoInstances)
+    private void PushUndoIfAny(List<UndoRedoInstance> undoInstances)
     {
-        var undoList = undoInstances.ToList();
-
-        if (undoList.Count > 0)
-            _editor.UndoManager.Push(undoList);
+        if (undoInstances.Count > 0)
+            _editor.UndoManager.Push(undoInstances);
     }
 
     /// <summary>

@@ -2117,7 +2117,7 @@ namespace TombEditor.Controls.Panel3D
             ((TombLib.Rendering.DirectX11.Dx11RenderingDevice)Device).ResetState();
 
             // Draw the gizmo (hidden during camera preview)
-            if (_editor.CameraPreviewMode == CameraPreviewType.None)
+            if (CanUseGizmo())
             {
                 SwapChain.ClearDepth();
                 _gizmo.Draw(_viewProjection);

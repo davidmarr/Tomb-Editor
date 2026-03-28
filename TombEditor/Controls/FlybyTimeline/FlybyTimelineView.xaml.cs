@@ -72,6 +72,7 @@ public partial class FlybyTimelineView : UserControl
     {
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
         viewModel.TimelineRefreshRequested += RefreshTimeline;
+        viewModel.ZoomToFitRequested += QueueZoomToFit;
     }
 
     /// <summary>
@@ -82,6 +83,7 @@ public partial class FlybyTimelineView : UserControl
     {
         viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         viewModel.TimelineRefreshRequested -= RefreshTimeline;
+        viewModel.ZoomToFitRequested -= QueueZoomToFit;
     }
 
     /// <summary>

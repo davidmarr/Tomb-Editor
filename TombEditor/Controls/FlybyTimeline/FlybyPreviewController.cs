@@ -329,8 +329,10 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
 
         if (frame.Finished)
         {
+            float totalDuration = _playbackPreview.Cache.TotalDuration; // Cache before stopping playback, as preview dispose will invalidate the cache reference
             StopPlayback();
-            SetPlayheadSeconds(0.0f);
+
+            SetPlayheadSeconds(totalDuration);
             return;
         }
 

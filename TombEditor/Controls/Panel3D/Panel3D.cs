@@ -252,6 +252,20 @@ namespace TombEditor.Controls.Panel3D
             base.Dispose(disposing);
         }
 
+        private bool CanUseGizmo()
+        {
+            if (_editor.CameraPreviewMode != CameraPreviewType.None || _editor.SelectedObject is null || Camera is null)
+                return false;
+
+            if (_editor.SelectedObject is FlybyCameraInstance flyby)
+            {
+                float minimumDistance = _coneRadius * 0.5f;
+                return Vector3.DistanceSquared(flyby.WorldPosition, Camera.GetPosition()) >= minimumDistance * minimumDistance;
+            }
+
+            return true;
+        }
+
         private IReadOnlyList<Keys> _splitHighlightHotkeys;
 
         private void EditorEventRaised(IEditorEvent obj)
