@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Drawing;
 using System.Numerics;
 using TombLib.Controls;
@@ -11,11 +13,15 @@ namespace TombEditor.Controls.Panel3D
     {
         public void ResetCamera(bool forceNewCamera = false, Room? destRoom = null)
         {
-            var room = destRoom ?? _editor?.SelectedRoom;
+            if (_editor is null)
+                return;
+
+            var room = destRoom ?? _editor.SelectedRoom;
 
             // Point the camera to the room's center
             var target = new Vector3();
-            if (room != null)
+
+            if (room is not null)
                 target = room.WorldPos + room.GetLocalCenter();
 
             // Calculate camera distance
@@ -25,14 +31,14 @@ namespace TombEditor.Controls.Panel3D
             var rotX = 0.6f;
             var rotY = (float)Math.PI;
 
-            bool flybyPreviewActive = _flybyPreview?.SavedCamera != null;
+            bool flybyPreviewActive = _flybyPreview is not null && _flybyPreview.SavedCamera is not null;
 
-            if (flybyPreviewActive || Camera == null || forceNewCamera || !_editor.Configuration.Rendering3D_AnimateCameraOnReset)
+            if (flybyPreviewActive || Camera is null || forceNewCamera || !_editor.Configuration.Rendering3D_AnimateCameraOnReset)
             {
                 var newCamera = new ArcBallCamera(target, rotX, rotY, -(float)Math.PI / 2, (float)Math.PI / 2, dist, 100, 1000000, _editor.Configuration.Rendering3D_FieldOfView * (float)(Math.PI / 180));
 
                 if (flybyPreviewActive)
-                    _flybyPreview.SavedCamera = newCamera;
+                    _flybyPreview!.SavedCamera = newCamera;
                 else
                     Camera = newCamera;
 
@@ -40,7 +46,7 @@ namespace TombEditor.Controls.Panel3D
             }
             else
             {
-                    AnimateCamera(target, new Vector2(rotX, rotY), dist);
+                AnimateCamera(target, new Vector2(rotX, rotY), dist);
             }
         }
 
@@ -69,8 +75,10 @@ namespace TombEditor.Controls.Panel3D
 
             _movementTimer.Animate(AnimationMode.Snap, speed);
         }
+
         private void AnimateCamera(Vector3 newPos, Vector2 newRot, float newDist, float speed = 0.5f)
             => AnimateCamera(Camera.Target, newPos, new Vector2(Camera.RotationX, Camera.RotationY), newRot, Camera.Distance, newDist, speed);
+
         private void AnimateCamera(Vector3 newPos, float speed = 0.5f)
             => AnimateCamera(newPos, new Vector2(Camera.RotationX, Camera.RotationY), Camera.Distance, speed);
     }
