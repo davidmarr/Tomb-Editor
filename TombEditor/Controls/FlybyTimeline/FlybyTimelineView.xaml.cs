@@ -1,9 +1,9 @@
-using System;
+#nullable enable
+
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 using System.Windows.Controls;
-using System.Windows.Threading;
 
 namespace TombEditor.Controls.FlybyTimeline;
 
@@ -13,40 +13,33 @@ namespace TombEditor.Controls.FlybyTimeline;
 /// </summary>
 public partial class FlybyTimelineView : UserControl
 {
-    private FlybyTimelineViewModel _viewModel;
-    private System.Windows.Forms.IWin32Window _parentForm;
+    private FlybyTimelineViewModel? _viewModel;
+    private System.Windows.Forms.IWin32Window? _parentForm;
 
+    /// <summary>
+    /// Creates the timeline host control.
+    /// </summary>
     public FlybyTimelineView()
-    {
-        InitializeComponent();
-    }
+        => InitializeComponent();
 
     /// <summary>
     /// Initializes the view model and wires up all event handlers.
     /// Called once when the hosting MainView is ready.
     /// </summary>
-    public void Initialize(System.Windows.Forms.IWin32Window parentForm = null)
+    /// <param name="parentForm">Optional WinForms owner used for flyby modal dialogs.</param>
+    public void Initialize(System.Windows.Forms.IWin32Window? parentForm = null)
     {
-        if (_viewModel != null)
+        if (_viewModel is not null)
             return;
 
         _parentForm = parentForm;
 
-        _viewModel = new FlybyTimelineViewModel(Editor.Instance, Dispatcher, parentForm);
-        DataContext = _viewModel;
+        var viewModel = new FlybyTimelineViewModel(Editor.Instance, Dispatcher, parentForm);
+        _viewModel = viewModel;
+        DataContext = viewModel;
 
-        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
-        _viewModel.TimelineRefreshRequested += RefreshTimeline;
-
-        timelineControl.MarkerClicked += OnTimelineMarkerClicked;
-        timelineControl.MarkerDoubleClicked += OnTimelineMarkerDoubleClicked;
-        timelineControl.MarkerDragged += OnTimelineMarkerDragged;
-        timelineControl.MarkerDragCompleted += OnTimelineMarkerDragCompleted;
-        timelineControl.RangeSelected += OnTimelineRangeSelected;
-        timelineControl.ScrubRequested += OnTimelineScrubRequested;
-        timelineControl.PlayStopRequested += OnTimelinePlayStopRequested;
-        timelineControl.DeleteRequested += OnTimelineDeleteRequested;
-        timelineControl.MarkerReordered += OnTimelineMarkerReordered;
+        SubscribeViewModel(viewModel);
+        SubscribeTimelineControl();
 
         RefreshTimeline();
     }
@@ -56,12 +49,59 @@ public partial class FlybyTimelineView : UserControl
     /// </summary>
     public void Cleanup()
     {
-        if (_viewModel == null)
+        if (_viewModel is null)
             return;
 
-        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
-        _viewModel.TimelineRefreshRequested -= RefreshTimeline;
+        UnsubscribeViewModel(_viewModel);
+        UnsubscribeTimelineControl();
 
+        _viewModel.Cleanup();
+        DataContext = null;
+        _parentForm = null;
+        _viewModel = null;
+    }
+
+    /// <summary>
+    /// Subscribes to view-model events used by the code-behind.
+    /// </summary>
+    /// <param name="viewModel">View model instance backing this control.</param>
+    private void SubscribeViewModel(FlybyTimelineViewModel viewModel)
+    {
+        viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        viewModel.TimelineRefreshRequested += RefreshTimeline;
+    }
+
+    /// <summary>
+    /// Unsubscribes from view-model events used by the code-behind.
+    /// </summary>
+    /// <param name="viewModel">View model instance backing this control.</param>
+    private void UnsubscribeViewModel(FlybyTimelineViewModel viewModel)
+    {
+        viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        viewModel.TimelineRefreshRequested -= RefreshTimeline;
+    }
+
+    /// <summary>
+    /// Subscribes to timeline-control events raised by user interaction.
+    /// </summary>
+    private void SubscribeTimelineControl()
+    {
+        timelineControl.MarkerClicked += OnTimelineMarkerClicked;
+        timelineControl.MarkerDoubleClicked += OnTimelineMarkerDoubleClicked;
+        timelineControl.MarkerDragged += OnTimelineMarkerDragged;
+        timelineControl.MarkerDragCompleted += OnTimelineMarkerDragCompleted;
+        timelineControl.RangeSelected += OnTimelineRangeSelected;
+        timelineControl.ScrubRequested += OnTimelineScrubRequested;
+        timelineControl.PlayStopRequested += OnTimelinePlayStopRequested;
+        timelineControl.DeleteRequested += OnTimelineDeleteRequested;
+        timelineControl.MarkerReordered += OnTimelineMarkerReordered;
+    }
+
+    /// <summary>
+    /// Unsubscribes from timeline-control events raised by user interaction.
+    /// </summary>
+    private void UnsubscribeTimelineControl()
+    {
         timelineControl.MarkerClicked -= OnTimelineMarkerClicked;
         timelineControl.MarkerDoubleClicked -= OnTimelineMarkerDoubleClicked;
         timelineControl.MarkerDragged -= OnTimelineMarkerDragged;
@@ -71,13 +111,16 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.PlayStopRequested -= OnTimelinePlayStopRequested;
         timelineControl.DeleteRequested -= OnTimelineDeleteRequested;
         timelineControl.MarkerReordered -= OnTimelineMarkerReordered;
-
-        _viewModel.Cleanup();
-        _viewModel = null;
     }
 
-    private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
+    /// <summary>
+    /// Reacts to view-model property changes that require UI updates.
+    /// </summary>
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (sender is not FlybyTimelineViewModel viewModel)
+            return;
+
         switch (e.PropertyName)
         {
             case nameof(FlybyTimelineViewModel.SelectedSequence):
@@ -85,91 +128,47 @@ public partial class FlybyTimelineView : UserControl
                 timelineControl.ZoomToFit();
                 break;
 
-            case nameof(FlybyTimelineViewModel.SelectedCamera):
-                RefreshTimeline();
-                break;
-
             case nameof(FlybyTimelineViewModel.PlayheadSeconds):
-                timelineControl.SetPlayheadSeconds(_viewModel.PlayheadSeconds);
+                timelineControl.SetPlayheadSeconds(viewModel.PlayheadSeconds);
                 break;
         }
     }
 
     #region Timeline event handlers
 
+    /// <summary>
+    /// Rebuilds timeline marker data from the current view-model state.
+    /// </summary>
     private void RefreshTimeline()
     {
-        if (_viewModel == null)
+        if (_viewModel is null)
             return;
 
-        var cameras = _viewModel.CameraList;
-        var selectedIndices = _viewModel.GetSelectedIndices();
-        var markers = new List<FlybyTimelineControl.TimelineMarker>();
-
-        // Get cache for accurate timing and speed display.
-        var cache = _viewModel.GetSequenceCache();
-
-        // Determine which cameras have their outgoing segments bypassed by a cut.
-        var cutBypassed = new HashSet<int>();
-
-        for (int i = 0; i < cameras.Count; i++)
-        {
-            if (_viewModel.GetCameraCutFlag(i))
-            {
-                int target = cameras[i].Camera.Timer;
-
-                for (int j = i; j < target && j < cameras.Count - 1; j++)
-                    cutBypassed.Add(j);
-            }
-        }
-
-        for (int i = 0; i < cameras.Count; i++)
-        {
-            var item = cameras[i];
-            float timeSeconds = _viewModel.GetTimecodeForCamera(i);
-
-            float cutBypassDuration = _viewModel.GetCutBypassDuration(i);
-
-            markers.Add(new FlybyTimelineControl.TimelineMarker
-            {
-                TimeSeconds = timeSeconds,
-                IsDuplicate = item.IsDuplicateIndex,
-                IsSelected = selectedIndices.Contains(i),
-                HasCameraCut = _viewModel.GetCameraCutFlag(i),
-                IsInCutBypass = cutBypassed.Contains(i),
-                CutBypassDuration = cutBypassDuration,
-                SegmentDuration = i < cameras.Count - 1 ? _viewModel.GetSegmentDurationSeconds(i) : 0,
-                HasFreeze = (item.Camera.Flags & FlybyConstants.FlagFreezeCamera) != 0,
-                FreezeDuration = _viewModel.GetFreezeDurationSeconds(i)
-            });
-        }
-
-        float totalDuration = _viewModel.GetCacheDisplayDuration(cache);
-
-        if (totalDuration < 1.0f)
-            totalDuration = 10.0f;
-
-        timelineControl.SetMarkers(markers, totalDuration, cache);
+        var renderState = _viewModel.BuildTimelineRenderState();
+        timelineControl.SetMarkers(renderState.Markers, renderState.TotalDuration, renderState.Cache);
+        timelineControl.SetPlayheadSeconds(_viewModel.PlayheadSeconds);
     }
 
+    /// <summary>
+    /// Selects the clicked marker and syncs the selected room.
+    /// </summary>
     private void OnTimelineMarkerClicked(int index)
     {
-        if (_viewModel == null || index < 0 || index >= _viewModel.CameraList.Count)
+        if (!TryGetCameraItem(index, out var item))
             return;
 
-        var item = _viewModel.CameraList[index];
         SelectSingleCamera(item);
 
-        _viewModel.UpdateSelectedRoomByPosition(item.Camera.WorldPosition);
-        RefreshTimeline();
+        _viewModel?.UpdateSelectedRoomByPosition(item.Camera.WorldPosition);
     }
 
+    /// <summary>
+    /// Opens the clicked flyby camera for editing.
+    /// </summary>
     private void OnTimelineMarkerDoubleClicked(int index)
     {
-        if (_viewModel == null || index < 0 || index >= _viewModel.CameraList.Count)
+        if (!TryGetCameraItem(index, out var item))
             return;
-
-        var item = _viewModel.CameraList[index];
 
         SelectSingleCamera(item);
 
@@ -177,83 +176,96 @@ public partial class FlybyTimelineView : UserControl
         EditorActions.EditObject(item.Camera, GetDialogOwner());
     }
 
+    /// <summary>
+    /// Applies a live drag update to a timeline marker.
+    /// </summary>
     private void OnTimelineMarkerDragged(int index, float newTimeSeconds)
-    {
-        if (_viewModel == null)
-            return;
+        => _viewModel?.OnTimelineCameraDragged(index, newTimeSeconds);
 
-        _viewModel.OnTimelineCameraDragged(index, newTimeSeconds);
-        RefreshTimeline();
-    }
+    /// <summary>
+    /// Ends the current marker drag operation.
+    /// </summary>
+    private void OnTimelineMarkerDragCompleted(int _)
+        => _viewModel?.OnTimelineCameraDragCompleted();
 
-    private void OnTimelineMarkerDragCompleted(int index)
+    /// <summary>
+    /// Updates camera selection from a timeline range selection.
+    /// </summary>
+    /// <param name="selectedIndices">Marker indices reported by the timeline marquee selection.</param>
+    private void OnTimelineRangeSelected(IReadOnlyList<int> selectedIndices)
     {
-        _viewModel?.OnTimelineCameraDragCompleted();
-    }
-
-    private void OnTimelineRangeSelected(List<int> selectedIndices)
-    {
-        if (_viewModel == null)
+        if (_viewModel is null)
             return;
 
         // Empty range selection means deselection.
         if (selectedIndices.Count == 0)
         {
-            _viewModel.UpdateSelectedCameras(Array.Empty<FlybyCameraItemViewModel>());
-            RefreshTimeline();
+            _viewModel.UpdateSelectedCameras([]);
             return;
         }
 
-        var selectedItems = new List<FlybyCameraItemViewModel>();
+        var selectedItems = new List<FlybyCameraItemViewModel>(selectedIndices.Count);
 
-        foreach (int i in selectedIndices)
+        foreach (int index in selectedIndices)
         {
-            if (i >= 0 && i < _viewModel.CameraList.Count)
-                selectedItems.Add(_viewModel.CameraList[i]);
+            if (index < 0 || index >= _viewModel.CameraList.Count)
+                continue;
+
+            selectedItems.Add(_viewModel.CameraList[index]);
         }
 
         _viewModel.UpdateSelectedCameras(selectedItems);
-
-        RefreshTimeline();
     }
 
+    /// <summary>
+    /// Scrubs preview playback to the requested timeline time.
+    /// </summary>
     private void OnTimelineScrubRequested(float timeSeconds)
-    {
-        _viewModel?.ScrubToTime(timeSeconds);
-    }
+        => _viewModel?.ScrubToTime(timeSeconds);
 
+    /// <summary>
+    /// Toggles timeline playback.
+    /// </summary>
     private void OnTimelinePlayStopRequested()
-    {
-        if (_viewModel == null)
-            return;
+        => _viewModel?.TogglePlayStopCommand.Execute(null);
 
-        _viewModel.TogglePlayStopCommand.Execute(null);
-    }
-
+    /// <summary>
+    /// Deletes the currently selected timeline cameras.
+    /// </summary>
     private void OnTimelineDeleteRequested()
-    {
-        _viewModel?.DeleteSelectedCameras();
-        RefreshTimeline();
-    }
+        => _viewModel?.DeleteSelectedCameras();
 
+    /// <summary>
+    /// Reorders a camera after an Alt-drag reposition operation.
+    /// </summary>
     private void OnTimelineMarkerReordered(int fromIndex, int toIndex)
-    {
-        if (_viewModel == null)
-            return;
+        => _viewModel?.MoveCameraToIndex(fromIndex, toIndex);
 
-        _viewModel.MoveCameraToIndex(fromIndex, toIndex);
-        RefreshTimeline();
-    }
-
+    /// <summary>
+    /// Replaces the current selection with a single camera item.
+    /// </summary>
     private void SelectSingleCamera(FlybyCameraItemViewModel item)
+        => _viewModel?.UpdateSelectedCameras([item]);
+
+    /// <summary>
+    /// Returns the camera item for a valid timeline marker index.
+    /// </summary>
+    private bool TryGetCameraItem(int index, [NotNullWhen(true)] out FlybyCameraItemViewModel? item)
     {
-        _viewModel.UpdateSelectedCameras(new[] { item });
+        item = null;
+
+        if (_viewModel is null || index < 0 || index >= _viewModel.CameraList.Count)
+            return false;
+
+        item = _viewModel.CameraList[index];
+        return true;
     }
 
-    private System.Windows.Forms.IWin32Window GetDialogOwner()
-    {
-        return System.Windows.Forms.Form.ActiveForm ?? _parentForm;
-    }
+    /// <summary>
+    /// Returns the best available dialog owner for flyby modal windows.
+    /// </summary>
+    private System.Windows.Forms.IWin32Window? GetDialogOwner()
+        => System.Windows.Forms.Form.ActiveForm ?? _parentForm;
 
     #endregion Timeline event handlers
 }
