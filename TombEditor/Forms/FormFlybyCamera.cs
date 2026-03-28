@@ -8,6 +8,7 @@ namespace TombEditor.Forms
     public partial class FormFlybyCamera : DarkForm
     {
         public bool IsNew { get; set; }
+        public bool HasChanges { get; private set; }
 
         private readonly FlybyCameraInstance _flyByCamera;
         private readonly Editor _editor;
@@ -69,7 +70,7 @@ namespace TombEditor.Forms
             numSequence.Value = _flyByCamera.Sequence;
             numNumber.Value = _flyByCamera.Number;
             numTimer.Value = _flyByCamera.Timer;
-            numSpeed.Value = (decimal)_flyByCamera.Speed;
+            numSpeed.Value = ClampNumericValue(_flyByCamera.Speed, numSpeed);
             numFOV.Value = (decimal)_flyByCamera.Fov;
             numRoll.Value = (decimal)_flyByCamera.Roll;
             numRotationX.Value = (decimal)_flyByCamera.RotationX;
@@ -136,6 +137,7 @@ namespace TombEditor.Forms
 
         private void butOK_Click(object sender, EventArgs e)
         {
+            HasChanges = HasPendingChanges();
             _flyByCamera.Flags = CollectFlags();
             _flyByCamera.Sequence = (ushort)numSequence.Value;
             _flyByCamera.Number = (ushort)numNumber.Value;
@@ -174,6 +176,30 @@ namespace TombEditor.Forms
             _flyByCamera.Roll = _originalRoll;
             _flyByCamera.RotationX = _originalRotationX;
             _flyByCamera.RotationY = _originalRotationY;
+        }
+
+        private bool HasPendingChanges()
+        {
+            return CollectFlags() != _originalFlags ||
+                (ushort)numSequence.Value != _originalSequence ||
+                (ushort)numNumber.Value != _originalNumber ||
+                (short)numTimer.Value != _originalTimer ||
+                (float)numSpeed.Value != _originalSpeed ||
+                (float)numFOV.Value != _originalFov ||
+                (float)numRoll.Value != _originalRoll ||
+                (float)numRotationX.Value != _originalRotationX ||
+                (float)numRotationY.Value != _originalRotationY;
+        }
+
+        private static decimal ClampNumericValue(float value, NumericUpDown numeric)
+        {
+            decimal fallbackValue = Math.Min(numeric.Maximum, Math.Max(numeric.Minimum, numeric.Value));
+
+            if (!float.IsFinite(value))
+                return fallbackValue;
+
+            decimal decimalValue = (decimal)value;
+            return Math.Min(numeric.Maximum, Math.Max(numeric.Minimum, decimalValue));
         }
 
         private ushort CollectFlags()
