@@ -198,6 +198,10 @@ namespace TombEditor.Controls.Panel3D
                 if (_editor.FlyMode)
                     return;
 
+                // Restart cleanly when switching between preview targets or modes.
+                if (_editor.CameraPreviewMode != CameraPreviewType.None || _flybyPreview != null)
+                    ExitCameraPreview(false);
+
                 // Stop any in-progress camera animation so it doesn't interfere with preview.
                 _movementTimer.Stop(true);
 
@@ -312,7 +316,7 @@ namespace TombEditor.Controls.Panel3D
             Invalidate();
         }
 
-        private void ExitCameraPreview()
+        private void ExitCameraPreview(bool notifyUser = true)
         {
             _cameraPreviewTimer.Stop();
 
@@ -324,7 +328,9 @@ namespace TombEditor.Controls.Panel3D
             }
 
             _editor.CameraPreviewMode = CameraPreviewType.None;
-            _editor.SendMessage("Camera preview ended.", PopupType.Info);
+
+            if (notifyUser)
+                _editor.SendMessage("Camera preview ended.", PopupType.Info);
 
             Invalidate();
         }

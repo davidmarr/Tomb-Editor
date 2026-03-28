@@ -93,6 +93,7 @@ namespace TombEditor.Controls.Panel3D
 
         // Overall state
         private readonly Editor _editor;
+        private readonly Func<Camera> _getViewportCamera;
         private Vector3? _currentRoomLastPos;
 
         // Camera state
@@ -189,6 +190,7 @@ namespace TombEditor.Controls.Panel3D
         public Panel3D()
         {
             Application.AddMessageFilter(filter);
+            _getViewportCamera = () => Camera;
 
             SetStyle(ControlStyles.Selectable | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint, true);
 
@@ -196,7 +198,7 @@ namespace TombEditor.Controls.Panel3D
             {
                 _editor = Editor.Instance;
                 _editor.EditorEventRaised += EditorEventRaised;
-                _editor.GetViewportCamera = () => Camera;
+                _editor.GetViewportCamera = _getViewportCamera;
 
                 _frustum = new Frustum();
                 _viewProjection = Matrix4x4.Identity;
@@ -219,7 +221,14 @@ namespace TombEditor.Controls.Panel3D
         {
             if (disposing)
             {
-                _editor.EditorEventRaised -= EditorEventRaised;
+                if (_editor is not null)
+                {
+                    _editor.EditorEventRaised -= EditorEventRaised;
+
+                    if (_editor.GetViewportCamera == _getViewportCamera)
+                        _editor.GetViewportCamera = null;
+                }
+
                 _renderingStateBuffer?.Dispose();
                 _renderingTextures?.Dispose();
                 _renderingCachedRooms?.Dispose();
