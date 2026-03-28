@@ -329,9 +329,8 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
 
         if (frame.Finished)
         {
-            float totalDuration = _playbackPreview.Cache.TotalDuration;
             StopPlayback();
-            SetPlayheadSeconds(totalDuration);
+            SetPlayheadSeconds(0.0f);
             return;
         }
 
