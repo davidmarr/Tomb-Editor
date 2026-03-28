@@ -431,7 +431,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         float lastCameraTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, cameras.Count - 1, UseSmoothPause);
 
         if (MathF.Abs(cursorTime - lastCameraTime) <= lastCameraTolerance)
-            return false;
+            return false; // Cursor is at the end of the sequence, fall back to AddCameraAtSequenceEnd
 
         if (cursorTime > lastCameraTime + lastCameraTolerance)
         {
@@ -464,7 +464,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         var undoList = CreateFlybyCameraPropertyUndo(cameras);
 
         cam.Speed = cameras[^1].Speed;
-        cam.Number = (ushort)cameras.Count;
+        cam.Number = GetNextCameraNumber(cameras);
         ApplyEditorCameraPosition(cam, room);
 
         var tempCameras = cameras.ToList();
@@ -513,8 +513,10 @@ public partial class FlybyTimelineViewModel : ObservableObject
             ? Math.Clamp(clampedCursorTime, minimumInsertTime, maximumInsertTime)
             : minimumInsertTime;
         float nextTargetTime = Math.Max(segmentEnd, insertTime + minimumSegmentDuration);
+        ushort insertionNumber = GetInsertionNumber(cameras, prevIndex, insertIndex);
+        bool requiresNumberShift = cameras.Any(camera => camera.Number == insertionNumber);
 
-        cam.Number = (ushort)insertIndex;
+        cam.Number = insertionNumber;
         cam.Speed = cameras[prevIndex].Speed;
         ApplyEditorCameraPosition(cam, room);
 
@@ -535,7 +537,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
             nextTargetTime,
             UseSmoothPause);
 
-        PrepareCamerasForInsertion(cameras, insertIndex);
+        if (requiresNumberShift)
+            PrepareCamerasForInsertion(cameras, insertionNumber);
 
         _editor.ObjectChange(cameras[prevIndex], ObjectChangeType.Change);
 
@@ -552,8 +555,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// </summary>
     private void AddCameraAtSequenceEnd(FlybyCameraInstance cam, Room room)
     {
-        int nextNumber = CameraList.Count > 0 ? CameraList.Max(c => c.Number) + 1 : 0;
-        cam.Number = (ushort)nextNumber;
+        cam.Number = GetNextCameraNumber(GetCamerasAsList());
 
         ApplyEditorCameraPosition(cam, room);
 
@@ -583,9 +585,32 @@ public partial class FlybyTimelineViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Shifts existing camera numbers and cut targets to make room for an inserted camera.
+    /// Returns the next available camera number after the current highest numbered camera.
     /// </summary>
-    private void PrepareCamerasForInsertion(IReadOnlyList<FlybyCameraInstance> cameras, int insertIndex)
+    private static ushort GetNextCameraNumber(IReadOnlyList<FlybyCameraInstance> cameras)
+    {
+        return cameras.Count > 0
+            ? (ushort)(cameras.Max(camera => (int)camera.Number) + 1)
+            : (ushort)0;
+    }
+
+    /// <summary>
+    /// Returns the number a new camera should receive when inserted at the given list position.
+    /// </summary>
+    private static ushort GetInsertionNumber(IReadOnlyList<FlybyCameraInstance> cameras, int prevIndex, int insertIndex)
+    {
+        int previousNumber = cameras[prevIndex].Number;
+        int nextNumber = cameras[insertIndex].Number;
+
+        return nextNumber > previousNumber + 1
+            ? (ushort)(previousNumber + 1)
+            : (ushort)nextNumber;
+    }
+
+    /// <summary>
+    /// Shifts existing camera numbers and cut targets to make room for an inserted camera number.
+    /// </summary>
+    private void PrepareCamerasForInsertion(IReadOnlyList<FlybyCameraInstance> cameras, ushort insertionNumber)
     {
         _isApplyingProperty = true;
 
@@ -595,13 +620,13 @@ public partial class FlybyTimelineViewModel : ObservableObject
             {
                 bool changed = false;
 
-                if (camera.Number >= insertIndex)
+                if (camera.Number >= insertionNumber)
                 {
                     camera.Number++;
                     changed = true;
                 }
 
-                if ((camera.Flags & FlybyConstants.FlagCameraCut) != 0 && camera.Timer >= insertIndex)
+                if ((camera.Flags & FlybyConstants.FlagCameraCut) != 0 && camera.Timer >= insertionNumber)
                 {
                     camera.Timer++;
                     changed = true;
