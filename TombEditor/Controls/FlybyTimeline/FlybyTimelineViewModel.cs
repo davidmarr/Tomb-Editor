@@ -258,6 +258,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
             if (result != DialogResult.Yes)
                 return;
 
+            _preview.StopPlayback();
+
             var undoList = CreateFlybyCameraDeletionUndo(cameras).ToList();
 
             _isApplyingProperty = true;
@@ -314,6 +316,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
         if (_selectedCameras.Count == 0 || !SelectedSequence.HasValue)
             return;
 
+        _preview.StopPlayback();
+
         var selectedCameras = _selectedCameras.ToList();
 
         var remainingCameras = GetCamerasForCurrentSequence()
@@ -362,6 +366,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         if (room is null)
             return;
+
+        _preview.StopPlayback();
 
         var cam = new FlybyCameraInstance
         {
@@ -612,6 +618,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
             return;
         }
 
+        _preview.StopPlayback();
+
         var movedCamera = CameraList[fromIndex].Camera;
         var cameras = CameraList.Select(vm => vm.Camera).ToList();
         var oldTargetByNumber = BuildCameraLookupByNumber(cameras);
@@ -832,6 +840,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
     {
         if (cameraIndex <= 0 || cameraIndex >= CameraList.Count || !float.IsFinite(newTimeSeconds))
             return;
+
+        _preview.StopPlayback();
 
         EnsureTimelineDragUndoSnapshot(cameraIndex);
 
