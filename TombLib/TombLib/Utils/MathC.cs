@@ -391,9 +391,13 @@ namespace TombLib
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float RadToDeg(float r) => r * (180.0f / (float)Math.PI) + (r < 0 ? 360.0f : 0.0f);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float SignedRadToDeg(float r) => r * (180.0f / (float)Math.PI);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float DegToRad(float r) => (float)Math.PI * r / 180.0f;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 RadToDeg(Vector3 r) => new Vector3(RadToDeg(r.X), RadToDeg(r.Y), RadToDeg(r.Z));
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 SignedRadToDeg(Vector3 r) => new Vector3(SignedRadToDeg(r.X), SignedRadToDeg(r.Y), SignedRadToDeg(r.Z));
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 DegToRad(Vector3 r) => new Vector3(DegToRad(r.X), DegToRad(r.Y), DegToRad(r.Z));
 
