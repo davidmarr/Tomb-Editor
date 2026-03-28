@@ -376,10 +376,14 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         RenumberSequence(SelectedSequence.Value);
         PushUndoIfAny(undoList);
-        OnDataChanged();
 
-        SetSelectedCameras([], true);
+        ushort? previousSequence = SelectedSequence;
+
+        SetSelectedCameras([], true, refreshTimeline: false);
         RefreshSequenceList();
+
+        if (SelectedSequence == previousSequence)
+            OnDataChanged();
     }
 
     /// <summary>
@@ -425,7 +429,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         float cursorTime = PlayheadSeconds;
         float clampedCursorTime = Math.Max(cursorTime, 0.01f);
- 
+
         var cameras = GetCamerasAsList();
         float lastCameraTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, cameras.Count - 1, UseSmoothPause);
 
@@ -646,9 +650,9 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// </summary>
     private void FinalizeAddedCamera(FlybyCameraInstance camera, bool zoomToFit)
     {
+        SetSelectedCameras([camera], true, refreshTimeline: false, restoreSelectedCameraState: false);
+        MovePlayheadToCamera(camera, GetCamerasForCurrentSequence());
         OnDataChanged();
-        SelectCameraByInstance(camera);
-        MovePlayheadToCamera(camera);
 
         if (zoomToFit)
             RequestZoomToFit();
@@ -657,14 +661,16 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// <summary>
     /// Moves the playhead to the given camera's current timecode.
     /// </summary>
-    private void MovePlayheadToCamera(FlybyCameraInstance camera)
+    private void MovePlayheadToCamera(FlybyCameraInstance camera, IReadOnlyList<FlybyCameraInstance>? cameras = null)
     {
-        for (int i = 0; i < CameraList.Count; i++)
+        cameras ??= GetCamerasAsList();
+
+        for (int i = 0; i < cameras.Count; i++)
         {
-            if (CameraList[i].Camera != camera)
+            if (cameras[i] != camera)
                 continue;
 
-            PlayheadSeconds = GetTimecodeForCamera(i);
+            PlayheadSeconds = FlybySequenceHelper.GetTimecodeForCamera(cameras, i, UseSmoothPause);
             return;
         }
     }
@@ -766,9 +772,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
         }
 
         PushUndoIfAny(undoList);
+        SetSelectedCameras([movedCamera], true, refreshTimeline: false, restoreSelectedCameraState: false);
         OnDataChanged();
-
-        SelectCameraByInstance(movedCamera);
     }
 
     /// <summary>
@@ -1308,11 +1313,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private IReadOnlyList<FlybyCameraInstance> GetCamerasAsList() => [.. CameraList.Select(vm => vm.Camera)];
 
     /// <summary>
-    /// Selects a single camera in the timeline and synced editor state.
-    /// </summary>
-    private void SelectCameraByInstance(FlybyCameraInstance camera) => SetSelectedCameras([camera], true);
-
-    /// <summary>
     /// Refreshes camera data and optionally syncs the preview output.
     /// </summary>
     /// <param name="refreshCameraList">Whether the visible camera list should be rebuilt first.</param>
@@ -1501,7 +1501,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// <summary>
     /// Replaces the selected flyby cameras and optionally syncs editor selection.
     /// </summary>
-    private void SetSelectedCameras(IEnumerable<FlybyCameraInstance> cameras, bool syncEditorSelection)
+    private void SetSelectedCameras(IEnumerable<FlybyCameraInstance> cameras, bool syncEditorSelection,
+        bool refreshTimeline = true, bool restoreSelectedCameraState = true)
     {
         var normalizedSelection = SelectedSequence.HasValue
             ? cameras.Where(camera => camera.Sequence == SelectedSequence.Value).ToHashSet()
@@ -1512,12 +1513,14 @@ public partial class FlybyTimelineViewModel : ObservableObject
         foreach (var camera in normalizedSelection)
             _selectedCameras.Add(camera);
 
-        RestoreSelectedCameraState();
+        if (restoreSelectedCameraState)
+            RestoreSelectedCameraState();
 
         if (syncEditorSelection)
             SyncEditorSelection();
 
-        TimelineRefreshRequested?.Invoke();
+        if (refreshTimeline)
+            TimelineRefreshRequested?.Invoke();
     }
 
     /// <summary>
