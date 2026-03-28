@@ -258,7 +258,10 @@ namespace TombEditor.Controls.Panel3D
                 return false;
 
             if (_editor.SelectedObject is FlybyCameraInstance flyby)
-                return Vector3.Distance(flyby.WorldPosition, Camera.GetPosition()) >= _coneRadius * 0.5f;
+            {
+                float minimumDistance = _coneRadius * 0.5f;
+                return Vector3.DistanceSquared(flyby.WorldPosition, Camera.GetPosition()) >= minimumDistance * minimumDistance;
+            }
 
             return true;
         }
