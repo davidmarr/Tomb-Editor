@@ -229,9 +229,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
         _editor.EditorEventRaised += OnEditorEventRaised;
 
         RefreshSequenceList();
-
-        if (AvailableSequences.Count > 0)
-            SelectedSequence = AvailableSequences[0];
     }
 
     /// <summary>
@@ -326,6 +323,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     {
         _preview.StopPlayback();
         _preview.InvalidateCache();
+        ResetPlayhead();
 
         RefreshCameraList();
         RecalculateTimecodes();
@@ -381,6 +379,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         OnDataChanged();
 
         SetSelectedCameras([], true);
+        RefreshSequenceList();
     }
 
     /// <summary>
@@ -666,7 +665,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
                 continue;
 
             PlayheadSeconds = GetTimecodeForCamera(i);
-            UpdatePlayheadTimecode();
             return;
         }
     }
@@ -798,7 +796,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
             _isUpdating = false;
         }
 
-        OnPropertyChanged(nameof(CanEditProperties));
+        if (value is not null && IsPreviewActive && !IsPlaying)
+            _preview.ShowCamera(value.Camera);
     }
 
     #endregion Camera list management
@@ -1105,13 +1104,18 @@ public partial class FlybyTimelineViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Updates the playhead timecode string from the current playhead position.
+    /// Updates the formatted playhead timecode whenever the playhead position changes.
     /// </summary>
-    private void UpdatePlayheadTimecode()
+    partial void OnPlayheadSecondsChanged(float value)
     {
-        float seconds = float.IsFinite(PlayheadSeconds) && PlayheadSeconds >= 0.0f ? PlayheadSeconds : 0.0f;
+        float seconds = float.IsFinite(value) && value >= 0.0f ? value : 0.0f;
         PlayheadTimecode = FlybySequenceHelper.FormatTimecode(seconds);
     }
+
+    /// <summary>
+    /// Clears the visible playhead when sequence context changes.
+    /// </summary>
+    private void ResetPlayhead() => PlayheadSeconds = -1.0f;
 
     #endregion Timecode helpers
 
@@ -1121,11 +1125,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// Refreshes the full timeline state after underlying data changes.
     /// </summary>
     private void OnDataChanged() => RefreshTimelineState(true);
-
-    /// <summary>
-    /// Requests a lightweight timeline refresh without rebuilding the camera list.
-    /// </summary>
-    private void RequestTimelineRefresh() => RefreshTimelineState(false, false);
 
     /// <summary>
     /// Requests the view to zoom the timeline to fit the current sequence.
@@ -1386,7 +1385,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private void OnPreviewPlayheadChanged()
     {
         PlayheadSeconds = _preview.PlayheadSeconds;
-        UpdatePlayheadTimecode();
     }
 
     #endregion Preview state sync
@@ -1412,24 +1410,30 @@ public partial class FlybyTimelineViewModel : ObservableObject
                 _preview.ExitPreview();
 
             _preview.InvalidateCache();
+            ResetPlayhead();
 
             if (obj is Editor.LevelChangedEvent)
                 _userAddedSequences.Clear();
 
             RefreshSequenceList();
-            RequestTimelineRefresh();
+            RefreshTimelineState(true, false);
             return;
         }
 
         if (obj is Editor.ObjectChangedEvent changeEvent)
         {
-            if (changeEvent.Object is FlybyCameraInstance flyby &&
-                SelectedSequence.HasValue && flyby.Sequence == SelectedSequence.Value)
+            if (changeEvent.Object is FlybyCameraInstance flyby)
             {
-                _preview.InvalidateCache();
+                if (!_isApplyingProperty && changeEvent.ChangeType != ObjectChangeType.Change)
+                    RefreshSequenceList();
 
-                if (!_isApplyingProperty)
-                    OnDataChanged();
+                if (SelectedSequence.HasValue && flyby.Sequence == SelectedSequence.Value)
+                {
+                    _preview.InvalidateCache();
+
+                    if (!_isApplyingProperty)
+                        OnDataChanged();
+                }
             }
         }
 
