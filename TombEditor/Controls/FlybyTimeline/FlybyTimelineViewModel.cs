@@ -44,6 +44,16 @@ public partial class FlybyTimelineViewModel : ObservableObject
         public float TotalDuration { get; } = totalDuration;
     }
 
+    [Flags]
+    private enum SelectionUpdateBehavior
+    {
+        None = 0,
+        SyncEditorSelection = 1 << 0,
+        RestoreSelectedCameraState = 1 << 1,
+        RefreshTimeline = 1 << 2,
+        All = SyncEditorSelection | RestoreSelectedCameraState | RefreshTimeline
+    }
+
     private readonly Editor _editor;
     private readonly FlybyPreviewController _preview;
     private readonly Dispatcher _dispatcher;
@@ -329,7 +339,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         RecalculateTimecodes();
 
         if (!_isSyncingSelection && _selectedCameras.Count == 0 && CameraList.Count > 0)
-            SetSelectedCameras([CameraList[0].Camera], true);
+            SetSelectedCameras([CameraList[0].Camera]);
     }
 
     #endregion Sequence management
@@ -352,6 +362,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
             .Where(camera => !selectedCameras.Contains(camera))
             .ToList();
 
+        // Capture the surviving cameras before deletion so renumbering and cut-target fixes undo as one action.
         var undoList = CreateFlybyCameraPropertyUndo(remainingCameras);
         undoList.AddRange(CreateFlybyCameraDeletionUndo(selectedCameras));
 
@@ -377,9 +388,10 @@ public partial class FlybyTimelineViewModel : ObservableObject
         RenumberSequence(SelectedSequence.Value);
         PushUndoIfAny(undoList);
 
+        // Removing the last camera can also remove the active sequence; that selection change already triggers its own refresh.
         ushort? previousSequence = SelectedSequence;
 
-        SetSelectedCameras([], true, refreshTimeline: false);
+        SetSelectedCameras([], SelectionUpdateBehavior.SyncEditorSelection | SelectionUpdateBehavior.RestoreSelectedCameraState);
         RefreshSequenceList();
 
         if (SelectedSequence == previousSequence)
@@ -650,8 +662,9 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// </summary>
     private void FinalizeAddedCamera(FlybyCameraInstance camera, bool zoomToFit)
     {
-        SetSelectedCameras([camera], true, refreshTimeline: false, restoreSelectedCameraState: false);
-        MovePlayheadToCamera(camera, GetCamerasForCurrentSequence());
+        // Stage selection and playhead first so the single rebuild paints the new camera in its final state.
+        SetSelectedCameras([camera], SelectionUpdateBehavior.SyncEditorSelection);
+        MovePlayheadToCamera(camera);
         OnDataChanged();
 
         if (zoomToFit)
@@ -660,10 +673,39 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
     /// <summary>
     /// Moves the playhead to the given camera's current timecode.
+    /// Prefers the visible timeline state first, then falls back to editor data for newly inserted cameras.
     /// </summary>
-    private void MovePlayheadToCamera(FlybyCameraInstance camera, IReadOnlyList<FlybyCameraInstance>? cameras = null)
+    private void MovePlayheadToCamera(FlybyCameraInstance camera)
     {
-        cameras ??= GetCamerasAsList();
+        if (TryMovePlayheadToVisibleCamera(camera))
+            return;
+
+        TryMovePlayheadToCurrentSequence(camera);
+    }
+
+    /// <summary>
+    /// Uses the already-visible timeline state when the camera is present in CameraList.
+    /// </summary>
+    private bool TryMovePlayheadToVisibleCamera(FlybyCameraInstance camera)
+    {
+        for (int i = 0; i < CameraList.Count; i++)
+        {
+            if (CameraList[i].Camera != camera)
+                continue;
+
+            PlayheadSeconds = GetTimecodeForCamera(i);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Falls back to fresh editor data for cameras that exist in the level but are not yet visible in CameraList.
+    /// </summary>
+    private bool TryMovePlayheadToCurrentSequence(FlybyCameraInstance camera)
+    {
+        var cameras = GetCamerasForCurrentSequence();
 
         for (int i = 0; i < cameras.Count; i++)
         {
@@ -671,8 +713,10 @@ public partial class FlybyTimelineViewModel : ObservableObject
                 continue;
 
             PlayheadSeconds = FlybySequenceHelper.GetTimecodeForCamera(cameras, i, UseSmoothPause);
-            return;
+            return true;
         }
+
+        return false;
     }
 
     /// <summary>
@@ -683,11 +727,11 @@ public partial class FlybyTimelineViewModel : ObservableObject
     {
         if (items is null)
         {
-            SetSelectedCameras([], true);
+            SetSelectedCameras([]);
             return;
         }
 
-        SetSelectedCameras(items.Select(item => item.Camera), true);
+        SetSelectedCameras(items.Select(item => item.Camera));
     }
 
     /// <summary>
@@ -772,7 +816,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         }
 
         PushUndoIfAny(undoList);
-        SetSelectedCameras([movedCamera], true, refreshTimeline: false, restoreSelectedCameraState: false);
+        SetSelectedCameras([movedCamera], SelectionUpdateBehavior.SyncEditorSelection);
         OnDataChanged();
     }
 
@@ -1404,6 +1448,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         if (obj is Editor.LevelChangedEvent || obj is Editor.GameVersionChangedEvent)
         {
+            // Level-wide changes can keep the same SelectedSequence value, so force a full list rebuild here.
             _preview.StopPlayback();
 
             if (IsPreviewActive)
@@ -1424,6 +1469,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         {
             if (changeEvent.Object is FlybyCameraInstance flyby)
             {
+                // Add/remove operations can change which sequences exist even if the active sequence stays untouched.
                 if (!_isApplyingProperty && changeEvent.ChangeType != ObjectChangeType.Change)
                     RefreshSequenceList();
 
@@ -1501,9 +1547,10 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// <summary>
     /// Replaces the selected flyby cameras and optionally syncs editor selection.
     /// </summary>
-    private void SetSelectedCameras(IEnumerable<FlybyCameraInstance> cameras, bool syncEditorSelection,
-        bool refreshTimeline = true, bool restoreSelectedCameraState = true)
+    private void SetSelectedCameras(IEnumerable<FlybyCameraInstance> cameras,
+        SelectionUpdateBehavior behavior = SelectionUpdateBehavior.All)
     {
+        // The timeline only shows one sequence at a time, so discard any flyby cameras from other sequences up front.
         var normalizedSelection = SelectedSequence.HasValue
             ? cameras.Where(camera => camera.Sequence == SelectedSequence.Value).ToHashSet()
             : [];
@@ -1513,13 +1560,13 @@ public partial class FlybyTimelineViewModel : ObservableObject
         foreach (var camera in normalizedSelection)
             _selectedCameras.Add(camera);
 
-        if (restoreSelectedCameraState)
+        if ((behavior & SelectionUpdateBehavior.RestoreSelectedCameraState) != 0)
             RestoreSelectedCameraState();
 
-        if (syncEditorSelection)
+        if ((behavior & SelectionUpdateBehavior.SyncEditorSelection) != 0)
             SyncEditorSelection();
 
-        if (refreshTimeline)
+        if ((behavior & SelectionUpdateBehavior.RefreshTimeline) != 0)
             TimelineRefreshRequested?.Invoke();
     }
 
@@ -1556,7 +1603,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
         try
         {
             AlignSequenceToSelection(selectedCameras);
-            SetSelectedCameras(selectedCameras, false);
+            SetSelectedCameras(selectedCameras, SelectionUpdateBehavior.RestoreSelectedCameraState | SelectionUpdateBehavior.RefreshTimeline);
         }
         finally
         {
