@@ -292,11 +292,9 @@ public static class FlybySequenceHelper
 
         float yaw = MathF.Atan2(lookDir.X, lookDir.Z);
         float pitch = -MathF.Asin(Math.Clamp(lookDir.Y, -1.0f, 1.0f));
-        float yawDegrees = MathC.SignedRadToDeg(yaw);
-        float pitchDegrees = MathC.SignedRadToDeg(pitch);
 
-        flyby.RotationY = yawDegrees;
-        flyby.RotationX = -pitchDegrees;
+        flyby.RotationY = MathC.SignedRadToDeg(yaw);
+        flyby.RotationX = -MathC.SignedRadToDeg(pitch);
         flyby.Fov = MathC.SignedRadToDeg(fieldOfView);
     }
 

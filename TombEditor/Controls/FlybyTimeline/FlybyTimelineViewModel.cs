@@ -422,12 +422,13 @@ public partial class FlybyTimelineViewModel : ObservableObject
             return false;
 
         const float minimumSegmentDuration = FlybyConstants.TimeStep;
+        const float lastCameraTolerance = 0.0001f;
 
         float cursorTime = PlayheadSeconds;
         float clampedCursorTime = Math.Max(cursorTime, 0.01f);
+ 
         var cameras = GetCamerasAsList();
         float lastCameraTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, cameras.Count - 1, UseSmoothPause);
-        const float lastCameraTolerance = 0.0001f;
 
         if (MathF.Abs(cursorTime - lastCameraTime) <= lastCameraTolerance)
             return false;
