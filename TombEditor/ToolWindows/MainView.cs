@@ -112,7 +112,10 @@ namespace TombEditor.ToolWindows
                 UpdateStatistics();
 
                 if (obj is Editor.ConfigurationChangedEvent)
+                {
                     panelStepHeightOptions.Visible = _editor.IsPreciseGeometryAllowed;
+                    UpdateBottomPanelVisibility();
+                }
             }
 
             if (obj is Editor.ConfigurationChangedEvent)
@@ -198,6 +201,7 @@ namespace TombEditor.ToolWindows
                 butAddSprite.Enabled       = _editor.Level.Settings.GameVersion.Native() <= TRVersion.Game.TR2;
 
                 panelStepHeightOptions.Visible = _editor.IsPreciseGeometryAllowed;
+                UpdateBottomPanelVisibility();
                 UpdateStepHeightCombo();
             }
 
@@ -278,9 +282,15 @@ namespace TombEditor.ToolWindows
 
             panel3D.Invalidate();
 
-            panelBottom.Visible = settings.UI_ShowStats || settings.UI_ShowFlybyTimeline;
             panelFlybyTimeline.Visible = settings.UI_ShowFlybyTimeline;
             tbStats.Visible = settings.UI_ShowStats;
+            UpdateBottomPanelVisibility();
+        }
+
+        private void UpdateBottomPanelVisibility()
+        {
+            panelBottomStatus.Visible = tbStats.Visible || panelStepHeightOptions.Visible;
+            panelBottom.Visible = panelFlybyTimeline.Visible || panelBottomStatus.Visible;
         }
 
         private void UpdateToolStripLayout()

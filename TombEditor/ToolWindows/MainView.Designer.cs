@@ -80,6 +80,7 @@ namespace TombEditor.ToolWindows
 			butSearch = new System.Windows.Forms.ToolStripButton();
 			butSearchAndReplaceObjects = new System.Windows.Forms.ToolStripButton();
 			panelBottom = new System.Windows.Forms.Panel();
+			panelBottomStatus = new System.Windows.Forms.Panel();
 			tbStats = new Controls.RichTextLabel();
 			lblStepHeight = new DarkUI.Controls.DarkLabel();
 			panelStepHeightOptions = new System.Windows.Forms.Panel();
@@ -92,6 +93,7 @@ namespace TombEditor.ToolWindows
 			butMirror = new System.Windows.Forms.ToolStripButton();
 			toolStrip.SuspendLayout();
 			panelBottom.SuspendLayout();
+			panelBottomStatus.SuspendLayout();
 			panelStepHeightOptions.SuspendLayout();
 			panelFlybyTimeline.SuspendLayout();
 			SuspendLayout();
@@ -793,9 +795,8 @@ namespace TombEditor.ToolWindows
 			// panelBottom
 			// 
 			panelBottom.AutoSize = true;
-			panelBottom.Controls.Add(tbStats);
+			panelBottom.Controls.Add(panelBottomStatus);
 			panelBottom.Controls.Add(panelFlybyTimeline);
-			panelBottom.Controls.Add(panelStepHeightOptions);
 			panelBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
 			panelBottom.Location = new System.Drawing.Point(0, 307);
 			panelBottom.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
@@ -803,6 +804,18 @@ namespace TombEditor.ToolWindows
 			panelBottom.Padding = new System.Windows.Forms.Padding(5, 5, 5, 0);
 			panelBottom.Size = new System.Drawing.Size(1505, 26);
 			panelBottom.TabIndex = 15;
+			// 
+			// panelBottomStatus
+			// 
+			panelBottomStatus.AutoSize = true;
+			panelBottomStatus.Controls.Add(tbStats);
+			panelBottomStatus.Controls.Add(panelStepHeightOptions);
+			panelBottomStatus.Dock = System.Windows.Forms.DockStyle.Bottom;
+			panelBottomStatus.Location = new System.Drawing.Point(5, 73);
+			panelBottomStatus.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+			panelBottomStatus.Name = "panelBottomStatus";
+			panelBottomStatus.Size = new System.Drawing.Size(1495, 21);
+			panelBottomStatus.TabIndex = 18;
 			// 
 			// tbStats
 			// 
@@ -864,9 +877,9 @@ namespace TombEditor.ToolWindows
 			// 
 			panelFlybyTimeline.Controls.Add(flybyTimelineHost);
 			panelFlybyTimeline.Dock = System.Windows.Forms.DockStyle.Top;
-			panelFlybyTimeline.Location = new System.Drawing.Point(5, 26);
+			panelFlybyTimeline.Location = new System.Drawing.Point(5, 5);
 			panelFlybyTimeline.Name = "panelFlybyTimeline";
-			panelFlybyTimeline.Size = new System.Drawing.Size(1303, 68);
+			panelFlybyTimeline.Size = new System.Drawing.Size(1495, 68);
 			panelFlybyTimeline.TabIndex = 17;
 			panelFlybyTimeline.Visible = false;
 			// 
@@ -875,7 +888,7 @@ namespace TombEditor.ToolWindows
 			flybyTimelineHost.Dock = System.Windows.Forms.DockStyle.Fill;
 			flybyTimelineHost.Location = new System.Drawing.Point(0, 0);
 			flybyTimelineHost.Name = "flybyTimelineHost";
-			flybyTimelineHost.Size = new System.Drawing.Size(1303, 68);
+			flybyTimelineHost.Size = new System.Drawing.Size(1495, 68);
 			flybyTimelineHost.TabIndex = 0;
 			flybyTimelineHost.Child = flybyTimelineView;
 			// 
@@ -918,6 +931,8 @@ namespace TombEditor.ToolWindows
 			toolStrip.PerformLayout();
 			panelBottom.ResumeLayout(false);
 			panelBottom.PerformLayout();
+			panelBottomStatus.ResumeLayout(false);
+			panelBottomStatus.PerformLayout();
 			panelStepHeightOptions.ResumeLayout(false);
 			panelFlybyTimeline.ResumeLayout(false);
 			ResumeLayout(false);
@@ -986,6 +1001,7 @@ namespace TombEditor.ToolWindows
         private System.Windows.Forms.ToolStripButton butAddSprite;
         private System.Windows.Forms.ToolStripButton butAddMemo;
         private System.Windows.Forms.Panel panelBottom;
+		private System.Windows.Forms.Panel panelBottomStatus;
         private System.Windows.Forms.Panel panelMainView;
         private TombEditor.Controls.RichTextLabel tbStats;
         private System.Windows.Forms.ToolTip toolTip;
