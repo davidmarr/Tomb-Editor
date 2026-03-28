@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Windows.Controls;
+using System.Windows.Threading;
 
 namespace TombEditor.Controls.FlybyTimeline;
 
@@ -15,6 +16,7 @@ public partial class FlybyTimelineView : UserControl
 {
     private FlybyTimelineViewModel? _viewModel;
     private System.Windows.Forms.IWin32Window? _parentForm;
+    private bool _zoomToFitQueued;
 
     /// <summary>
     /// Creates the timeline host control.
@@ -42,6 +44,7 @@ public partial class FlybyTimelineView : UserControl
         SubscribeTimelineControl();
 
         RefreshTimeline();
+        QueueZoomToFit();
     }
 
     /// <summary>
@@ -125,7 +128,7 @@ public partial class FlybyTimelineView : UserControl
         {
             case nameof(FlybyTimelineViewModel.SelectedSequence):
                 RefreshTimeline();
-                timelineControl.ZoomToFit();
+                QueueZoomToFit();
                 break;
 
             case nameof(FlybyTimelineViewModel.PlayheadSeconds):
@@ -147,6 +150,23 @@ public partial class FlybyTimelineView : UserControl
         var renderState = _viewModel.BuildTimelineRenderState();
         timelineControl.SetMarkers(renderState.Markers, renderState.TotalDuration, renderState.Cache);
         timelineControl.SetPlayheadSeconds(_viewModel.PlayheadSeconds);
+    }
+
+    /// <summary>
+    /// Defers zoom-to-fit until after pending timeline refreshes have updated the control state.
+    /// </summary>
+    private void QueueZoomToFit()
+    {
+        if (_zoomToFitQueued)
+            return;
+
+        _zoomToFitQueued = true;
+
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new System.Action(() =>
+        {
+            _zoomToFitQueued = false;
+            timelineControl.ZoomToFit();
+        }));
     }
 
     /// <summary>

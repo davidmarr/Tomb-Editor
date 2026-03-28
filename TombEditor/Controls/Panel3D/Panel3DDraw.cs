@@ -1435,6 +1435,8 @@ namespace TombEditor.Controls.Panel3D
                         _legacyDevice.DrawIndexed(PrimitiveType.TriangleList, _cone.IndexBuffer.ElementCount);
                     }
                 }
+
+            _legacyDevice.SetBlendState(_legacyDevice.BlendStates.Opaque);
         }
 
         private void DrawOrQueueServiceObject(ISpatial instance, GeometricPrimitive primitive, Vector4 color, Effect effect, List<Sprite> sprites)

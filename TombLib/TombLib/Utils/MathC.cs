@@ -8,7 +8,7 @@ namespace TombLib
 {
     public static class MathC
     {
-        public const float Epsilon = 1e-6f; // Value an 8x higher than 1.19209290E-07F
+        public const float Epsilon = 1e-6f; // Approx. 8x larger than 1.19209290E-07F.
         public const float TwoPi = 2.0f * MathF.PI;
 
         // Use Rec.709 trichromat formula to get perceptive luma value

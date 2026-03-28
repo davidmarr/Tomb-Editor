@@ -2,7 +2,6 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using DarkUI.Forms;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -13,6 +12,8 @@ using System.Windows.Threading;
 using TombLib;
 using TombLib.LevelData;
 using TombLib.Utils;
+using TombLib.WPF.Services;
+using TombLib.WPF.Services.Abstract;
 
 namespace TombEditor.Controls.FlybyTimeline;
 
@@ -47,6 +48,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private readonly FlybyPreviewController _preview;
     private readonly Dispatcher _dispatcher;
     private readonly IWin32Window? _dialogOwner;
+    private readonly IMessageService _messageService;
+    private readonly ILocalizationService _localizationService;
 
     private bool _isUpdating;
     private bool _isApplyingProperty;
@@ -82,6 +85,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PlayStopIcon))]
+    [NotifyPropertyChangedFor(nameof(PlayStopTooltip))]
     private bool _isPlaying;
 
     /// <summary>
@@ -159,6 +163,13 @@ public partial class FlybyTimelineViewModel : ObservableObject
         : "pack://application:,,,/TombEditor;component/Resources/icons_transport/transport-play-24.png";
 
     /// <summary>
+    /// Gets the tooltip text used for the play or stop button.
+    /// </summary>
+    public string PlayStopTooltip => IsPlaying
+        ? _localizationService["StopSequenceTooltip"]
+        : _localizationService["PlaySequenceTooltip"];
+
+    /// <summary>
     /// Gets whether a flyby sequence is currently selected.
     /// </summary>
     public bool HasSequenceSelected => SelectedSequence.HasValue;
@@ -190,11 +201,21 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// <param name="editor">Editor instance providing level, selection, and undo services.</param>
     /// <param name="dispatcher">UI dispatcher used to marshal editor events onto the UI thread.</param>
     /// <param name="dialogOwner">Optional WinForms owner used for modal dialogs.</param>
-    public FlybyTimelineViewModel(Editor editor, Dispatcher dispatcher, IWin32Window? dialogOwner = null)
+    /// <param name="messageService">Optional message service used for confirmations.</param>
+    /// <param name="localizationService">Optional localization service used for UI strings.</param>
+    public FlybyTimelineViewModel(
+        Editor editor,
+        Dispatcher dispatcher,
+        IWin32Window? dialogOwner = null,
+        IMessageService? messageService = null,
+        ILocalizationService? localizationService = null)
     {
         _editor = editor;
         _dispatcher = dispatcher;
         _dialogOwner = dialogOwner;
+        _messageService = ServiceLocator.ResolveService(messageService);
+        _localizationService = ServiceLocator.ResolveService(localizationService)
+            .WithKeysFor(this);
 
         _preview = new FlybyPreviewController(editor);
         _preview.StateChanged += OnPreviewStateChanged;
@@ -252,11 +273,13 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
         if (cameras.Count > 0)
         {
-            var result = DarkMessageBox.Show(GetDialogOwner(),
-                $"Deleting sequence {seq} will remove {cameras.Count} flyby camera(s). Continue?",
-                "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+            bool confirmed = _messageService.ShowConfirmation(
+                _localizationService.Format("RemoveSequenceConfirmationMessage", seq, cameras.Count),
+                _localizationService["RemoveSequenceConfirmationTitle"],
+                defaultValue: false,
+                isRisky: true);
 
-            if (result != DialogResult.Yes)
+            if (!confirmed)
                 return;
 
             _preview.StopPlayback();
@@ -267,7 +290,8 @@ public partial class FlybyTimelineViewModel : ObservableObject
 
             try
             {
-                EditorActions.DeleteObjects(cameras.Cast<ObjectInstance>(), GetDialogOwner(), false);
+                // Sequence removal already has its own explicit confirmation dialog.
+                EditorActions.DeleteObjects(cameras.Cast<ObjectInstance>(), null, false);
             }
             finally
             {
@@ -456,7 +480,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
         RenumberSequence(sequence, cam);
         OnDataChanged();
         PushUndoIfAny(undoList);
-        SelectCameraByInstance(cam);
     }
 
     /// <summary>
@@ -515,7 +538,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
         RenumberSequence(sequence, cam);
         OnDataChanged();
         PushUndoIfAny(undoList);
-        SelectCameraByInstance(cam);
     }
 
     /// <summary>
@@ -533,7 +555,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
         _editor.ObjectChange(cam, ObjectChangeType.Add);
 
         OnDataChanged();
-        SelectCameraByInstance(cam);
     }
 
     /// <summary>
