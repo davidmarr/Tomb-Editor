@@ -5,6 +5,8 @@ namespace TombLib.LevelData
 {
     public class FlybyCameraInstance : PositionAndScriptBasedObjectInstance, IRotateableYXRoll
     {
+        private const float MaxFlybySpeed = 65535.0f / 655.0f;
+
         public ushort Sequence { get; set; }
         public ushort Number { get; set; }
         public short Timer { get; set; }
@@ -49,7 +51,7 @@ namespace TombLib.LevelData
         public float Speed
         {
             get { return _speed; }
-            set { _speed = Math.Max(0, value); }
+            set { _speed = float.IsFinite(value) ? Math.Clamp(value, 0.0f, MaxFlybySpeed) : 0.0f; }
         }
 
         /// <summary> Degrees in the range [0, 90) </summary>
