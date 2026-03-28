@@ -35,6 +35,8 @@ namespace TombEditor.Controls.Panel3D
                     _flybyPreview.SavedCamera = newCamera;
                 else
                     Camera = newCamera;
+
+                Invalidate();
             }
             else
             {

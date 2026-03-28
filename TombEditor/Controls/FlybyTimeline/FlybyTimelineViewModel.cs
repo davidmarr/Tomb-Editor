@@ -10,6 +10,7 @@ using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
 using System.Windows.Threading;
+using TombLib;
 using TombLib.LevelData;
 using TombLib.Utils;
 
@@ -819,7 +820,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// <param name="worldPosition">World-space position used to resolve the owning room.</param>
     public void UpdateSelectedRoomByPosition(Vector3 worldPosition)
     {
-        if (_editor.Level is null || !IsFinite(worldPosition))
+        if (_editor.Level is null || !worldPosition.IsFinite())
             return;
 
         var room = _editor.GetRoomAtPosition(worldPosition);
@@ -1371,12 +1372,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// Returns the active dialog owner for flyby editor windows.
     /// </summary>
     private IWin32Window? GetDialogOwner() => Form.ActiveForm ?? _dialogOwner;
-
-    /// <summary>
-    /// Returns whether all vector components are finite.
-    /// </summary>
-    private static bool IsFinite(Vector3 position)
-        => float.IsFinite(position.X) && float.IsFinite(position.Y) && float.IsFinite(position.Z);
 
     /// <summary>
     /// Replaces the selected flyby cameras and optionally syncs editor selection.

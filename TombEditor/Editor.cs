@@ -938,16 +938,19 @@ namespace TombEditor
 
         public Room GetRoomAtPosition(Vector3 pos)
         {
+            Room selectedRoom = SelectedRoom;
+
             foreach (var room in Level.Rooms)
             {
-                if (room == null)
+                if (room is null)
                     continue;
 
                 BoundingBox b = room.WorldBoundingBox;
+                bool sameAlternate = selectedRoom is null || selectedRoom.IsAlternate == room.IsAlternate;
 
                 if (pos.X >= b.Minimum.X && pos.Y >= b.Minimum.Y && pos.Z >= b.Minimum.Z &&
                     pos.X <= b.Maximum.X && pos.Y <= b.Maximum.Y && pos.Z <= b.Maximum.Z &&
-                    SelectedRoom.IsAlternate == room.IsAlternate)
+                    sameAlternate)
                 {
                     return room;
                 }

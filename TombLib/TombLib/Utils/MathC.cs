@@ -8,12 +8,15 @@ namespace TombLib
 {
     public static class MathC
     {
-        public const float Epsilon = 1e-6f; // Value a 8x higher than 1.19209290E-07F
+        public const float Epsilon = 1e-6f; // Value an 8x higher than 1.19209290E-07F
         public const float TwoPi = 2.0f * MathF.PI;
 
         // Use Rec.709 trichromat formula to get perceptive luma value
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float GetLuma(this Vector3 color) => (float)((color.X * 0.2126) + (color.Y * 0.7152) + (color.Z * 0.0722));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsFinite(this Vector3 vec) => float.IsFinite(vec.X) && float.IsFinite(vec.Y) && float.IsFinite(vec.Z);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static VectorInt2 To2(this VectorInt3 vec) => new VectorInt2(vec.X, vec.Y);
