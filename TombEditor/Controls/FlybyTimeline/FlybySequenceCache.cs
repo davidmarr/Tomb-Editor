@@ -174,14 +174,6 @@ public sealed class FlybySequenceCache
     }
 
     /// <summary>
-    /// Samples the cache at a normalized progress value (0 to 1).
-    /// </summary>
-    /// <param name="progress">The normalized sequence progress to sample.</param>
-    /// <returns>The sampled preview frame for the requested progress.</returns>
-    public FlybyPreview.FrameState SampleAtProgress(float progress)
-        => SampleAtTime(Math.Clamp(progress, 0.0f, 1.0f) * TotalDuration);
-
-    /// <summary>
     /// Maps wall-clock playback time to timeline time, skipping over cut regions.
     /// </summary>
     /// <param name="playbackTime">The wall-clock playback time, in seconds.</param>
@@ -204,7 +196,7 @@ public sealed class FlybySequenceCache
     }
 
     /// <summary>
-    /// Maps timeline time to wall-clock playback time (inverse of PlaybackToTimelineTime).
+    /// Maps timeline time to wall-clock playback time (inverse of <see cref="PlaybackToTimelineTime"/>).
     /// </summary>
     /// <param name="timelineTime">The timeline time, in seconds.</param>
     /// <returns>The corresponding wall-clock playback time, in seconds.</returns>
@@ -262,18 +254,15 @@ public sealed class FlybySequenceCache
     /// <summary>
     /// Converts two cached frames into an interpolated preview frame.
     /// </summary>
-    private static FlybyPreview.FrameState LerpFrames(CachedFrame a, CachedFrame b, float t)
+    private static FlybyPreview.FrameState LerpFrames(CachedFrame a, CachedFrame b, float t) => new()
     {
-        return new FlybyPreview.FrameState
-        {
-            Position = Vector3.Lerp(a.Position, b.Position, t),
-            RotationY = a.RotationY + ((b.RotationY - a.RotationY) * t),
-            RotationX = a.RotationX + ((b.RotationX - a.RotationX) * t),
-            Roll = a.Roll + ((b.Roll - a.Roll) * t),
-            Fov = a.Fov + ((b.Fov - a.Fov) * t),
-            Finished = false
-        };
-    }
+        Position = Vector3.Lerp(a.Position, b.Position, t),
+        RotationY = a.RotationY + ((b.RotationY - a.RotationY) * t),
+        RotationX = a.RotationX + ((b.RotationX - a.RotationX) * t),
+        Roll = a.Roll + ((b.Roll - a.Roll) * t),
+        Fov = a.Fov + ((b.Fov - a.Fov) * t),
+        Finished = false
+    };
 
     /// <summary>
     /// Converts a cached frame into a preview frame state.
@@ -317,6 +306,7 @@ public sealed class FlybySequenceCache
             // Interpolation pair straddles the cut start or cut end.
             if (t0 < cut.StartTime && t1 >= cut.StartTime)
                 return true;
+
             if (t0 < cut.EndTime && t1 >= cut.EndTime)
                 return true;
         }

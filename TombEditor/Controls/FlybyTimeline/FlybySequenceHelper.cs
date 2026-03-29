@@ -67,30 +67,6 @@ public static class FlybySequenceHelper
     }
 
     /// <summary>
-    /// Builds timing data for the provided flyby camera sequence.
-    /// </summary>
-    /// <param name="cameras">Ordered flyby cameras that define the sequence.</param>
-    /// <param name="useSmoothPause">Whether TombEngine smooth-pause timing should be applied.</param>
-    /// <returns>The analyzed timing data for the sequence.</returns>
-    public static FlybySequenceTiming AnalyzeSequence(IReadOnlyList<FlybyCameraInstance> cameras, bool useSmoothPause)
-        => FlybySequenceTiming.Build(cameras, useSmoothPause);
-
-    /// <summary>
-    /// Returns the timeline time for a camera index within the sequence.
-    /// </summary>
-    /// <param name="cameras">Ordered flyby cameras in the active sequence.</param>
-    /// <param name="index">Camera index whose timeline time should be returned.</param>
-    /// <param name="useSmoothPause">Whether TombEngine smooth-pause timing should be applied.</param>
-    /// <returns>The timeline time for the requested camera, or 0 when unavailable.</returns>
-    public static float GetTimecodeForCamera(IReadOnlyList<FlybyCameraInstance> cameras, int index, bool useSmoothPause)
-    {
-        if (index < 0 || cameras.Count == 0)
-            return 0.0f;
-
-        return GetTimecodeForCamera(cameras, index, AnalyzeSequence(cameras, useSmoothPause));
-    }
-
-    /// <summary>
     /// Returns the timeline time for a camera index using precomputed sequence timing.
     /// </summary>
     /// <param name="cameras">Ordered flyby cameras in the active sequence.</param>
@@ -103,21 +79,6 @@ public static class FlybySequenceHelper
             return 0.0f;
 
         return timing.GetCameraTime(index);
-    }
-
-    /// <summary>
-    /// Finds the camera whose timecode is closest to the given timeline time.
-    /// </summary>
-    /// <param name="cameras">Ordered flyby cameras in the active sequence.</param>
-    /// <param name="timeSeconds">Timeline time to test against.</param>
-    /// <param name="useSmoothPause">Whether TombEngine smooth-pause timing should be applied.</param>
-    /// <returns>The index of the closest camera in timeline time, or <c>0</c> when the list is empty or the input time is not finite.</returns>
-    public static int FindCameraIndexAtTime(IReadOnlyList<FlybyCameraInstance> cameras, float timeSeconds, bool useSmoothPause)
-    {
-        if (cameras.Count == 0 || !float.IsFinite(timeSeconds))
-            return 0;
-
-        return FindCameraIndexAtTime(cameras, timeSeconds, AnalyzeSequence(cameras, useSmoothPause));
     }
 
     /// <summary>
@@ -148,21 +109,6 @@ public static class FlybySequenceHelper
         }
 
         return bestIndex;
-    }
-
-    /// <summary>
-    /// Finds the insertion index for a new camera at the given timeline time.
-    /// </summary>
-    /// <param name="cameras">Ordered flyby cameras in the active sequence.</param>
-    /// <param name="timeSeconds">Timeline time where the new camera should be inserted.</param>
-    /// <param name="useSmoothPause">Whether TombEngine smooth-pause timing should be applied.</param>
-    /// <returns>The list index where the new camera should be inserted, or the current camera count when no interior insertion point matches.</returns>
-    public static int FindInsertionIndex(IReadOnlyList<FlybyCameraInstance> cameras, float timeSeconds, bool useSmoothPause)
-    {
-        if (cameras.Count == 0 || !float.IsFinite(timeSeconds))
-            return cameras.Count;
-
-        return FindInsertionIndex(cameras, timeSeconds, AnalyzeSequence(cameras, useSmoothPause));
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
-﻿using System;
+﻿using DarkUI.Forms;
+using System;
 using System.Windows.Forms;
-using DarkUI.Forms;
+using TombEditor.Controls.FlybyTimeline;
 using TombLib.LevelData;
 
 namespace TombEditor.Forms
@@ -50,22 +51,10 @@ namespace TombEditor.Forms
 
             _isLoading = true;
 
-            cbBit0.Checked = (_flyByCamera.Flags & (1 << 0)) != 0;
-            cbBit1.Checked = (_flyByCamera.Flags & (1 << 1)) != 0;
-            cbBit2.Checked = (_flyByCamera.Flags & (1 << 2)) != 0;
-            cbBit3.Checked = (_flyByCamera.Flags & (1 << 3)) != 0;
-            cbBit4.Checked = (_flyByCamera.Flags & (1 << 4)) != 0;
-            cbBit5.Checked = (_flyByCamera.Flags & (1 << 5)) != 0;
-            cbBit6.Checked = (_flyByCamera.Flags & (1 << 6)) != 0;
-            cbBit7.Checked = (_flyByCamera.Flags & (1 << 7)) != 0;
-            cbBit8.Checked = (_flyByCamera.Flags & (1 << 8)) != 0;
-            cbBit9.Checked = (_flyByCamera.Flags & (1 << 9)) != 0;
-            cbBit10.Checked = (_flyByCamera.Flags & (1 << 10)) != 0;
-            cbBit11.Checked = (_flyByCamera.Flags & (1 << 11)) != 0;
-            cbBit12.Checked = (_flyByCamera.Flags & (1 << 12)) != 0;
-            cbBit13.Checked = (_flyByCamera.Flags & (1 << 13)) != 0;
-            cbBit14.Checked = (_flyByCamera.Flags & (1 << 14)) != 0;
-            cbBit15.Checked = (_flyByCamera.Flags & (1 << 15)) != 0;
+            var flagCheckBoxes = GetFlagCheckBoxes();
+
+            for (int i = 0; i < flagCheckBoxes.Length; i++)
+                flagCheckBoxes[i].Checked = FlybySequenceHelper.GetFlagBit(_flyByCamera.Flags, i);
 
             numSequence.Value = _flyByCamera.Sequence;
             numNumber.Value = _flyByCamera.Number;
@@ -205,23 +194,33 @@ namespace TombEditor.Forms
         private ushort CollectFlags()
         {
             ushort flags = 0;
-            flags |= (ushort)(cbBit0.Checked ? 1 << 0 : 0);
-            flags |= (ushort)(cbBit1.Checked ? 1 << 1 : 0);
-            flags |= (ushort)(cbBit2.Checked ? 1 << 2 : 0);
-            flags |= (ushort)(cbBit3.Checked ? 1 << 3 : 0);
-            flags |= (ushort)(cbBit4.Checked ? 1 << 4 : 0);
-            flags |= (ushort)(cbBit5.Checked ? 1 << 5 : 0);
-            flags |= (ushort)(cbBit6.Checked ? 1 << 6 : 0);
-            flags |= (ushort)(cbBit7.Checked ? 1 << 7 : 0);
-            flags |= (ushort)(cbBit8.Checked ? 1 << 8 : 0);
-            flags |= (ushort)(cbBit9.Checked ? 1 << 9 : 0);
-            flags |= (ushort)(cbBit10.Checked ? 1 << 10 : 0);
-            flags |= (ushort)(cbBit11.Checked ? 1 << 11 : 0);
-            flags |= (ushort)(cbBit12.Checked ? 1 << 12 : 0);
-            flags |= (ushort)(cbBit13.Checked ? 1 << 13 : 0);
-            flags |= (ushort)(cbBit14.Checked ? 1 << 14 : 0);
-            flags |= (ushort)(cbBit15.Checked ? 1 << 15 : 0);
+
+            var flagCheckBoxes = GetFlagCheckBoxes();
+
+            for (int i = 0; i < flagCheckBoxes.Length; i++)
+                flags = FlybySequenceHelper.SetFlagBit(flags, i, flagCheckBoxes[i].Checked);
+
             return flags;
         }
+
+        private CheckBox[] GetFlagCheckBoxes() =>
+        [
+            cbBit0,
+            cbBit1,
+            cbBit2,
+            cbBit3,
+            cbBit4,
+            cbBit5,
+            cbBit6,
+            cbBit7,
+            cbBit8,
+            cbBit9,
+            cbBit10,
+            cbBit11,
+            cbBit12,
+            cbBit13,
+            cbBit14,
+            cbBit15
+        ];
     }
 }

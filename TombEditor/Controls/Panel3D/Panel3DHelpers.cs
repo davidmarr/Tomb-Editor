@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using TombEditor.Controls.FlybyTimeline;
 using TombLib;
 using TombLib.Graphics;
 using TombLib.LevelData;
@@ -68,22 +69,11 @@ namespace TombEditor.Controls.Panel3D
 
         private bool AddFlybyPath(int sequence)
         {
-            // Collect all flyby cameras
-            var flybyCameras = new List<FlybyCameraInstance>();
-
-            foreach (var room in _editor.Level.ExistingRooms)
-                foreach (var instance in room.Objects.OfType<FlybyCameraInstance>())
-                {
-                    if (instance.Sequence == sequence)
-                        flybyCameras.Add(instance);
-                }
+            var flybyCameras = FlybySequenceHelper.GetCameras(_editor.Level, sequence);
 
             // Is it actually necessary to show the path?
             if (flybyCameras.Count < 2)
                 return false;
-
-            // Sort cameras
-            flybyCameras.Sort((x, y) => x.Number.CompareTo(y.Number));
 
             // Initialize variables for vertex buffer preparation
             var vertices = new List<SolidVertex>();
@@ -101,7 +91,7 @@ namespace TombEditor.Controls.Panel3D
 
                 // Check for a sequence cut and jump to appropriate camera, if setup is correct
                 bool isCut = false;
-                if ((cam.Flags & (1 << 7)) != 0 && cam.Timer < flybyCameras.Count && cam.Timer > i)
+                if ((cam.Flags & FlybyConstants.FlagCameraCut) != 0 && cam.Timer < flybyCameras.Count && cam.Timer > i)
                 {
                     isCut = true;
                     i = cam.Timer - 1;

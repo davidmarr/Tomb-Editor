@@ -243,15 +243,8 @@ public sealed class FlybyPreview : IDisposable
     }
 
     /// <summary>
-    /// Computes and sets the static frame for a flyby camera, then applies it to the given camera.
-    /// </summary>
-    /// <param name="camera">The preview camera to update.</param>
-    /// <param name="flybyCamera">The flyby camera instance to sample.</param>
-    public void SetFlybyStaticFrame(Camera camera, FlybyCameraInstance flybyCamera)
-        => SetStaticFrame(camera, GetFrameForCamera(flybyCamera));
-
-    /// <summary>
     /// Sets an arbitrary frame as the static frame and applies it to the camera.
+    /// Used for pinned preview updates such as flyby form edits and timeline scrubbing.
     /// </summary>
     /// <param name="camera">The preview camera to update.</param>
     /// <param name="frame">The frame state to pin as the static preview frame.</param>

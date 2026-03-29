@@ -202,7 +202,7 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
         }
         else
         {
-            var timing = FlybySequenceHelper.AnalyzeSequence(cameras, UseSmoothPause);
+            var timing = FlybySequenceTiming.Build(cameras, UseSmoothPause);
             int nearestIndex = FlybySequenceHelper.FindCameraIndexAtTime(cameras, timeSeconds, timing);
             _editor.CameraPreviewUpdated(cameras[nearestIndex]);
         }
@@ -337,7 +337,7 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
 
         if (frame.Finished)
         {
-            float totalDuration = _playbackPreview.Cache.TotalDuration; // Cache before stopping playback, as preview dispose will invalidate the cache reference
+            float totalDuration = _playbackPreview.Cache.TotalDuration; // Cache before stopping playback, as preview dispose will invalidate the cache reference.
             StopPlayback();
 
             SetPlayheadSeconds(totalDuration);

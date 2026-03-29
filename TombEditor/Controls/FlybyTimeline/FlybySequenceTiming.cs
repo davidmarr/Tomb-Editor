@@ -298,50 +298,50 @@ public sealed class FlybySequenceTiming
 
             processedBoundary = boundary.NextBoundary;
 
-            if (boundary.HasCut && boundary.NextCameraIndex < numCameras)
+            if (!boundary.HasCut || boundary.NextCameraIndex >= numCameras)
+                continue;
+
+            int targetCameraIndex = Math.Clamp(boundary.NextTimer, 0, numCameras - 1);
+
+            if (targetCameraIndex > boundary.NextCameraIndex && targetCameraIndex <= numSegments)
             {
-                int targetCameraIndex = Math.Clamp(boundary.NextTimer, 0, numCameras - 1);
+                float bypassedTime = 0;
 
-                if (targetCameraIndex > boundary.NextCameraIndex && targetCameraIndex <= numSegments)
+                for (int i = boundary.NextCameraIndex; i < targetCameraIndex; i++)
                 {
-                    float bypassedTime = 0;
+                    if (i < numCameras - 1)
+                        bypassedTime += segmentDurations[i];
 
-                    for (int i = boundary.NextCameraIndex; i < targetCameraIndex; i++)
-                    {
-                        if (i < numCameras - 1)
-                            bypassedTime += segmentDurations[i];
-
-                        bypassedTime += freezeDurations[i];
-                    }
-
-                    float cutStartTime = timeline.Count * FlybyConstants.TimeStep;
-                    float targetSplineT = targetCameraIndex;
-                    int bypassSlots = GetPauseSlotCountFromSeconds(bypassedTime);
-
-                    if (bypassSlots <= 0)
-                        bypassSlots = 1;
-
-                    EmitHoldSamples(targetSplineT, bypassSlots, ref emittedSlots, timeline.Add);
-
-                    regions.Add(new FlybyCutRegion
-                    {
-                        StartTime = cutStartTime,
-                        EndTime = cutStartTime + (bypassSlots * FlybyConstants.TimeStep)
-                    });
-
-                    processedBoundary = targetCameraIndex;
-                    currentSplineT = targetCameraIndex;
-
-                    if (freezeDurations[targetCameraIndex] > 0)
-                    {
-                        int freezeSlots = GetPauseSlotCountFromSeconds(freezeDurations[targetCameraIndex]);
-                        EmitHoldSamples(targetSplineT, freezeSlots, ref emittedSlots, timeline.Add);
-                    }
+                    bypassedTime += freezeDurations[i];
                 }
-                else if (targetCameraIndex >= numSegments)
+
+                float cutStartTime = timeline.Count * FlybyConstants.TimeStep;
+                float targetSplineT = targetCameraIndex;
+                int bypassSlots = GetPauseSlotCountFromSeconds(bypassedTime);
+
+                if (bypassSlots <= 0)
+                    bypassSlots = 1;
+
+                EmitHoldSamples(targetSplineT, bypassSlots, ref emittedSlots, timeline.Add);
+
+                regions.Add(new FlybyCutRegion
                 {
-                    break;
+                    StartTime = cutStartTime,
+                    EndTime = cutStartTime + (bypassSlots * FlybyConstants.TimeStep)
+                });
+
+                processedBoundary = targetCameraIndex;
+                currentSplineT = targetCameraIndex;
+
+                if (freezeDurations[targetCameraIndex] > 0)
+                {
+                    int freezeSlots = GetPauseSlotCountFromSeconds(freezeDurations[targetCameraIndex]);
+                    EmitHoldSamples(targetSplineT, freezeSlots, ref emittedSlots, timeline.Add);
                 }
+            }
+            else if (targetCameraIndex >= numSegments)
+            {
+                break;
             }
         }
 

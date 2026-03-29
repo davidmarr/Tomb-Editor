@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TombLib.LevelData;
+using TombLib.Forms;
 
 namespace TombEditor.Controls.FlybyTimeline;
 
@@ -18,14 +19,22 @@ public partial class FlybyTimelineViewModel
     [RelayCommand]
     private void AddSequence()
     {
-        ushort newIndex = 0;
+        var availableSequences = new HashSet<ushort>(AvailableSequences);
 
-        while (AvailableSequences.Contains(newIndex))
-            newIndex++;
+        for (int newIndex = 0; newIndex <= ushort.MaxValue; newIndex++)
+        {
+            ushort sequence = (ushort)newIndex;
 
-        _userAddedSequences.Add(newIndex);
-        InsertSequenceSorted(newIndex);
-        SelectedSequence = newIndex;
+            if (availableSequences.Contains(sequence))
+                continue;
+
+            _userAddedSequences.Add(sequence);
+            InsertSequenceSorted(sequence);
+            SelectedSequence = sequence;
+            return;
+        }
+
+        _editor.SendMessage("Maximum amount of flyby sequences reached.", PopupType.Error);
     }
 
     /// <summary>

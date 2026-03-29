@@ -253,7 +253,7 @@ namespace TombEditor.Controls.Panel3D
             if (_editor.CameraPreviewMode != CameraPreviewType.Static || _flybyPreview == null)
                 return;
 
-            _flybyPreview.SetFlybyStaticFrame(Camera, flybyCamera);
+            _flybyPreview.SetStaticFrame(Camera, FlybyPreview.GetFrameForCamera(flybyCamera));
             Invalidate();
         }
 

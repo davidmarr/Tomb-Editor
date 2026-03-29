@@ -212,7 +212,7 @@ public partial class FlybyTimelineViewModel
         if (HasMatchingCachedSequenceTiming(sequenceCameras))
             return _cachedSequenceTiming!;
 
-        var timing = FlybySequenceHelper.AnalyzeSequence(sequenceCameras, UseSmoothPause);
+        var timing = FlybySequenceTiming.Build(sequenceCameras, UseSmoothPause);
         CacheSequenceTiming(sequenceCameras, timing);
         return timing;
     }

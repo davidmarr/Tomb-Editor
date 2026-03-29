@@ -77,8 +77,7 @@ public partial class FlybyTimelineControl
             if (x < 0 || x > width)
                 continue;
 
-            context.DrawLine(GridLinePen, new Point(x, FlybyConstants.TimelineRulerHeight), new Point(x, ActualHeight));
-            context.DrawLine(GridLinePen, new Point(x, 0), new Point(x, FlybyConstants.TimelineRulerHeight));
+            context.DrawLine(GridLinePen, new Point(x, 0), new Point(x, ActualHeight));
 
             string label = FlybySequenceHelper.FormatRulerLabel(t);
             var formattedText = GetRulerLabelText(label, pixelsPerDip);
