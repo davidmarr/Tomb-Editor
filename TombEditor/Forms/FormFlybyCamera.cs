@@ -25,7 +25,7 @@ namespace TombEditor.Forms
         private float _originalRotationX;
         private float _originalRotationY;
 
-        // Clamped original values for change detection
+        // Original UI values used when the stored numeric values are already valid.
         private decimal _originalSpeedValue;
         private decimal _originalFovValue;
         private decimal _originalRollValue;
@@ -67,10 +67,10 @@ namespace TombEditor.Forms
             numNumber.Value = _flyByCamera.Number;
             numTimer.Value = _flyByCamera.Timer;
             numSpeed.Value = ClampNumericValue(_flyByCamera.Speed, numSpeed);
-            numFOV.Value = (decimal)_flyByCamera.Fov;
-            numRoll.Value = (decimal)_flyByCamera.Roll;
-            numRotationX.Value = (decimal)_flyByCamera.RotationX;
-            numRotationY.Value = (decimal)_flyByCamera.RotationY;
+            numFOV.Value = ClampNumericValue(_flyByCamera.Fov, numFOV);
+            numRoll.Value = ClampNumericValue(_flyByCamera.Roll, numRoll);
+            numRotationX.Value = ClampNumericValue(_flyByCamera.RotationX, numRotationX);
+            numRotationY.Value = ClampNumericValue(_flyByCamera.RotationY, numRotationY);
 
             if (_editor.Level.Settings.GameVersion is TRVersion.Game.TR5 or TRVersion.Game.TombEngine)
             {
@@ -186,11 +186,29 @@ namespace TombEditor.Forms
                 (ushort)numSequence.Value != _originalSequence ||
                 (ushort)numNumber.Value != _originalNumber ||
                 (short)numTimer.Value != _originalTimer ||
-                numSpeed.Value != _originalSpeedValue ||
-                numFOV.Value != _originalFovValue ||
-                numRoll.Value != _originalRollValue ||
-                numRotationX.Value != _originalRotationXValue ||
-                numRotationY.Value != _originalRotationYValue;
+                HasPendingNumericChange(_originalSpeed, _originalSpeedValue, numSpeed) ||
+                HasPendingNumericChange(_originalFov, _originalFovValue, numFOV) ||
+                HasPendingNumericChange(_originalRoll, _originalRollValue, numRoll) ||
+                HasPendingNumericChange(_originalRotationX, _originalRotationXValue, numRotationX) ||
+                HasPendingNumericChange(_originalRotationY, _originalRotationYValue, numRotationY);
+        }
+
+        private static bool HasPendingNumericChange(float originalValue, decimal originalDisplayValue, NumericUpDown numeric)
+        {
+            if (RequiresNumericNormalization(originalValue, numeric))
+                return true;
+
+            return numeric.Value != originalDisplayValue;
+        }
+
+        private static bool RequiresNumericNormalization(float value, NumericUpDown numeric)
+        {
+            if (!float.IsFinite(value))
+                return true;
+
+            double min = (double)numeric.Minimum;
+            double max = (double)numeric.Maximum;
+            return value < min || value > max;
         }
 
         private static decimal ClampNumericValue(float value, NumericUpDown numeric)
@@ -200,8 +218,11 @@ namespace TombEditor.Forms
             if (!float.IsFinite(value))
                 return fallbackValue;
 
-            decimal decimalValue = (decimal)value;
-            return Math.Min(numeric.Maximum, Math.Max(numeric.Minimum, decimalValue));
+            double min = (double)numeric.Minimum;
+            double max = (double)numeric.Maximum;
+            double clampedValue = Math.Min(max, Math.Max(min, value));
+
+            return (decimal)clampedValue;
         }
 
         private ushort CollectFlags()

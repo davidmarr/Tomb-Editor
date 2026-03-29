@@ -51,15 +51,17 @@ public partial class FlybyTimelineViewModel
         if (obj is Editor.ObjectChangedEvent changeEvent &&
             changeEvent.Object is FlybyCameraInstance flyby)
         {
-            // Add/remove operations can change which sequences exist even if the active sequence stays untouched.
-            if (!_isApplyingProperty && changeEvent.ChangeType != ObjectChangeType.Change)
+            bool affectsVisibleSequence = SelectedSequence.HasValue &&
+                (flyby.Sequence == SelectedSequence.Value || CameraList.Any(item => item.Camera == flyby));
+
+            if (!_isApplyingProperty)
                 RefreshSequenceList();
 
-            if (SelectedSequence.HasValue && flyby.Sequence == SelectedSequence.Value)
+            if (affectsVisibleSequence)
             {
                 _preview.InvalidateCache();
 
-                if (changeEvent.ChangeType == ObjectChangeType.Change)
+                if (_isApplyingProperty && changeEvent.ChangeType == ObjectChangeType.Change)
                     InvalidateSequenceTiming();
                 else
                     InvalidateVisibleCameraState();

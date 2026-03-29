@@ -1125,6 +1125,7 @@ namespace TombEditor
             else if (instance is FlybyCameraInstance flybyCamera)
             {
                 var undoInstance = new ChangeObjectPropertyUndoInstance(_editor.UndoManager, flybyCamera);
+                bool hasChanges = false;
 
                 using (var formFlyby = GetObjectSetupWindow(flybyCamera) as FormFlybyCamera)
                 {
@@ -1134,11 +1135,14 @@ namespace TombEditor
                     if (formFlyby.ShowDialog(owner) != DialogResult.OK)
                         return;
 
+                    hasChanges = formFlyby.HasChanges;
+
                     if (formFlyby.HasChanges)
                         _editor.UndoManager.Push(undoInstance);
                 }
 
-                _editor.ObjectChange(instance, ObjectChangeType.Change);
+                if (hasChanges)
+                    _editor.ObjectChange(instance, ObjectChangeType.Change);
             }
             else if (instance is CameraInstance)
             {

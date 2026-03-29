@@ -214,8 +214,12 @@ public partial class FlybyTimelineControl
         float centerY = trackY + (trackHeight / 2.0f);
         int sampleCount = Math.Max(2, (int)(width / 2.0f));
 
-        var cachedSpeeds = new float[sampleCount + 1];
-        List<(int Start, int End)> spans = [];
+        EnsureSpeedCurveSampleCapacity(sampleCount + 1);
+
+        var cachedSpeeds = _speedCurveSamples;
+        var spans = _speedCurveSpans;
+        spans.Clear();
+
         int spanStart = -1;
 
         for (int i = 0; i <= sampleCount; i++)
@@ -258,6 +262,15 @@ public partial class FlybyTimelineControl
     }
 
     /// <summary>
+    /// Ensures the reusable speed-curve sample buffer can hold the requested number of entries.
+    /// </summary>
+    private void EnsureSpeedCurveSampleCapacity(int requiredLength)
+    {
+        if (_speedCurveSamples.Length < requiredLength)
+            _speedCurveSamples = new float[requiredLength];
+    }
+
+    /// <summary>
     /// Draws one continuous filled speed span for the waveform.
     /// </summary>
     /// <param name="context">Geometry stream receiving the polygon outline.</param>
@@ -271,27 +284,25 @@ public partial class FlybyTimelineControl
     private static void DrawFilledWaveformSpan(StreamGeometryContext context, float width, float centerY,
         int sampleCount, int start, int end, float maxHalf, float[] cachedSpeeds)
     {
-        int count = end - start + 1;
-        var upper = new Point[count];
-        var lower = new Point[count];
+        context.BeginFigure(BuildWavePoint(width, centerY, sampleCount, start, maxHalf, cachedSpeeds, upper: true), true, true);
 
-        for (int i = 0; i < count; i++)
-        {
-            int step = start + i;
-            float x = width * step / sampleCount;
-            float speed = Math.Max(0.0f, cachedSpeeds[step]);
-            float half = Math.Min(maxHalf, Math.Max(1.0f, speed * maxHalf));
-            upper[i] = new Point(x, centerY - half);
-            lower[i] = new Point(x, centerY + half);
-        }
+        for (int step = start + 1; step <= end; step++)
+            context.LineTo(BuildWavePoint(width, centerY, sampleCount, step, maxHalf, cachedSpeeds, upper: true), true, false);
 
-        context.BeginFigure(upper[0], true, true);
+        for (int step = end; step >= start; step--)
+            context.LineTo(BuildWavePoint(width, centerY, sampleCount, step, maxHalf, cachedSpeeds, upper: false), true, false);
+    }
 
-        for (int i = 1; i < count; i++)
-            context.LineTo(upper[i], true, false);
-
-        for (int i = count - 1; i >= 0; i--)
-            context.LineTo(lower[i], true, false);
+    /// <summary>
+    /// Builds one point on the mirrored speed waveform.
+    /// </summary>
+    private static Point BuildWavePoint(float width, float centerY, int sampleCount, int step,
+        float maxHalf, float[] cachedSpeeds, bool upper)
+    {
+        float x = width * step / sampleCount;
+        float speed = Math.Max(0.0f, cachedSpeeds[step]);
+        float half = Math.Min(maxHalf, Math.Max(1.0f, speed * maxHalf));
+        return new Point(x, upper ? centerY - half : centerY + half);
     }
 
     /// <summary>

@@ -72,6 +72,8 @@ public partial class FlybyTimelineControl : Control
     // Peak speed for normalization of the speed curve display.
     private float _peakSpeed;
     private readonly Dictionary<string, FormattedText> _rulerTextCache = [];
+    private float[] _speedCurveSamples = [];
+    private readonly List<(int Start, int End)> _speedCurveSpans = [];
     private double _rulerTextPixelsPerDip = -1.0f;
 
     // Zoom and scroll state.
