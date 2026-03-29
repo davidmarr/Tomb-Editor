@@ -455,7 +455,7 @@ public class FlybyTimelineControl : Control
             return -1.0f;
 
         // Normalize against the peak speed for this sequence.
-        return float.IsFinite(_peakSpeed) && _peakSpeed > 0.001f ? speed / _peakSpeed : 0.0f;
+        return float.IsFinite(_peakSpeed) && _peakSpeed > FlybyConstants.MinSpeed ? speed / _peakSpeed : 0.0f;
     }
 
     /// <summary>
@@ -849,7 +849,7 @@ public class FlybyTimelineControl : Control
     /// Returns whether a marquee selection drag is large enough to count.
     /// </summary>
     private static bool HasExceededSelectionThreshold(float startX, float endX)
-        => Math.Abs(endX - startX) >= 3.0f;
+        => Math.Abs(endX - startX) >= FlybyConstants.TimelineSelectionThresholdPixels;
 
     /// <summary>
     /// Completes the current left-button interaction.
@@ -910,7 +910,7 @@ public class FlybyTimelineControl : Control
 
         ClampViewportToBounds(ref newStart, ref newEnd);
 
-        if (newEnd - newStart < 0.1f)
+        if (newEnd - newStart < FlybyConstants.TimelineMinViewportRange)
             return;
 
         ApplyViewport(newStart, newEnd, FlybyConstants.TimelineSmoothZoomEnabled);

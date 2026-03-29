@@ -285,7 +285,7 @@ public static class FlybySequenceHelper
         if (!float.IsFinite(fieldOfView))
             return;
 
-        if (lookDir.LengthSquared() < 0.001f)
+        if (lookDir.LengthSquared() < FlybyConstants.LookDirectionLengthSquaredEpsilon)
             return;
 
         lookDir = Vector3.Normalize(lookDir);
