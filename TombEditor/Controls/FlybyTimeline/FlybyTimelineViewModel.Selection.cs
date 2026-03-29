@@ -1,0 +1,300 @@
+#nullable enable
+
+using System.Collections.Generic;
+using System.Linq;
+using TombLib.LevelData;
+using TombLib.Utils;
+
+namespace TombEditor.Controls.FlybyTimeline;
+
+public partial class FlybyTimelineViewModel
+{
+    #region Editor event handling
+
+    /// <summary>
+    /// Handles editor events that affect flyby data, preview, or selection.
+    /// </summary>
+    private void OnEditorEventRaised(IEditorEvent obj)
+    {
+        if (!_dispatcher.CheckAccess())
+        {
+            _dispatcher.BeginInvoke(() => OnEditorEventRaised(obj));
+            return;
+        }
+
+        if (obj is Editor.LevelChangedEvent or Editor.GameVersionChangedEvent)
+        {
+            // Level-wide changes can keep the same SelectedSequence value, so force a full list rebuild here.
+            _preview.StopPlayback();
+            RefreshTimingMode();
+
+            if (IsPreviewActive)
+                _preview.ExitPreview();
+
+            _preview.InvalidateCache();
+            InvalidateVisibleCameraState();
+            ResetPlayhead();
+
+            if (obj is Editor.LevelChangedEvent)
+                _userAddedSequences.Clear();
+
+            RefreshSequenceList();
+            RefreshTimelineState(true, false);
+            return;
+        }
+
+        if (obj is Editor.ObjectChangedEvent changeEvent &&
+            changeEvent.Object is FlybyCameraInstance flyby)
+        {
+            // Add/remove operations can change which sequences exist even if the active sequence stays untouched.
+            if (!_isApplyingProperty && changeEvent.ChangeType != ObjectChangeType.Change)
+                RefreshSequenceList();
+
+            if (SelectedSequence.HasValue && flyby.Sequence == SelectedSequence.Value)
+            {
+                _preview.InvalidateCache();
+
+                if (changeEvent.ChangeType == ObjectChangeType.Change)
+                    InvalidateSequenceTiming();
+                else
+                    InvalidateVisibleCameraState();
+
+                if (!_isApplyingProperty)
+                    OnDataChanged();
+            }
+        }
+
+        if (obj is Editor.ToggleCameraPreviewEvent previewEvent && !previewEvent.PreviewState)
+            _preview.OnExternalPreviewExit();
+
+        if (obj is Editor.SelectedObjectChangedEvent selEvent && !_isSyncingSelection)
+            SyncSelectionFromEditor(selEvent.Current);
+    }
+
+    #endregion Editor event handling
+
+    /// <summary>
+    /// Creates undo instances for property changes on the given cameras.
+    /// </summary>
+    private List<UndoRedoInstance> CreateFlybyCameraPropertyUndo(IEnumerable<FlybyCameraInstance> cameras)
+    {
+        return [.. cameras
+            .Where(camera => camera.Room is not null)
+            .Distinct()
+            .Select(camera => new ChangeObjectPropertyUndoInstance(_editor.UndoManager, camera))];
+    }
+
+    /// <summary>
+    /// Creates undo instances for deleting the given cameras.
+    /// </summary>
+    private List<UndoRedoInstance> CreateFlybyCameraDeletionUndo(IEnumerable<FlybyCameraInstance> cameras)
+    {
+        return [.. cameras
+            .Where(camera => camera.Room is not null)
+            .Distinct()
+            .Select(camera => new AddRemoveObjectUndoInstance(_editor.UndoManager, camera, false))];
+    }
+
+    /// <summary>
+    /// Pushes undo instances only when there is captured undo state.
+    /// </summary>
+    private void PushUndoIfAny(List<UndoRedoInstance> undoInstances)
+    {
+        if (undoInstances.Count > 0)
+            _editor.UndoManager.Push(undoInstances);
+    }
+
+    /// <summary>
+    /// Creates an undo snapshot when a timeline drag starts affecting a segment.
+    /// </summary>
+    private void EnsureTimelineDragUndoSnapshot(int cameraIndex)
+    {
+        int speedCameraIndex = cameraIndex - 1;
+
+        if (_activeDraggedCameraIndex == speedCameraIndex || speedCameraIndex < 0 || speedCameraIndex >= CameraList.Count)
+            return;
+
+        PushUndoIfAny(CreateFlybyCameraPropertyUndo([CameraList[speedCameraIndex].Camera]));
+        _activeDraggedCameraIndex = speedCameraIndex;
+    }
+
+    /// <summary>
+    /// Replaces the selected flyby cameras and optionally syncs editor selection.
+    /// </summary>
+    private void SetSelectedCameras(IEnumerable<FlybyCameraInstance> cameras,
+        SelectionUpdateBehavior behavior = SelectionUpdateBehavior.All)
+    {
+        // The timeline only shows one sequence at a time, so discard any flyby cameras from other sequences up front.
+        var normalizedSelection = SelectedSequence.HasValue
+            ? cameras.Where(camera => camera.Sequence == SelectedSequence.Value).ToHashSet()
+            : [];
+
+        _selectedCameras.Clear();
+
+        foreach (var camera in normalizedSelection)
+            _selectedCameras.Add(camera);
+
+        if ((behavior & SelectionUpdateBehavior.RestoreSelectedCameraState) != 0)
+            RestoreSelectedCameraState();
+
+        if ((behavior & SelectionUpdateBehavior.SyncEditorSelection) != 0)
+            SyncEditorSelection();
+
+        if ((behavior & SelectionUpdateBehavior.RefreshTimeline) != 0)
+            TimelineRefreshRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Pushes current timeline selection into <see cref="Editor.SelectedObject"/> as an <see cref="ObjectGroup"/>.
+    /// </summary>
+    private void SyncEditorSelection()
+    {
+        if (_isSyncingSelection)
+            return;
+
+        _isSyncingSelection = true;
+
+        try
+        {
+            SetEditorSelection(GetMergedEditorSelection());
+        }
+        finally
+        {
+            _isSyncingSelection = false;
+        }
+    }
+
+    /// <summary>
+    /// Restores selected camera state after the visible camera list changes.
+    /// </summary>
+    private void RestoreSelectedCameraState()
+    {
+        if (!SelectedSequence.HasValue)
+        {
+            _selectedCameras.Clear();
+            SelectedCamera = null;
+            return;
+        }
+
+        var visibleCameras = CameraList.Select(item => item.Camera).ToHashSet();
+        _selectedCameras.RemoveWhere(camera => camera.Sequence != SelectedSequence.Value || !visibleCameras.Contains(camera));
+
+        if (_selectedCameras.Count == 1)
+            SelectedCamera = CameraList.FirstOrDefault(item => _selectedCameras.Contains(item.Camera));
+        else
+            SelectedCamera = null;
+    }
+
+    /// <summary>
+    /// Mirrors the editor selection into the flyby timeline selection.
+    /// </summary>
+    private void SyncSelectionFromEditor(ObjectInstance? currentSelection)
+    {
+        var selectedCameras = GetSelectedFlybyCameras(currentSelection);
+
+        _isSyncingSelection = true;
+
+        try
+        {
+            AlignSequenceToSelection(selectedCameras);
+            SetSelectedCameras(selectedCameras, SelectionUpdateBehavior.RestoreSelectedCameraState | SelectionUpdateBehavior.RefreshTimeline);
+        }
+        finally
+        {
+            _isSyncingSelection = false;
+        }
+    }
+
+    /// <summary>
+    /// Switches the active sequence to match the current camera selection.
+    /// </summary>
+    private void AlignSequenceToSelection(IReadOnlyList<FlybyCameraInstance> selectedCameras)
+    {
+        if (selectedCameras.Count == 0)
+            return;
+
+        if (SelectedSequence.HasValue && selectedCameras.Any(camera => camera.Sequence == SelectedSequence.Value))
+            return;
+
+        ushort? sequence = selectedCameras
+            .Select(camera => camera.Sequence)
+            .Where(AvailableSequences.Contains)
+            .Select(sequenceValue => (ushort?)sequenceValue)
+            .OrderBy(sequenceValue => sequenceValue)
+            .FirstOrDefault();
+
+        if (sequence.HasValue)
+            SelectedSequence = sequence.Value;
+    }
+
+    /// <summary>
+    /// Extracts flyby cameras from the current editor selection object.
+    /// </summary>
+    private static IReadOnlyList<FlybyCameraInstance> GetSelectedFlybyCameras(ObjectInstance? currentSelection)
+    {
+        if (currentSelection is FlybyCameraInstance flybyCamera)
+            return [flybyCamera];
+
+        if (currentSelection is ObjectGroup group)
+            return [.. group.OfType<FlybyCameraInstance>()];
+
+        return [];
+    }
+
+    /// <summary>
+    /// Merges timeline-selected cameras with non-flyby editor selection objects.
+    /// </summary>
+    private IReadOnlyList<PositionBasedObjectInstance> GetMergedEditorSelection()
+    {
+        var mergedSelection = GetEditorSelectionObjects()
+            .Where(objectInstance => objectInstance is not FlybyCameraInstance flybyCamera ||
+                                     !SelectedSequence.HasValue ||
+                                     flybyCamera.Sequence != SelectedSequence.Value)
+            .ToList();
+
+        mergedSelection.AddRange(_selectedCameras);
+
+        return [.. mergedSelection.Distinct()];
+    }
+
+    /// <summary>
+    /// Returns the current editor selection as position-based objects.
+    /// </summary>
+    private IReadOnlyList<PositionBasedObjectInstance> GetEditorSelectionObjects()
+    {
+        if (_editor.SelectedObject is ObjectGroup group)
+            return [.. group.Cast<PositionBasedObjectInstance>()];
+
+        if (_editor.SelectedObject is PositionBasedObjectInstance positionBased)
+            return [positionBased];
+
+        return [];
+    }
+
+    /// <summary>
+    /// Applies a new selection back into the editor.
+    /// </summary>
+    private void SetEditorSelection(IReadOnlyList<PositionBasedObjectInstance> selectedObjects)
+    {
+        var currentSelection = GetEditorSelectionObjects();
+
+        if (currentSelection.Count == selectedObjects.Count && currentSelection.All(selectedObjects.Contains))
+            return;
+
+        _editor.SelectedObject = BuildSelectionObject(selectedObjects);
+    }
+
+    /// <summary>
+    /// Builds the appropriate editor selection object for the given items.
+    /// </summary>
+    private static ObjectInstance? BuildSelectionObject(IReadOnlyList<PositionBasedObjectInstance> selectedObjects)
+    {
+        if (selectedObjects.Count == 0)
+            return null;
+
+        if (selectedObjects.Count == 1)
+            return selectedObjects[0];
+
+        return new ObjectGroup([.. selectedObjects]);
+    }
+}

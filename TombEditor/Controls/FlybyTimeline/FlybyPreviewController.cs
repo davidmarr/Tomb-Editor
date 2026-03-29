@@ -202,7 +202,8 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
         }
         else
         {
-            int nearestIndex = FlybySequenceHelper.FindCameraIndexAtTime(cameras, timeSeconds, UseSmoothPause);
+            var timing = FlybySequenceHelper.AnalyzeSequence(cameras, UseSmoothPause);
+            int nearestIndex = FlybySequenceHelper.FindCameraIndexAtTime(cameras, timeSeconds, timing);
             _editor.CameraPreviewUpdated(cameras[nearestIndex]);
         }
 

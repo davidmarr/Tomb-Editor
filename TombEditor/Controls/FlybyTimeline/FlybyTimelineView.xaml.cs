@@ -15,7 +15,6 @@ namespace TombEditor.Controls.FlybyTimeline;
 public partial class FlybyTimelineView : UserControl
 {
     private FlybyTimelineViewModel? _viewModel;
-    private System.Windows.Forms.IWin32Window? _parentForm;
     private bool _zoomToFitQueued;
 
     /// <summary>
@@ -33,8 +32,6 @@ public partial class FlybyTimelineView : UserControl
     {
         if (_viewModel is not null)
             return;
-
-        _parentForm = parentForm;
 
         var viewModel = new FlybyTimelineViewModel(Editor.Instance, Dispatcher, parentForm);
         _viewModel = viewModel;
@@ -60,7 +57,6 @@ public partial class FlybyTimelineView : UserControl
 
         _viewModel.Cleanup();
         DataContext = null;
-        _parentForm = null;
         _viewModel = null;
     }
 
@@ -176,10 +172,8 @@ public partial class FlybyTimelineView : UserControl
     /// </summary>
     private void OnTimelineMarkerClicked(int index)
     {
-        if (!TryGetCameraItem(index, out var item))
+        if (!TrySelectSingleCamera(index, out var item))
             return;
-
-        SelectSingleCamera(item);
 
         _viewModel?.UpdateSelectedRoomByPosition(item.Camera.WorldPosition);
     }
@@ -189,13 +183,10 @@ public partial class FlybyTimelineView : UserControl
     /// </summary>
     private void OnTimelineMarkerDoubleClicked(int index)
     {
-        if (!TryGetCameraItem(index, out var item))
+        if (!TrySelectSingleCamera(index, out var item))
             return;
 
-        SelectSingleCamera(item);
-
-        // Find parent WinForms control for the dialog owner.
-        EditorActions.EditObject(item.Camera, GetDialogOwner());
+        EditorActions.EditObject(item.Camera, _viewModel?.DialogOwner);
     }
 
     /// <summary>
@@ -270,6 +261,18 @@ public partial class FlybyTimelineView : UserControl
         => _viewModel?.UpdateSelectedCameras([item]);
 
     /// <summary>
+    /// Tries to resolve a marker index and make it the active single-camera selection.
+    /// </summary>
+    private bool TrySelectSingleCamera(int index, [NotNullWhen(true)] out FlybyCameraItemViewModel? item)
+    {
+        if (!TryGetCameraItem(index, out item))
+            return false;
+
+        SelectSingleCamera(item);
+        return true;
+    }
+
+    /// <summary>
     /// Returns the camera item for a valid timeline marker index.
     /// </summary>
     private bool TryGetCameraItem(int index, [NotNullWhen(true)] out FlybyCameraItemViewModel? item)
@@ -282,12 +285,6 @@ public partial class FlybyTimelineView : UserControl
         item = _viewModel.CameraList[index];
         return true;
     }
-
-    /// <summary>
-    /// Returns the best available dialog owner for flyby modal windows.
-    /// </summary>
-    private System.Windows.Forms.IWin32Window? GetDialogOwner()
-        => System.Windows.Forms.Form.ActiveForm ?? _parentForm;
 
     #endregion Timeline event handlers
 }
