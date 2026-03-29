@@ -56,6 +56,25 @@ public class FlybySequenceTimingTests
     }
 
     [TestMethod]
+    public void Build_WithFinalFreeze_KeepsSequenceEndAligned()
+    {
+        var level = FlybyTestFactory.CreateLevel();
+        var cameras = FlybyTestFactory.CreateLinearSequence(level.Rooms[0], 3,
+            new Vector3(0.0f, 0.0f, 0.0f),
+            new Vector3(0.0f, 0.0f, 1024.0f),
+            new Vector3(0.0f, 0.0f, 2048.0f),
+            new Vector3(0.0f, 0.0f, 3072.0f));
+
+        cameras[3].Flags = FlybyConstants.FlagFreezeCamera;
+        cameras[3].Timer = FlybyTestFactory.FreezeFrames(15);
+
+        var timing = FlybySequenceTiming.Build(cameras, useSmoothPause: false);
+        float expectedEndTime = timing.GetCameraTime(3) + timing.GetFreezeDuration(3);
+
+        Assert.AreEqual(expectedEndTime, timing.TotalDuration, 0.001f);
+    }
+
+    [TestMethod]
     public void Build_CapturesCutRegionsAndBypassDurations()
     {
         var level = FlybyTestFactory.CreateLevel();

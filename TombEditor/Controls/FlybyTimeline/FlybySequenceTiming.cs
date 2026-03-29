@@ -554,7 +554,8 @@ public sealed class FlybySequenceTiming
         if (!float.IsFinite(durationSeconds))
             return 0;
 
-        return Math.Max(0, (int)(Math.Max(0.0f, durationSeconds) / FlybyConstants.TimeStep));
+        float clampedDuration = Math.Max(0.0f, durationSeconds);
+        return Math.Max(0, (int)MathF.Round(clampedDuration / FlybyConstants.TimeStep));
     }
 
     private static float SanitizeSplineSpeed(float speed)
