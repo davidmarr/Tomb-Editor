@@ -111,4 +111,9 @@ public static class FlybyConstants
     /// This matches the level compiler convention so editor preview and exported data stay aligned.
     /// </summary>
     public const float TargetDistance = Level.SectorSizeUnit;
+
+    /// <summary>
+    /// Returns whether the given game version uses the TombEngine smooth-pause timing model.
+    /// </summary>
+    public static bool UseSmoothPause(TRVersion.Game? gameVersion) => gameVersion == TRVersion.Game.TombEngine;
 }

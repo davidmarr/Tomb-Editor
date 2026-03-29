@@ -55,15 +55,15 @@ public partial class FlybyTimelineControl
 
         UpdateMouseTracking(mouseX);
 
-        if (_isPanning)
+        if (_interactionMode == InteractionMode.Panning)
             UpdatePan(mouseX);
-        else if (_isRepositioning && e.LeftButton == MouseButtonState.Pressed)
+        else if (_interactionMode == InteractionMode.Repositioning && e.LeftButton == MouseButtonState.Pressed)
             UpdateReposition(mouseX);
-        else if (_dragIndex >= 0 && e.LeftButton == MouseButtonState.Pressed)
+        else if (_interactionMode == InteractionMode.MarkerDrag && _dragIndex >= 0 && e.LeftButton == MouseButtonState.Pressed)
             UpdateMarkerDrag(pos);
-        else if (_isScrubbing && e.LeftButton == MouseButtonState.Pressed)
+        else if (_interactionMode == InteractionMode.Scrubbing && e.LeftButton == MouseButtonState.Pressed)
             UpdateScrub(mouseX);
-        else if (_isRangeSelecting && e.LeftButton == MouseButtonState.Pressed)
+        else if (_interactionMode == InteractionMode.RangeSelecting && e.LeftButton == MouseButtonState.Pressed)
             UpdateRangeSelection(mouseX);
 
         InvalidateVisual();
@@ -163,7 +163,7 @@ public partial class FlybyTimelineControl
     {
         base.OnMouseUp(e);
 
-        if (e.ChangedButton == MouseButton.Middle && _isPanning)
+        if (e.ChangedButton == MouseButton.Middle && _interactionMode == InteractionMode.Panning)
             EndPan();
     }
 
@@ -174,7 +174,7 @@ public partial class FlybyTimelineControl
     {
         base.OnMouseRightButtonUp(e);
 
-        if (!_isPanning)
+        if (_interactionMode != InteractionMode.Panning)
             return;
 
         EndPan();
@@ -272,7 +272,7 @@ public partial class FlybyTimelineControl
     /// </summary>
     private void BeginScrub(float mouseX)
     {
-        _isScrubbing = true;
+        _interactionMode = InteractionMode.Scrubbing;
 
         CaptureMouse();
         UpdateScrub(mouseX);
@@ -285,7 +285,7 @@ public partial class FlybyTimelineControl
     {
         MarkerClicked?.Invoke(hitIndex);
 
-        _isRepositioning = true;
+        _interactionMode = InteractionMode.Repositioning;
         _repositionGhostX = mouseX;
         _repositionFromIndex = hitIndex;
         _repositionTargetIndex = hitIndex;
@@ -297,6 +297,7 @@ public partial class FlybyTimelineControl
     /// </summary>
     private void BeginMarkerDrag(int hitIndex, Point mousePosition)
     {
+        _interactionMode = InteractionMode.MarkerDrag;
         _dragIndex = hitIndex;
         _isDragging = false;
         _dragStartPoint = mousePosition;
@@ -311,7 +312,7 @@ public partial class FlybyTimelineControl
     /// </summary>
     private void BeginRangeSelection(float mouseX)
     {
-        _isRangeSelecting = true;
+        _interactionMode = InteractionMode.RangeSelecting;
         _rangeStartX = mouseX;
         _rangeEndX = mouseX;
         CaptureMouse();
@@ -330,7 +331,7 @@ public partial class FlybyTimelineControl
         float start = _visibleStartSeconds;
         float end = _visibleEndSeconds;
 
-        _isPanning = true;
+        _interactionMode = InteractionMode.Panning;
         _panStartPixelX = (float)startPosition.X;
         _panStartViewSeconds = start;
         _panStartViewRange = end - start;
@@ -411,7 +412,7 @@ public partial class FlybyTimelineControl
     /// </summary>
     private void EndPan()
     {
-        _isPanning = false;
+        _interactionMode = InteractionMode.None;
         Cursor = null;
         ReleaseMouseCapture();
     }
@@ -421,26 +422,28 @@ public partial class FlybyTimelineControl
     /// </summary>
     private void EndLeftMouseInteraction()
     {
-        if (_isRepositioning)
+        if (_interactionMode == InteractionMode.Repositioning)
         {
-            _isRepositioning = false;
+            _interactionMode = InteractionMode.None;
             CommitRepositioning();
         }
-        else if (_isRangeSelecting)
+        else if (_interactionMode == InteractionMode.RangeSelecting)
         {
-            _isRangeSelecting = false;
+            _interactionMode = InteractionMode.None;
             CommitRangeSelection();
         }
 
         if (_isDragging && _dragIndex >= 0)
             MarkerDragCompleted?.Invoke(_dragIndex);
 
-        _isScrubbing = false;
+        if (_interactionMode != InteractionMode.Panning)
+            _interactionMode = InteractionMode.None;
+
         _dragIndex = -1;
         _isDragging = false;
         _dragMouseOffsetSeconds = 0;
 
-        if (IsMouseCaptured && !_isPanning)
+        if (IsMouseCaptured && _interactionMode != InteractionMode.Panning)
             ReleaseMouseCapture();
 
         InvalidateVisual();
@@ -577,5 +580,6 @@ public partial class FlybyTimelineControl
     /// Returns whether a left-button-driven interaction is currently active or pending.
     /// </summary>
     private bool HasActiveLeftMouseInteraction()
-        => _dragIndex >= 0 || _isScrubbing || _isRangeSelecting || _isRepositioning;
+        => _interactionMode is InteractionMode.MarkerDrag or InteractionMode.Scrubbing
+            or InteractionMode.RangeSelecting or InteractionMode.Repositioning;
 }

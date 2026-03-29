@@ -110,7 +110,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// <summary>
     /// Gets whether TombEngine smooth pause behavior should be used.
     /// </summary>
-    private bool UseSmoothPause => _editor.Level?.Settings.GameVersion == TRVersion.Game.TombEngine;
+    private bool UseSmoothPause => FlybyConstants.UseSmoothPause(_editor.Level?.Settings.GameVersion);
 
     // Camera properties for the selected camera.
     /// <summary>

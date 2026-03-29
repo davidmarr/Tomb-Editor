@@ -52,6 +52,8 @@ public sealed class FlybySequenceCache
 
     private readonly CachedFrame[] _frames;
     private readonly FlybyCutRegion[] _cutRegions;
+    private readonly bool[] _framesInsideCutRegion;
+    private readonly bool[] _cutBoundaryFrames;
     private readonly float[] _smoothedSpeeds;
 
     /// <summary>
@@ -108,6 +110,8 @@ public sealed class FlybySequenceCache
         {
             _frames = [];
             _cutRegions = [];
+            _framesInsideCutRegion = [];
+            _cutBoundaryFrames = [];
             _smoothedSpeeds = [];
             PeakSpeed = 0.0f;
             return;
@@ -132,6 +136,8 @@ public sealed class FlybySequenceCache
 
         // Unwrap yaw/pitch/roll to prevent discontinuities from atan2 wrapping.
         UnwrapFrameAngles(_frames);
+
+        BuildCutLookupTables(_cutRegions, _frames.Length, out _framesInsideCutRegion, out _cutBoundaryFrames);
 
         // Pre-compute smoothed speed curve.
         _smoothedSpeeds = ComputeSmoothedSpeeds();
@@ -189,7 +195,7 @@ public sealed class FlybySequenceCache
             if (playbackTime < cutPlaybackStart)
                 break;
 
-            accumulatedCutTime += cut.EndTime - cut.StartTime;
+            accumulatedCutTime += cut.Duration;
         }
 
         return playbackTime + accumulatedCutTime;
@@ -212,7 +218,7 @@ public sealed class FlybySequenceCache
             if (timelineTime < cut.EndTime)
                 return cut.StartTime - accumulatedCutTime;
 
-            accumulatedCutTime += cut.EndTime - cut.StartTime;
+            accumulatedCutTime += cut.Duration;
         }
 
         return timelineTime - accumulatedCutTime;
@@ -236,15 +242,12 @@ public sealed class FlybySequenceCache
         if (timeSeconds < 0.0f || timeSeconds > TotalDuration)
             return InvalidSpeed;
 
-        // Skip cut regions.
-        foreach (var cut in _cutRegions)
-        {
-            if (timeSeconds >= cut.StartTime && timeSeconds < cut.EndTime)
-                return InvalidSpeed;
-        }
-
         float index = timeSeconds / FlybyConstants.TimeStep;
         int i0 = Math.Clamp((int)index, 0, _smoothedSpeeds.Length - 1);
+
+        if (IsInsideCutRegion(i0))
+            return InvalidSpeed;
+
         int i1 = Math.Min(i0 + 1, _smoothedSpeeds.Length - 1);
         float frac = index - (int)index;
 
@@ -281,37 +284,49 @@ public sealed class FlybySequenceCache
     /// Returns whether the given frame index lies inside a cut region.
     /// </summary>
     private bool IsInsideCutRegion(int frameIndex)
-    {
-        float time = frameIndex * FlybyConstants.TimeStep;
-
-        foreach (var cut in _cutRegions)
-        {
-            if (time >= cut.StartTime && time < cut.EndTime)
-                return true;
-        }
-
-        return false;
-    }
+        => frameIndex >= 0 && frameIndex < _framesInsideCutRegion.Length && _framesInsideCutRegion[frameIndex];
 
     /// <summary>
     /// Returns whether a frame pair crosses a cut boundary.
     /// </summary>
     private bool IsAtCutBoundary(int frameIndex)
+        => frameIndex >= 0 && frameIndex < _cutBoundaryFrames.Length && _cutBoundaryFrames[frameIndex];
+
+    /// <summary>
+    /// Builds per-frame cut membership and boundary lookup tables for fast sampling.
+    /// </summary>
+    private static void BuildCutLookupTables(IReadOnlyList<FlybyCutRegion> cutRegions, int frameCount,
+        out bool[] framesInsideCutRegion, out bool[] cutBoundaryFrames)
     {
-        float t0 = frameIndex * FlybyConstants.TimeStep;
-        float t1 = (frameIndex + 1) * FlybyConstants.TimeStep;
+        framesInsideCutRegion = new bool[frameCount];
+        cutBoundaryFrames = new bool[Math.Max(0, frameCount - 1)];
 
-        foreach (var cut in _cutRegions)
+        foreach (var cut in cutRegions)
         {
-            // Interpolation pair straddles the cut start or cut end.
-            if (t0 < cut.StartTime && t1 >= cut.StartTime)
-                return true;
+            int startFrame = TimeToFrameIndex(cut.StartTime, frameCount);
+            int endFrame = TimeToFrameIndex(cut.EndTime, frameCount);
 
-            if (t0 < cut.EndTime && t1 >= cut.EndTime)
-                return true;
+            for (int frameIndex = startFrame; frameIndex < endFrame && frameIndex < frameCount; frameIndex++)
+                framesInsideCutRegion[frameIndex] = true;
+
+            if (startFrame > 0 && startFrame - 1 < cutBoundaryFrames.Length)
+                cutBoundaryFrames[startFrame - 1] = true;
+
+            if (endFrame > 0 && endFrame - 1 < cutBoundaryFrames.Length)
+                cutBoundaryFrames[endFrame - 1] = true;
         }
+    }
 
-        return false;
+    /// <summary>
+    /// Converts a cut-boundary time aligned to the cache step into a clamped frame index.
+    /// </summary>
+    private static int TimeToFrameIndex(float timeSeconds, int frameCount)
+    {
+        if (frameCount <= 0 || !float.IsFinite(timeSeconds))
+            return 0;
+
+        int frameIndex = (int)MathF.Round(timeSeconds / FlybyConstants.TimeStep);
+        return Math.Clamp(frameIndex, 0, frameCount - 1);
     }
 
     #region Parallel spline evaluation

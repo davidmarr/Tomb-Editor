@@ -36,7 +36,7 @@ public partial class FlybyTimelineControl
         DrawSpeedCurve(context, w, trackY, trackHeight);
         DrawMarkers(context, w, trackY, trackHeight);
 
-        if (_isRangeSelecting)
+        if (_interactionMode == InteractionMode.RangeSelecting)
         {
             float selLeft = Math.Min(_rangeStartX, _rangeEndX);
             float selRight = Math.Max(_rangeStartX, _rangeEndX);
@@ -200,6 +200,7 @@ public partial class FlybyTimelineControl
         float centerY = trackY + (trackHeight / 2.0f);
         int sampleCount = Math.Max(2, (int)(width / 2.0f));
 
+        var cachedSpeeds = new float[sampleCount + 1];
         List<(int Start, int End)> spans = [];
         int spanStart = -1;
 
@@ -207,6 +208,7 @@ public partial class FlybyTimelineControl
         {
             float x = width * i / sampleCount;
             float speed = GetSpeedAtTime(PixelToTime(x, width));
+            cachedSpeeds[i] = speed;
 
             if (speed >= 0)
             {
@@ -231,7 +233,7 @@ public partial class FlybyTimelineControl
         using (var streamContext = geometry.Open())
         {
             foreach (var (start, end) in spans)
-                DrawFilledWaveformSpan(streamContext, width, centerY, sampleCount, start, end, maxHalfAmplitude);
+                DrawFilledWaveformSpan(streamContext, width, centerY, sampleCount, start, end, maxHalfAmplitude, cachedSpeeds);
         }
 
         geometry.Freeze();
@@ -244,8 +246,8 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Draws one continuous filled speed span for the waveform.
     /// </summary>
-    private void DrawFilledWaveformSpan(StreamGeometryContext context, float width, float centerY,
-        int sampleCount, int start, int end, float maxHalf)
+    private static void DrawFilledWaveformSpan(StreamGeometryContext context, float width, float centerY,
+        int sampleCount, int start, int end, float maxHalf, float[] cachedSpeeds)
     {
         int count = end - start + 1;
         var upper = new Point[count];
@@ -255,7 +257,7 @@ public partial class FlybyTimelineControl
         {
             int step = start + i;
             float x = width * step / sampleCount;
-            float speed = Math.Max(0.0f, GetSpeedAtTime(PixelToTime(x, width)));
+            float speed = Math.Max(0.0f, cachedSpeeds[step]);
             float half = Math.Min(maxHalf, Math.Max(1.0f, speed * maxHalf));
             upper[i] = new Point(x, centerY - half);
             lower[i] = new Point(x, centerY + half);
@@ -291,7 +293,7 @@ public partial class FlybyTimelineControl
             DrawMarker(context, marker, fill, x, centerY);
         }
 
-        if (_isRepositioning)
+        if (_interactionMode == InteractionMode.Repositioning)
             DrawGhostMarkers(context, width, centerY);
     }
 

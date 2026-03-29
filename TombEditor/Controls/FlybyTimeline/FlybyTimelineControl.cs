@@ -50,6 +50,19 @@ public partial class FlybyTimelineControl : Control
 
     private static readonly Typeface DefaultTypeface = new("Segoe UI");
 
+    /// <summary>
+    /// Represents the mutually exclusive pointer interaction modes of the timeline control.
+    /// </summary>
+    private enum InteractionMode
+    {
+        None,
+        Scrubbing,
+        MarkerDrag,
+        RangeSelecting,
+        Repositioning,
+        Panning
+    }
+
     // Timeline data: markers displayed by the control.
     private IReadOnlyList<TimelineMarker> _markers = [];
 
@@ -69,6 +82,9 @@ public partial class FlybyTimelineControl : Control
     private float _smoothViewportTargetStartSeconds;
     private float _smoothViewportTargetEndSeconds;
 
+    // Active interaction mode.
+    private InteractionMode _interactionMode;
+
     // Drag state for marker dragging.
     private int _dragIndex = -1;
     private bool _isDragging;
@@ -80,24 +96,18 @@ public partial class FlybyTimelineControl : Control
     private bool _isMouseOver;
 
     // Range selection state.
-    private bool _isRangeSelecting;
     private float _rangeStartX;
     private float _rangeEndX;
-
-    // Scrub state.
-    private bool _isScrubbing;
 
     // Playhead position in seconds (negative = hidden).
     private float _playheadSeconds = -1.0f;
 
     // Reposition state (Alt+LMB drag for renumbering).
-    private bool _isRepositioning;
     private float _repositionGhostX;
     private int _repositionTargetIndex = -1;
     private int _repositionFromIndex = -1;
 
     // Pan state for middle/right mouse button dragging.
-    private bool _isPanning;
     private float _panStartPixelX;
     private float _panStartViewSeconds;
     private float _panStartViewRange;

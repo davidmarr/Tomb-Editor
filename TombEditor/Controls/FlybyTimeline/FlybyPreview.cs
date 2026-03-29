@@ -67,7 +67,7 @@ public sealed class FlybyPreview : IDisposable
         : this(
             new FlybySequenceCache(
                 FlybySequenceHelper.GetCameras(level, sequence),
-                useSmoothPause: level.Settings.GameVersion == TRVersion.Game.TombEngine),
+                useSmoothPause: FlybyConstants.UseSmoothPause(level.Settings.GameVersion)),
             savedCamera)
     { }
 

@@ -58,7 +58,7 @@ public static class FlybySequenceHelper
         if ((camera.Flags & FlybyConstants.FlagFreezeCamera) == 0)
             return 0.0f;
 
-        // When the cut flag is set, Timer holds the target camera index, not freeze frames.
+        // When the cut flag is set, Timer holds the target camera number, not freeze frames.
         if ((camera.Flags & FlybyConstants.FlagCameraCut) != 0)
             return 0.0f;
 
@@ -197,6 +197,44 @@ public static class FlybySequenceHelper
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Resolves the cut target for a camera by matching the camera's Timer value against later camera numbers in the sequence.
+    /// </summary>
+    /// <param name="cameras">Ordered flyby cameras in the active sequence.</param>
+    /// <param name="cutCameraIndex">Index of the cut camera whose Timer value should be resolved.</param>
+    /// <param name="targetIndex">Receives the resolved later camera index when the target is valid and unambiguous.</param>
+    /// <returns><see langword="true"/> when the cut target resolves to exactly one later camera number; otherwise <see langword="false"/>.</returns>
+    public static bool TryResolveCutTargetIndex(IReadOnlyList<FlybyCameraInstance> cameras, int cutCameraIndex, out int targetIndex)
+    {
+        targetIndex = -1;
+
+        if (cutCameraIndex < 0 || cutCameraIndex >= cameras.Count)
+            return false;
+
+        var cutCamera = cameras[cutCameraIndex];
+
+        if ((cutCamera.Flags & FlybyConstants.FlagCameraCut) == 0)
+            return false;
+
+        int targetNumber = cutCamera.Timer;
+
+        for (int i = cutCameraIndex + 1; i < cameras.Count; i++)
+        {
+            if (cameras[i].Number != targetNumber)
+                continue;
+
+            if (targetIndex >= 0)
+            {
+                targetIndex = -1;
+                return false;
+            }
+
+            targetIndex = i;
+        }
+
+        return targetIndex >= 0;
     }
 
     /// <summary>

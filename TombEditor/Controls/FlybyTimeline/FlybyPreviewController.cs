@@ -25,7 +25,7 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
     private DispatcherTimer? _playbackTimer;
     private bool _isChangingPreview;
 
-    private bool UseSmoothPause => _editor.Level?.Settings.GameVersion == TRVersion.Game.TombEngine;
+    private bool UseSmoothPause => FlybyConstants.UseSmoothPause(_editor.Level?.Settings.GameVersion);
 
     /// <summary>
     /// Gets whether the editor is currently in any camera preview mode.
