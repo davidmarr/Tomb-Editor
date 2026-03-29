@@ -32,20 +32,20 @@ public static class WindowExtensions
 		=> new(window) { Owner = owner.Handle };
 
 	/// <summary>
-	/// Retrieves an <see cref="IWin32Window"/> representation of the specified WPF <see cref="Window"/>.
+	/// Retrieves an <see cref="IWinFormsWindow"/> representation of the specified WPF <see cref="Window"/>.
 	/// </summary>
 	/// <remarks>
 	/// This method exposes the underlying Win32 window handle (HWND) of a WPF window,
-	/// allowing it to be used with APIs and components that require an <see cref="IWin32Window"/>,
+	/// allowing it to be used with APIs and components that require an <see cref="IWinFormsWindow"/>,
 	/// such as WinForms dialogs. The handle is obtained via <see cref="WindowInteropHelper"/>.
 	/// If the window handle has not yet been created, it will be initialized.
 	/// </remarks>
 	/// <param name="window">The WPF <see cref="Window"/> instance.</param>
-	/// <returns>An <see cref="IWin32Window"/> wrapper for the window's underlying handle.</returns>
+	/// <returns>An <see cref="IWinFormsWindow"/> wrapper for the window's underlying handle.</returns>
 	public static IWinFormsWindow GetWin32Window(this Window window)
 	{
 		var helper = new WindowInteropHelper(window);
-		
+
 		if (helper.Handle == IntPtr.Zero)
 			helper.EnsureHandle();
 
