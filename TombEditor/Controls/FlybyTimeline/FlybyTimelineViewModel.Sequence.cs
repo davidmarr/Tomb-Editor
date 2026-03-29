@@ -329,11 +329,9 @@ public partial class FlybyTimelineViewModel
     /// Returns the next available camera number after the current highest numbered camera.
     /// </summary>
     private static ushort GetNextCameraNumber(IReadOnlyList<FlybyCameraInstance> cameras)
-    {
-        return cameras.Count > 0
+        => cameras.Count > 0
             ? (ushort)(cameras.Max(camera => (int)camera.Number) + 1)
             : (ushort)0;
-    }
 
     /// <summary>
     /// Returns the number a new camera should receive when inserted at the given list position.

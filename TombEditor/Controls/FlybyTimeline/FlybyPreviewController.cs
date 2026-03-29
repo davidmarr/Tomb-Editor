@@ -53,24 +53,6 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
     public event Action? PlayheadChanged;
 
     /// <summary>
-    /// Enters static preview mode and optionally shows the given camera.
-    /// </summary>
-    /// <param name="camera">The flyby camera to show after entering preview mode, or <see langword="null"/> to keep the current preview frame.</param>
-    public void EnterPreview(FlybyCameraInstance? camera)
-    {
-        var previousMode = _editor.CameraPreviewMode;
-
-        if (!EnsureStaticPreviewActive())
-            return;
-
-        if (camera is not null)
-            _editor.CameraPreviewUpdated(camera);
-
-        if (previousMode != CameraPreviewType.Static)
-            StateChanged?.Invoke();
-    }
-
-    /// <summary>
     /// Exits preview mode and stops any active playback.
     /// </summary>
     public void ExitPreview()
