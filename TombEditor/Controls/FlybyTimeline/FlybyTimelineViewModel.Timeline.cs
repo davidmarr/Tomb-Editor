@@ -586,6 +586,9 @@ public partial class FlybyTimelineViewModel
     /// </summary>
     private void RefreshTimelineState(bool refreshCameraList, bool syncPreview = true, bool refreshTimeline = true)
     {
+        if (_isDisposed)
+            return;
+
         if (refreshCameraList)
             RefreshCameraList();
 
@@ -604,6 +607,9 @@ public partial class FlybyTimelineViewModel
     /// </summary>
     private void QueueTimelineRefresh(bool refreshCameraList, bool syncPreview = true, bool refreshTimeline = true)
     {
+        if (_isDisposed)
+            return;
+
         _queuedTimelineRefreshCameraList |= refreshCameraList;
         _queuedTimelineRefreshTimeline |= refreshTimeline;
         _queuedTimelineRefreshPreview |= syncPreview;
@@ -613,19 +619,54 @@ public partial class FlybyTimelineViewModel
 
         _isTimelineRefreshQueued = true;
 
-        _dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+        _queuedTimelineRefreshOperation = _dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(ProcessQueuedTimelineRefresh));
+    }
+
+    /// <summary>
+    /// Cancels any queued dispatcher refresh and clears the accumulated refresh state.
+    /// </summary>
+    private void AbortQueuedTimelineRefresh()
+    {
+        if (_queuedTimelineRefreshOperation is not null &&
+            _queuedTimelineRefreshOperation.Status is DispatcherOperationStatus.Pending or DispatcherOperationStatus.Executing)
         {
-            bool queuedRefreshCameraList = _queuedTimelineRefreshCameraList;
-            bool queuedRefreshTimeline = _queuedTimelineRefreshTimeline;
-            bool queuedRefreshPreview = _queuedTimelineRefreshPreview;
+            _queuedTimelineRefreshOperation.Abort();
+        }
 
-            _isTimelineRefreshQueued = false;
-            _queuedTimelineRefreshCameraList = false;
-            _queuedTimelineRefreshTimeline = false;
-            _queuedTimelineRefreshPreview = false;
+        _queuedTimelineRefreshOperation = null;
+        ClearQueuedTimelineRefreshState();
+    }
 
-            RefreshTimelineState(queuedRefreshCameraList, queuedRefreshPreview, queuedRefreshTimeline);
-        }));
+    /// <summary>
+    /// Runs the accumulated queued refresh work unless cleanup already disposed the view model.
+    /// </summary>
+    private void ProcessQueuedTimelineRefresh()
+    {
+        _queuedTimelineRefreshOperation = null;
+
+        if (_isDisposed)
+        {
+            ClearQueuedTimelineRefreshState();
+            return;
+        }
+
+        bool queuedRefreshCameraList = _queuedTimelineRefreshCameraList;
+        bool queuedRefreshTimeline = _queuedTimelineRefreshTimeline;
+        bool queuedRefreshPreview = _queuedTimelineRefreshPreview;
+
+        ClearQueuedTimelineRefreshState();
+        RefreshTimelineState(queuedRefreshCameraList, queuedRefreshPreview, queuedRefreshTimeline);
+    }
+
+    /// <summary>
+    /// Clears the batched refresh flags after queued work is consumed or cancelled.
+    /// </summary>
+    private void ClearQueuedTimelineRefreshState()
+    {
+        _isTimelineRefreshQueued = false;
+        _queuedTimelineRefreshCameraList = false;
+        _queuedTimelineRefreshTimeline = false;
+        _queuedTimelineRefreshPreview = false;
     }
 
     /// <summary>
@@ -639,6 +680,9 @@ public partial class FlybyTimelineViewModel
     /// </summary>
     private void RefreshPreviewState()
     {
+        if (_isDisposed)
+            return;
+
         if (!TryGetSequenceContext(out var cameras, out var sequence))
         {
             if (SelectedCamera is not null)
@@ -679,6 +723,9 @@ public partial class FlybyTimelineViewModel
     /// </summary>
     private void OnPreviewStateChanged()
     {
+        if (_isDisposed)
+            return;
+
         IsPlaying = _preview.IsPlaying;
         OnPropertyChanged(nameof(IsPreviewActive));
         OnPropertyChanged(nameof(CanEditProperties));
@@ -687,7 +734,13 @@ public partial class FlybyTimelineViewModel
     /// <summary>
     /// Synchronizes the playhead position from preview playback.
     /// </summary>
-    private void OnPreviewPlayheadChanged() => PlayheadSeconds = _preview.PlayheadSeconds;
+    private void OnPreviewPlayheadChanged()
+    {
+        if (_isDisposed)
+            return;
+
+        PlayheadSeconds = _preview.PlayheadSeconds;
+    }
 
     #endregion Preview state sync
 }

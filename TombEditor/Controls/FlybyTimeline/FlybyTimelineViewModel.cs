@@ -59,6 +59,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private bool _isUpdating;
     private bool _isApplyingProperty;
     private bool _isSyncingSelection;
+    private bool _isDisposed;
     private bool _isTimelineRefreshQueued;
     private bool _queuedTimelineRefreshCameraList;
     private bool _queuedTimelineRefreshTimeline;
@@ -67,6 +68,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private int _activeDraggedCameraIndex = -1;
     private List<FlybyCameraInstance>? _cachedVisibleCameras;
     private FlybySequenceTiming? _cachedSequenceTiming;
+    private DispatcherOperation? _queuedTimelineRefreshOperation;
 
     /// <summary>
     /// Gets the available flyby sequence ids shown in the UI.
@@ -248,6 +250,12 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// </summary>
     public void Cleanup()
     {
+        if (_isDisposed)
+            return;
+
+        _isDisposed = true;
+        AbortQueuedTimelineRefresh();
+
         _preview.StateChanged -= OnPreviewStateChanged;
         _preview.PlayheadChanged -= OnPreviewPlayheadChanged;
         _preview.Dispose();

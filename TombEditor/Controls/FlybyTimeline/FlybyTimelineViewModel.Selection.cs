@@ -16,8 +16,14 @@ public partial class FlybyTimelineViewModel
     /// </summary>
     private void OnEditorEventRaised(IEditorEvent obj)
     {
+        if (_isDisposed)
+            return;
+
         if (!_dispatcher.CheckAccess())
         {
+            if (_isDisposed)
+                return;
+
             _dispatcher.BeginInvoke(() => OnEditorEventRaised(obj));
             return;
         }
