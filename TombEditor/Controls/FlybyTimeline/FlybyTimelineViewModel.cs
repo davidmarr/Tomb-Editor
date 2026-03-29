@@ -68,6 +68,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private int _activeDraggedCameraIndex = -1;
     private List<FlybyCameraInstance>? _cachedVisibleCameras;
     private FlybySequenceTiming? _cachedSequenceTiming;
+    private FlybyCameraInstance[]? _cachedSequenceTimingCameras;
     private DispatcherOperation? _queuedTimelineRefreshOperation;
 
     /// <summary>

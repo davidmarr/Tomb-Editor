@@ -207,12 +207,14 @@ public partial class FlybyTimelineViewModel
     /// </summary>
     private FlybySequenceTiming GetSequenceTiming(IReadOnlyList<FlybyCameraInstance>? cameras = null)
     {
-        if (_cachedSequenceTiming is not null)
-            return _cachedSequenceTiming;
-
         var sequenceCameras = cameras ?? GetCamerasAsList();
-        _cachedSequenceTiming = FlybySequenceHelper.AnalyzeSequence(sequenceCameras, UseSmoothPause);
-        return _cachedSequenceTiming;
+
+        if (HasMatchingCachedSequenceTiming(sequenceCameras))
+            return _cachedSequenceTiming!;
+
+        var timing = FlybySequenceHelper.AnalyzeSequence(sequenceCameras, UseSmoothPause);
+        CacheSequenceTiming(sequenceCameras, timing);
+        return timing;
     }
 
     /// <summary>
@@ -227,10 +229,17 @@ public partial class FlybyTimelineViewModel
     {
         var cameras = GetCamerasAsList();
         var cache = GetSequenceCache(cameras);
-        var timing = cache?.Timing ?? GetSequenceTiming(cameras);
+        FlybySequenceTiming timing;
 
-        if (cache is not null)
-            _cachedSequenceTiming = cache.Timing;
+        if (cache is not null && cache.Timing.CameraCount == cameras.Count)
+        {
+            timing = cache.Timing;
+            CacheSequenceTiming(cameras, timing);
+        }
+        else
+        {
+            timing = GetSequenceTiming(cameras);
+        }
 
         var selectedIndices = GetSelectedIndices();
         var cutBypassedSegments = GetCutBypassedSegments(cameras);
@@ -305,10 +314,41 @@ public partial class FlybyTimelineViewModel
 
         var cache = _preview.GetOrBuildCache(cameras, SelectedSequence.Value);
 
-        if (cache is not null)
-            _cachedSequenceTiming = cache.Timing;
+        if (cache is not null && cache.Timing.CameraCount == cameras.Count)
+            CacheSequenceTiming(cameras, cache.Timing);
 
         return cache;
+    }
+
+    /// <summary>
+    /// Returns whether the cached sequence timing matches the provided camera list.
+    /// </summary>
+    private bool HasMatchingCachedSequenceTiming(IReadOnlyList<FlybyCameraInstance> cameras)
+    {
+        var cachedTimingCameras = _cachedSequenceTimingCameras;
+
+        if (_cachedSequenceTiming is null || cachedTimingCameras is null)
+            return false;
+
+        if (_cachedSequenceTiming.CameraCount != cameras.Count || cachedTimingCameras.Length != cameras.Count)
+            return false;
+
+        for (int i = 0; i < cameras.Count; i++)
+        {
+            if (!ReferenceEquals(cachedTimingCameras[i], cameras[i]))
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Stores sequence timing together with the camera list it was derived from.
+    /// </summary>
+    private void CacheSequenceTiming(IReadOnlyList<FlybyCameraInstance> cameras, FlybySequenceTiming timing)
+    {
+        _cachedSequenceTiming = timing;
+        _cachedSequenceTimingCameras = [.. cameras];
     }
 
     /// <summary>
@@ -574,12 +614,17 @@ public partial class FlybyTimelineViewModel
     {
         _cachedVisibleCameras = null;
         _cachedSequenceTiming = null;
+        _cachedSequenceTimingCameras = null;
     }
 
     /// <summary>
     /// Clears cached sequence timing while keeping the visible camera list.
     /// </summary>
-    private void InvalidateSequenceTiming() => _cachedSequenceTiming = null;
+    private void InvalidateSequenceTiming()
+    {
+        _cachedSequenceTiming = null;
+        _cachedSequenceTimingCameras = null;
+    }
 
     /// <summary>
     /// Refreshes camera data and optionally syncs the preview output.
