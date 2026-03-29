@@ -361,6 +361,11 @@ public static class FlybySequenceHelper
         flyby.Fov = MathC.SignedRadToDeg(fieldOfView);
     }
 
+    /// <summary>
+    /// Clamps a potentially invalid flyby speed to the supported editor range.
+    /// </summary>
+    /// <param name="speed">Speed value to validate and clamp.</param>
+    /// <returns>A finite speed within the supported flyby speed range.</returns>
     private static float GetClampedSpeed(float speed)
     {
         if (!float.IsFinite(speed))
@@ -369,6 +374,13 @@ public static class FlybySequenceHelper
         return Math.Clamp(speed, FlybyConstants.MinSpeed, FlybyConstants.MaxSpeed);
     }
 
+    /// <summary>
+    /// Formats a timeline time using centisecond precision for either labels or timecodes.
+    /// </summary>
+    /// <param name="seconds">Time in seconds to format.</param>
+    /// <param name="alwaysShowMinutes"><see langword="true"/> to always emit an MM:SS.CC-style string; otherwise shorter labels may omit leading minutes.</param>
+    /// <param name="roundToNearestCentisecond"><see langword="true"/> to round to the nearest centisecond; <see langword="false"/> to truncate.</param>
+    /// <returns>The formatted centisecond time string.</returns>
     private static string FormatCentisecondTime(float seconds, bool alwaysShowMinutes, bool roundToNearestCentisecond)
     {
         if (!float.IsFinite(seconds))

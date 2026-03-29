@@ -16,6 +16,40 @@ public partial class FlybyTimelineViewModel
     #region Camera property editing
 
     /// <summary>
+    /// Captures the flyby camera properties tracked by the per-edit undo guard.
+    /// </summary>
+    private readonly struct FlybyCameraPropertySnapshot
+    {
+        public ushort Sequence { get; init; }
+        public ushort Number { get; init; }
+        public short Timer { get; init; }
+        public ushort Flags { get; init; }
+        public float Speed { get; init; }
+        public float Fov { get; init; }
+        public float Roll { get; init; }
+        public float RotationX { get; init; }
+        public float RotationY { get; init; }
+
+        /// <summary>
+        /// Captures the current tracked property values from a flyby camera.
+        /// </summary>
+        /// <param name="camera">Camera whose tracked editable properties should be snapshotted.</param>
+        /// <returns>A snapshot containing the camera state used to detect no-op edits.</returns>
+        public static FlybyCameraPropertySnapshot Capture(FlybyCameraInstance camera) => new()
+        {
+            Sequence = camera.Sequence,
+            Number = camera.Number,
+            Timer = camera.Timer,
+            Flags = camera.Flags,
+            Speed = camera.Speed,
+            Fov = camera.Fov,
+            Roll = camera.Roll,
+            RotationX = camera.RotationX,
+            RotationY = camera.RotationY
+        };
+    }
+
+    /// <summary>
     /// Applies a speed edit and refreshes timing-dependent timeline state.
     /// </summary>
     partial void OnCameraSpeedChanged(float value)
@@ -69,19 +103,25 @@ public partial class FlybyTimelineViewModel
         if (_isUpdating || SelectedCamera is null)
             return;
 
-        var undoInstance = new ChangeObjectPropertyUndoInstance(_editor.UndoManager, SelectedCamera.Camera);
+        var camera = SelectedCamera.Camera;
+        var originalState = FlybyCameraPropertySnapshot.Capture(camera);
+        var undoInstance = new ChangeObjectPropertyUndoInstance(_editor.UndoManager, camera);
 
         _isApplyingProperty = true;
 
         try
         {
-            setter(SelectedCamera.Camera);
-            _editor.ObjectChange(SelectedCamera.Camera, ObjectChangeType.Change);
+            setter(camera);
         }
         finally
         {
             _isApplyingProperty = false;
         }
+
+        if (!HasTrackedPropertyChanges(camera, originalState))
+            return;
+
+        _editor.ObjectChange(camera, ObjectChangeType.Change);
 
         _preview.InvalidateCache();
 
@@ -90,6 +130,25 @@ public partial class FlybyTimelineViewModel
 
         QueueTimelineRefresh(refreshCameraList: false, refreshTimeline: refreshTimeline);
         PushUndoIfAny([undoInstance]);
+    }
+
+    /// <summary>
+    /// Returns whether the camera changed in any property tracked by the edit helper.
+    /// </summary>
+    /// <param name="camera">Camera after the attempted property edit.</param>
+    /// <param name="originalState">Snapshot captured before the edit was applied.</param>
+    /// <returns><see langword="true"/> when any tracked property changed; otherwise <see langword="false"/>.</returns>
+    private static bool HasTrackedPropertyChanges(FlybyCameraInstance camera, FlybyCameraPropertySnapshot originalState)
+    {
+        return camera.Sequence != originalState.Sequence ||
+            camera.Number != originalState.Number ||
+            camera.Timer != originalState.Timer ||
+            camera.Flags != originalState.Flags ||
+            camera.Speed != originalState.Speed ||
+            camera.Fov != originalState.Fov ||
+            camera.Roll != originalState.Roll ||
+            camera.RotationX != originalState.RotationX ||
+            camera.RotationY != originalState.RotationY;
     }
 
     #endregion Camera property editing

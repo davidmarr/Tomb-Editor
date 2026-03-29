@@ -402,6 +402,10 @@ public sealed class FlybySequenceTiming
     /// <summary>
     /// Emits repeated hold samples at a fixed spline position.
     /// </summary>
+    /// <param name="splineT">Spline position to emit for every hold sample.</param>
+    /// <param name="slotCount">Number of timeline slots to emit at the fixed spline position.</param>
+    /// <param name="emittedSlots">Total emitted slot count, updated in place.</param>
+    /// <param name="emitSample">Optional callback that receives each emitted spline sample.</param>
     private static void EmitHoldSamples(float splineT, int slotCount, ref int emittedSlots, Action<float>? emitSample = null)
     {
         for (int i = 0; i < slotCount; i++)
@@ -419,6 +423,7 @@ public sealed class FlybySequenceTiming
     /// <param name="targetT">Spline position to advance toward.</param>
     /// <param name="currentT">Current spline position, updated in place.</param>
     /// <param name="emittedSlots">Generated slot count, updated in place.</param>
+    /// <param name="emitSample">Optional callback that receives each emitted spline sample.</param>
     private static void AdvanceToTarget(float[] speedKnots, int numSegments, float targetT,
         ref float currentT, ref int emittedSlots, Action<float>? emitSample = null)
     {
@@ -451,6 +456,7 @@ public sealed class FlybySequenceTiming
     /// <param name="boundaryT">Spline boundary where the pause begins.</param>
     /// <param name="currentT">Current spline position, updated in place.</param>
     /// <param name="emittedSlots">Generated slot count, updated in place.</param>
+    /// <param name="emitSample">Optional callback that receives each emitted spline sample.</param>
     private static void EmitEaseOut(float[] speedKnots, int numSegments, float boundaryT,
         ref float currentT, ref int emittedSlots, Action<float>? emitSample = null)
     {
@@ -487,6 +493,7 @@ public sealed class FlybySequenceTiming
     /// <param name="numSegments">Number of spline segments in the sequence.</param>
     /// <param name="currentT">Current spline position, updated in place.</param>
     /// <param name="emittedSlots">Generated slot count, updated in place.</param>
+    /// <param name="emitSample">Optional callback that receives each emitted spline sample.</param>
     private static void EmitEaseIn(float[] speedKnots, int numSegments,
         ref float currentT, ref int emittedSlots, Action<float>? emitSample = null)
     {
@@ -543,12 +550,16 @@ public sealed class FlybySequenceTiming
     /// <summary>
     /// Converts a pause duration in animation frames into timeline slots.
     /// </summary>
+    /// <param name="frameCount">Pause duration expressed in engine animation frames.</param>
+    /// <returns>The corresponding number of fixed timeline slots.</returns>
     private static int GetPauseSlotCountFromFrames(int frameCount)
         => GetPauseSlotCountFromSeconds(Math.Max(0, frameCount) / FlybyConstants.TickRate);
 
     /// <summary>
     /// Converts a pause duration in seconds into timeline slots.
     /// </summary>
+    /// <param name="durationSeconds">Pause duration in seconds.</param>
+    /// <returns>The corresponding number of fixed timeline slots.</returns>
     private static int GetPauseSlotCountFromSeconds(float durationSeconds)
     {
         if (!float.IsFinite(durationSeconds))

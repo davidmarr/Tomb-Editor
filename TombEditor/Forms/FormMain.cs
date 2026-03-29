@@ -548,7 +548,7 @@ namespace TombEditor.Forms
 
                 // Disable all hotkeys in camera preview mode except PreviewCamera
                 if (!_editor.Configuration.UI_Hotkeys["PreviewCamera"].Contains(keyData))
-                    return base.ProcessCmdKey(ref msg, keyData);
+                    return true;
             }
 
             // Don't process reserved camera keys

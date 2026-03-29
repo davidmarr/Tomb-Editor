@@ -114,6 +114,10 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Draws freeze and camera-cut overlays for visible segments.
     /// </summary>
+    /// <param name="context">Drawing context receiving the overlays.</param>
+    /// <param name="width">Current control width in pixels.</param>
+    /// <param name="trackY">Top y-coordinate of the track area.</param>
+    /// <param name="trackHeight">Height of the track area in pixels.</param>
     private void DrawSegmentRegions(DrawingContext context, float width, float trackY, float trackHeight)
     {
         for (int i = 0; i < _markers.Count; i++)
@@ -155,6 +159,12 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Draws diagonal hatch lines inside the provided rectangle.
     /// </summary>
+    /// <param name="context">Drawing context receiving the hatch strokes.</param>
+    /// <param name="x">Left edge of the hatch rectangle.</param>
+    /// <param name="y">Top edge of the hatch rectangle.</param>
+    /// <param name="w">Width of the hatch rectangle.</param>
+    /// <param name="h">Height of the hatch rectangle.</param>
+    /// <param name="pen">Pen used for the diagonal lines.</param>
     private static void DrawDiagonalHatch(DrawingContext context, float x, float y, float w, float h, Pen pen)
     {
         const float spacing = 6.0f;
@@ -191,6 +201,10 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Draws the mirrored cached speed waveform behind the timeline markers.
     /// </summary>
+    /// <param name="context">Drawing context receiving the waveform geometry.</param>
+    /// <param name="width">Current control width in pixels.</param>
+    /// <param name="trackY">Top y-coordinate of the track area.</param>
+    /// <param name="trackHeight">Height of the track area in pixels.</param>
     private void DrawSpeedCurve(DrawingContext context, float width, float trackY, float trackHeight)
     {
         if (_markers.Count < 2)
@@ -246,6 +260,14 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Draws one continuous filled speed span for the waveform.
     /// </summary>
+    /// <param name="context">Geometry stream receiving the polygon outline.</param>
+    /// <param name="width">Current control width in pixels.</param>
+    /// <param name="centerY">Vertical center of the waveform.</param>
+    /// <param name="sampleCount">Total number of sampled waveform points.</param>
+    /// <param name="start">Inclusive start sample index of the continuous span.</param>
+    /// <param name="end">Inclusive end sample index of the continuous span.</param>
+    /// <param name="maxHalf">Maximum half-height of the waveform in pixels.</param>
+    /// <param name="cachedSpeeds">Cached normalized speed samples for the whole visible range.</param>
     private static void DrawFilledWaveformSpan(StreamGeometryContext context, float width, float centerY,
         int sampleCount, int start, int end, float maxHalf, float[] cachedSpeeds)
     {
@@ -275,6 +297,10 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Draws all visible timeline markers and reposition ghosts.
     /// </summary>
+    /// <param name="context">Drawing context receiving the marker geometry.</param>
+    /// <param name="width">Current control width in pixels.</param>
+    /// <param name="trackY">Top y-coordinate of the track area.</param>
+    /// <param name="trackHeight">Height of the track area in pixels.</param>
     private void DrawMarkers(DrawingContext context, float width, float trackY, float trackHeight)
     {
         float centerY = trackY + (trackHeight / 2.0f);
@@ -314,12 +340,23 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Draws a single marker using the shape implied by its flags.
     /// </summary>
+    /// <param name="context">Drawing context receiving the marker.</param>
+    /// <param name="marker">Marker data to render.</param>
+    /// <param name="fill">Brush used to fill the marker.</param>
+    /// <param name="x">Horizontal center of the marker.</param>
+    /// <param name="centerY">Vertical center of the marker.</param>
     private static void DrawMarker(DrawingContext context, TimelineMarker marker, Brush fill, float x, float centerY)
         => DrawMarker(context, marker, fill, MarkerOutlinePen, x, centerY);
 
     /// <summary>
     /// Draws a single marker using the provided outline pen.
     /// </summary>
+    /// <param name="context">Drawing context receiving the marker.</param>
+    /// <param name="marker">Marker data to render.</param>
+    /// <param name="fill">Brush used to fill the marker.</param>
+    /// <param name="outlinePen">Pen used to outline the marker.</param>
+    /// <param name="x">Horizontal center of the marker.</param>
+    /// <param name="centerY">Vertical center of the marker.</param>
     private static void DrawMarker(DrawingContext context, TimelineMarker marker, Brush fill, Pen outlinePen, float x, float centerY)
     {
         if (marker.HasCameraCut)
@@ -360,6 +397,11 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Draws a triangle marker centered at the provided position.
     /// </summary>
+    /// <param name="context">Drawing context receiving the triangle marker.</param>
+    /// <param name="fill">Brush used to fill the triangle.</param>
+    /// <param name="outlinePen">Pen used to outline the triangle.</param>
+    /// <param name="centerX">Horizontal center of the marker.</param>
+    /// <param name="centerY">Vertical center of the marker.</param>
     private static void DrawTriangleMarker(DrawingContext context, Brush fill, Pen outlinePen, float centerX, float centerY)
     {
         context.PushTransform(new TranslateTransform(centerX, centerY));
@@ -370,6 +412,9 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Draws ghost markers used while reordering cameras.
     /// </summary>
+    /// <param name="context">Drawing context receiving the ghost markers.</param>
+    /// <param name="width">Current control width in pixels.</param>
+    /// <param name="centerY">Vertical center used for marker placement.</param>
     private void DrawGhostMarkers(DrawingContext context, float width, float centerY)
     {
         if (_repositionFromIndex < 0 || _repositionFromIndex >= _markers.Count)

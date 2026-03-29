@@ -257,6 +257,10 @@ public sealed class FlybySequenceCache
     /// <summary>
     /// Converts two cached frames into an interpolated preview frame.
     /// </summary>
+    /// <param name="a">Frame sampled at the lower timeline slot.</param>
+    /// <param name="b">Frame sampled at the upper timeline slot.</param>
+    /// <param name="t">Interpolation factor between <paramref name="a"/> and <paramref name="b"/>.</param>
+    /// <returns>The interpolated preview frame.</returns>
     private static FlybyPreview.FrameState LerpFrames(CachedFrame a, CachedFrame b, float t) => new()
     {
         Position = Vector3.Lerp(a.Position, b.Position, t),
@@ -295,6 +299,10 @@ public sealed class FlybySequenceCache
     /// <summary>
     /// Builds per-frame cut membership and boundary lookup tables for fast sampling.
     /// </summary>
+    /// <param name="cutRegions">Cut regions present in the analyzed sequence timing.</param>
+    /// <param name="frameCount">Number of cached timeline frames.</param>
+    /// <param name="framesInsideCutRegion">Receives a lookup indicating whether each frame lies inside a cut hold region.</param>
+    /// <param name="cutBoundaryFrames">Receives a lookup indicating whether a frame pair crosses a cut boundary.</param>
     private static void BuildCutLookupTables(IReadOnlyList<FlybyCutRegion> cutRegions, int frameCount,
         out bool[] framesInsideCutRegion, out bool[] cutBoundaryFrames)
     {
@@ -320,6 +328,9 @@ public sealed class FlybySequenceCache
     /// <summary>
     /// Converts a cut-boundary time aligned to the cache step into a clamped frame index.
     /// </summary>
+    /// <param name="timeSeconds">Cut-boundary time expressed in seconds.</param>
+    /// <param name="frameCount">Number of cached frames available for sampling.</param>
+    /// <returns>The nearest valid cached frame index for the provided time.</returns>
     private static int TimeToFrameIndex(float timeSeconds, int frameCount)
     {
         if (frameCount <= 0 || !float.IsFinite(timeSeconds))
@@ -558,6 +569,9 @@ public sealed class FlybySequenceCache
     /// <summary>
     /// Applies one pass of box smoothing to the provided data.
     /// </summary>
+    /// <param name="source">Input samples to smooth.</param>
+    /// <param name="destination">Destination buffer receiving the smoothed result.</param>
+    /// <param name="radius">Radius of the averaging window in samples.</param>
     private static void BoxSmooth(float[] source, float[] destination, int radius)
     {
         int len = source.Length;

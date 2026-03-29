@@ -150,6 +150,9 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Applies a viewport immediately or through smooth animation.
     /// </summary>
+    /// <param name="startSeconds">Requested viewport start time in seconds.</param>
+    /// <param name="endSeconds">Requested viewport end time in seconds.</param>
+    /// <param name="smooth"><see langword="true"/> to animate toward the target viewport; otherwise apply it immediately.</param>
     private void ApplyViewport(float startSeconds, float endSeconds, bool smooth)
     {
         if (!TryNormalizeViewport(ref startSeconds, ref endSeconds))
@@ -168,6 +171,8 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Starts smooth animation toward a target viewport.
     /// </summary>
+    /// <param name="targetStart">Target viewport start time in seconds.</param>
+    /// <param name="targetEnd">Target viewport end time in seconds.</param>
     private void StartSmoothViewport(float targetStart, float targetEnd)
     {
         if (!TryNormalizeViewport(ref targetStart, ref targetEnd))
@@ -183,6 +188,7 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Stops smooth viewport animation and optionally snaps to its target.
     /// </summary>
+    /// <param name="snapToTarget"><see langword="true"/> to snap the viewport to the last requested smooth target after stopping the animation.</param>
     private void StopSmoothViewport(bool snapToTarget)
     {
         if (!_smoothViewportTimer.IsEnabled)
@@ -197,6 +203,9 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Stores the current viewport and optionally redraws the control.
     /// </summary>
+    /// <param name="startSeconds">Viewport start time in seconds.</param>
+    /// <param name="endSeconds">Viewport end time in seconds.</param>
+    /// <param name="invalidateVisual"><see langword="true"/> to redraw the control immediately after storing the viewport.</param>
     private void SetViewport(float startSeconds, float endSeconds, bool invalidateVisual)
     {
         if (!TryNormalizeViewport(ref startSeconds, ref endSeconds))
@@ -222,6 +231,9 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Converts a timeline time to an x-coordinate in the current viewport.
     /// </summary>
+    /// <param name="timeSeconds">Timeline time to project.</param>
+    /// <param name="width">Current control width in pixels.</param>
+    /// <returns>The projected x-coordinate in pixels.</returns>
     private float TimeToPixel(float timeSeconds, float width)
     {
         float range = _visibleEndSeconds - _visibleStartSeconds;
@@ -255,12 +267,20 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Converts an x-coordinate to a timeline time using the current viewport.
     /// </summary>
+    /// <param name="pixel">X-coordinate in pixels.</param>
+    /// <param name="width">Current control width in pixels.</param>
+    /// <returns>The corresponding timeline time in seconds.</returns>
     private float PixelToTime(float pixel, float width)
         => PixelToTime(pixel, width, _visibleStartSeconds, _visibleEndSeconds);
 
     /// <summary>
     /// Converts an x-coordinate to a timeline time for the provided viewport.
     /// </summary>
+    /// <param name="pixel">X-coordinate in pixels.</param>
+    /// <param name="width">Control width in pixels.</param>
+    /// <param name="visibleStartSeconds">Viewport start time in seconds.</param>
+    /// <param name="visibleEndSeconds">Viewport end time in seconds.</param>
+    /// <returns>The corresponding timeline time in seconds for the provided viewport.</returns>
     private static float PixelToTime(float pixel, float width, float visibleStartSeconds, float visibleEndSeconds)
     {
         if (width <= 0.0f || !float.IsFinite(pixel) || !float.IsFinite(visibleStartSeconds) || !float.IsFinite(visibleEndSeconds))

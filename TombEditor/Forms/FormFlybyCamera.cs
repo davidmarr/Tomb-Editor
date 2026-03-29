@@ -25,6 +25,13 @@ namespace TombEditor.Forms
         private float _originalRotationX;
         private float _originalRotationY;
 
+        // Clamped original values for change detection
+        private decimal _originalSpeedValue;
+        private decimal _originalFovValue;
+        private decimal _originalRollValue;
+        private decimal _originalRotationXValue;
+        private decimal _originalRotationYValue;
+
         private bool _isLoading;
         private bool _ownedPreview;
 
@@ -152,6 +159,12 @@ namespace TombEditor.Forms
             _originalRoll = _flyByCamera.Roll;
             _originalRotationX = _flyByCamera.RotationX;
             _originalRotationY = _flyByCamera.RotationY;
+
+            _originalSpeedValue = ClampNumericValue(_flyByCamera.Speed, numSpeed);
+            _originalFovValue = ClampNumericValue(_flyByCamera.Fov, numFOV);
+            _originalRollValue = ClampNumericValue(_flyByCamera.Roll, numRoll);
+            _originalRotationXValue = ClampNumericValue(_flyByCamera.RotationX, numRotationX);
+            _originalRotationYValue = ClampNumericValue(_flyByCamera.RotationY, numRotationY);
         }
 
         private void RestoreOriginalValues()
@@ -173,11 +186,11 @@ namespace TombEditor.Forms
                 (ushort)numSequence.Value != _originalSequence ||
                 (ushort)numNumber.Value != _originalNumber ||
                 (short)numTimer.Value != _originalTimer ||
-                (float)numSpeed.Value != _originalSpeed ||
-                (float)numFOV.Value != _originalFov ||
-                (float)numRoll.Value != _originalRoll ||
-                (float)numRotationX.Value != _originalRotationX ||
-                (float)numRotationY.Value != _originalRotationY;
+                numSpeed.Value != _originalSpeedValue ||
+                numFOV.Value != _originalFovValue ||
+                numRoll.Value != _originalRollValue ||
+                numRotationX.Value != _originalRotationXValue ||
+                numRotationY.Value != _originalRotationYValue;
         }
 
         private static decimal ClampNumericValue(float value, NumericUpDown numeric)

@@ -338,6 +338,10 @@ public partial class FlybyTimelineViewModel
     /// <summary>
     /// Returns the number a new camera should receive when inserted at the given list position.
     /// </summary>
+    /// <param name="cameras">Ordered cameras in the active sequence.</param>
+    /// <param name="prevIndex">Index of the camera immediately before the insertion point.</param>
+    /// <param name="insertIndex">Index of the camera currently occupying the insertion point.</param>
+    /// <returns>The camera number that should be assigned to the inserted camera.</returns>
     private static ushort GetInsertionNumber(IReadOnlyList<FlybyCameraInstance> cameras, int prevIndex, int insertIndex)
     {
         int previousNumber = cameras[prevIndex].Number;

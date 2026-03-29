@@ -395,17 +395,9 @@ public partial class FlybyTimelineControl
     }
 
     /// <summary>
-    /// Updates marquee selection and emits selected markers after threshold is met.
+    /// Updates marquee selection visuals during drag.
     /// </summary>
-    private void UpdateRangeSelection(float mouseX)
-    {
-        _rangeEndX = mouseX;
-
-        if (!HasExceededSelectionThreshold(_rangeStartX, _rangeEndX))
-            return;
-
-        RangeSelected?.Invoke(GetRangeSelection());
-    }
+    private void UpdateRangeSelection(float mouseX) => _rangeEndX = mouseX;
 
     /// <summary>
     /// Ends the current viewport pan operation.

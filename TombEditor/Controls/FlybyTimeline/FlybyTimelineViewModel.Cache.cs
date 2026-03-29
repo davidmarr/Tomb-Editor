@@ -135,6 +135,9 @@ public partial class FlybyTimelineViewModel
     /// <summary>
     /// Queues a batched timeline and preview refresh on the dispatcher so rapid property changes collapse into one update.
     /// </summary>
+    /// <param name="refreshCameraList"><see langword="true"/> to rebuild the visible camera list before refreshing timeline state.</param>
+    /// <param name="syncPreview"><see langword="true"/> to synchronize the preview after queued updates complete.</param>
+    /// <param name="refreshTimeline"><see langword="true"/> to rebuild timeline timecodes and notify the view.</param>
     private void QueueTimelineRefresh(bool refreshCameraList, bool syncPreview = true, bool refreshTimeline = true)
     {
         if (_isDisposed)
