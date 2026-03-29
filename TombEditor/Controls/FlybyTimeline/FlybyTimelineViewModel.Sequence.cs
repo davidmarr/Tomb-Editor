@@ -4,8 +4,8 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using TombLib.LevelData;
 using TombLib.Forms;
+using TombLib.LevelData;
 
 namespace TombEditor.Controls.FlybyTimeline;
 

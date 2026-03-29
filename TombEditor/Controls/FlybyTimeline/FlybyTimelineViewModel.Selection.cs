@@ -32,7 +32,6 @@ public partial class FlybyTimelineViewModel
         {
             // Level-wide changes can keep the same SelectedSequence value, so force a full list rebuild here.
             _preview.StopPlayback();
-            RefreshTimingMode();
 
             if (IsPreviewActive)
                 _preview.ExitPreview();

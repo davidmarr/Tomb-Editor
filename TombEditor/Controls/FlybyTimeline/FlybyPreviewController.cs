@@ -85,18 +85,6 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
     }
 
     /// <summary>
-    /// Toggles static preview mode for the given camera.
-    /// </summary>
-    /// <param name="camera">The flyby camera to show when preview is enabled, or <see langword="null"/> to leave the current preview frame unchanged.</param>
-    public void TogglePreview(FlybyCameraInstance? camera)
-    {
-        if (IsPreviewActive)
-            ExitPreview();
-        else
-            EnterPreview(camera);
-    }
-
-    /// <summary>
     /// Updates the shown camera while static preview is active.
     /// </summary>
     /// <param name="camera">The flyby camera to display.</param>

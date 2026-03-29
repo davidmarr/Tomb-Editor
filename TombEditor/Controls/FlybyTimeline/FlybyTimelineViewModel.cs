@@ -64,7 +64,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private bool _queuedTimelineRefreshCameraList;
     private bool _queuedTimelineRefreshTimeline;
     private bool _queuedTimelineRefreshPreview;
-    private bool _useSmoothPause;
     private int _activeDraggedCameraIndex = -1;
     private List<FlybyCameraInstance>? _cachedVisibleCameras;
     private FlybySequenceTiming? _cachedSequenceTiming;
@@ -111,7 +110,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     /// <summary>
     /// Gets whether TombEngine smooth pause behavior should be used.
     /// </summary>
-    private bool UseSmoothPause => _useSmoothPause;
+    private bool UseSmoothPause => _editor.Level?.Settings.GameVersion == TRVersion.Game.TombEngine;
 
     // Camera properties for the selected camera.
     /// <summary>
@@ -240,8 +239,6 @@ public partial class FlybyTimelineViewModel : ObservableObject
         _preview.PlayheadChanged += OnPreviewPlayheadChanged;
 
         _editor.EditorEventRaised += OnEditorEventRaised;
-
-        RefreshTimingMode();
 
         RefreshSequenceList();
     }

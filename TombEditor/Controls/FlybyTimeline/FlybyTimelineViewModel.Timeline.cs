@@ -3,6 +3,7 @@
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
@@ -96,12 +97,6 @@ public partial class FlybyTimelineViewModel
     #endregion Camera property editing
 
     #region Preview and playback
-
-    /// <summary>
-    /// Toggles static preview mode for the selected camera.
-    /// </summary>
-    [RelayCommand]
-    private void TogglePreview() => _preview.TogglePreview(SelectedCamera?.Camera);
 
     /// <summary>
     /// Starts or stops sequence playback.
@@ -203,14 +198,14 @@ public partial class FlybyTimelineViewModel
     #region Timecode helpers
 
     /// <summary>
-    /// Returns the current or freshly built sequence cache for use by the timeline.
+    /// Returns the current or freshly built timing data for the visible sequence cameras.
     /// </summary>
     private FlybySequenceTiming GetSequenceTiming(IReadOnlyList<FlybyCameraInstance>? cameras = null)
     {
         var sequenceCameras = cameras ?? GetCamerasAsList();
 
-        if (HasMatchingCachedSequenceTiming(sequenceCameras))
-            return _cachedSequenceTiming!;
+        if (TryGetCachedSequenceTiming(sequenceCameras, out var cachedSequenceTiming))
+            return cachedSequenceTiming;
 
         var timing = FlybySequenceTiming.Build(sequenceCameras, UseSmoothPause);
         CacheSequenceTiming(sequenceCameras, timing);
@@ -321,16 +316,18 @@ public partial class FlybyTimelineViewModel
     }
 
     /// <summary>
-    /// Returns whether the cached sequence timing matches the provided camera list.
+    /// Returns cached sequence timing when it still matches the provided camera list by reference.
     /// </summary>
-    private bool HasMatchingCachedSequenceTiming(IReadOnlyList<FlybyCameraInstance> cameras)
+    private bool TryGetCachedSequenceTiming(IReadOnlyList<FlybyCameraInstance> cameras,
+        [NotNullWhen(true)] out FlybySequenceTiming? cachedSequenceTiming)
     {
+        cachedSequenceTiming = _cachedSequenceTiming;
         var cachedTimingCameras = _cachedSequenceTimingCameras;
 
-        if (_cachedSequenceTiming is null || cachedTimingCameras is null)
+        if (cachedSequenceTiming is null || cachedTimingCameras is null)
             return false;
 
-        if (_cachedSequenceTiming.CameraCount != cameras.Count || cachedTimingCameras.Length != cameras.Count)
+        if (cachedSequenceTiming.CameraCount != cameras.Count || cachedTimingCameras.Length != cameras.Count)
             return false;
 
         for (int i = 0; i < cameras.Count; i++)
@@ -391,7 +388,7 @@ public partial class FlybyTimelineViewModel
     private void RequestZoomToFit() => ZoomToFitRequested?.Invoke();
 
     /// <summary>
-    /// Deletes the provided cameras and refreshes the timeline when the editor rejects the operation.
+    /// Deletes the provided cameras and restores the visible timeline state if any camera remains.
     /// </summary>
     private bool TryDeleteCameras(IReadOnlyCollection<FlybyCameraInstance> cameras, IWin32Window? dialogOwner)
     {
@@ -408,7 +405,7 @@ public partial class FlybyTimelineViewModel
             _isApplyingProperty = false;
         }
 
-        if (!WereAllCamerasDeleted(cameras))
+        if (cameras.Any(camera => camera.Room is not null)) // Are there any remaining cameras after deletion?
         {
             RefreshTimelineState(true, false);
             return false;
@@ -545,12 +542,6 @@ public partial class FlybyTimelineViewModel
     }
 
     /// <summary>
-    /// Returns whether every camera in the collection was removed from its room.
-    /// </summary>
-    private static bool WereAllCamerasDeleted(IEnumerable<FlybyCameraInstance> cameras)
-        => cameras.All(camera => camera.Room is null);
-
-    /// <summary>
     /// Updates camera-cut timers after camera numbering changes.
     /// </summary>
     private void UpdateCameraCutTargets(IReadOnlyList<FlybyCameraInstance> cameras,
@@ -600,11 +591,30 @@ public partial class FlybyTimelineViewModel
     /// </summary>
     private IReadOnlyList<FlybyCameraInstance> GetCamerasAsList()
     {
-        if (_cachedVisibleCameras is not null && _cachedVisibleCameras.Count == CameraList.Count)
-            return _cachedVisibleCameras;
+        if (TryGetCachedVisibleCameras(out var cachedVisibleCameras))
+            return cachedVisibleCameras;
 
         _cachedVisibleCameras = [.. CameraList.Select(vm => vm.Camera)];
         return _cachedVisibleCameras;
+    }
+
+    /// <summary>
+    /// Returns the cached visible camera list when it still matches the current camera items by reference.
+    /// </summary>
+    private bool TryGetCachedVisibleCameras([NotNullWhen(true)] out IReadOnlyList<FlybyCameraInstance>? cachedVisibleCameras)
+    {
+        cachedVisibleCameras = _cachedVisibleCameras;
+
+        if (cachedVisibleCameras is null || cachedVisibleCameras.Count != CameraList.Count)
+            return false;
+
+        for (int i = 0; i < CameraList.Count; i++)
+        {
+            if (!ReferenceEquals(cachedVisibleCameras[i], CameraList[i].Camera))
+                return false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -713,12 +723,6 @@ public partial class FlybyTimelineViewModel
         _queuedTimelineRefreshTimeline = false;
         _queuedTimelineRefreshPreview = false;
     }
-
-    /// <summary>
-    /// Updates the cached smooth-pause mode from the current editor state.
-    /// </summary>
-    private void RefreshTimingMode()
-        => _useSmoothPause = _editor.Level?.Settings.GameVersion == TRVersion.Game.TombEngine;
 
     /// <summary>
     /// Updates the preview camera or scrub state from the current selection.

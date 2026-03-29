@@ -64,7 +64,11 @@ public sealed class FlybyPreview : IDisposable
     /// <param name="sequence">The flyby sequence index to preview.</param>
     /// <param name="savedCamera">The camera state to restore after preview ends.</param>
     public FlybyPreview(Level level, int sequence, Camera savedCamera)
-        : this(CreateSequenceCache(level, sequence), savedCamera)
+        : this(
+            new FlybySequenceCache(
+                FlybySequenceHelper.GetCameras(level, sequence),
+                useSmoothPause: level.Settings.GameVersion == TRVersion.Game.TombEngine),
+            savedCamera)
     { }
 
     /// <summary>
@@ -92,10 +96,6 @@ public sealed class FlybyPreview : IDisposable
         IsFinished = true;
         Cache = new FlybySequenceCache([], false);
     }
-
-    private static FlybySequenceCache CreateSequenceCache(Level level, int sequence) => new(
-        FlybySequenceHelper.GetCameras(level, sequence),
-        useSmoothPause: level.Settings.GameVersion == TRVersion.Game.TombEngine);
 
     /// <summary>
     /// Starts the internal stopwatch for external update ticking.
