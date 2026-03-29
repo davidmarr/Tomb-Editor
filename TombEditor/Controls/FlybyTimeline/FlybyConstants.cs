@@ -33,6 +33,11 @@ public static class FlybyConstants
     public const float MaxSpeed = 65535.0f / 655.0f;
 
     /// <summary>
+    /// Time tolerance, in seconds, used by the speed solver to stop once the requested camera time is matched closely enough.
+    /// </summary>
+    public const float SpeedSolveTargetTimeTolerance = 0.0001f;
+
+    /// <summary>
     /// Squared-length threshold for treating a computed look vector as degenerate.
     /// This is in squared world-space units because it is compared against LengthSquared().
     /// </summary>

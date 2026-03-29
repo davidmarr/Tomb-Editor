@@ -78,7 +78,10 @@ public class FlybySequenceHelperTests
         Assert.AreEqual(0, FlybySequenceHelper.FindCameraIndexAtTime(cameras, midpoint * 0.5f, timing));
         Assert.AreEqual(0, FlybySequenceHelper.FindCameraIndexAtTime(cameras, midpoint, timing));
         Assert.AreEqual(1, FlybySequenceHelper.FindCameraIndexAtTime(cameras, slightlyAfterMidpoint, timing));
+        Assert.AreEqual(2, FlybySequenceHelper.FindCameraIndexAtTime(cameras, timing.GetCameraTime(2), timing));
         Assert.AreEqual(1, FlybySequenceHelper.FindInsertionIndex(cameras, midpoint, timing));
+        Assert.AreEqual(cameras.Count, FlybySequenceHelper.FindInsertionIndex(cameras, -0.01f, timing));
+        Assert.AreEqual(cameras.Count, FlybySequenceHelper.FindInsertionIndex(cameras, timing.GetCameraTime(cameras.Count - 1), timing));
         Assert.AreEqual(cameras.Count, FlybySequenceHelper.FindInsertionIndex(cameras, float.NaN, timing));
     }
 

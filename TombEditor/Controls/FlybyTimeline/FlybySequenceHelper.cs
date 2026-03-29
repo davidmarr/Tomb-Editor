@@ -93,22 +93,19 @@ public static class FlybySequenceHelper
         if (cameras.Count == 0 || !float.IsFinite(timeSeconds))
             return 0;
 
-        int bestIndex = 0;
-        float bestDist = float.MaxValue;
+        int nextIndex = FindFirstCameraTimeGreaterThan(cameras.Count, timeSeconds, timing);
 
-        for (int i = 0; i < cameras.Count; i++)
-        {
-            float timecode = timing.GetCameraTime(i);
-            float distance = MathF.Abs(timecode - timeSeconds);
+        if (nextIndex <= 0)
+            return 0;
 
-            if (distance < bestDist)
-            {
-                bestDist = distance;
-                bestIndex = i;
-            }
-        }
+        if (nextIndex >= cameras.Count)
+            return cameras.Count - 1;
 
-        return bestIndex;
+        int previousIndex = nextIndex - 1;
+        float previousDistance = MathF.Abs(timing.GetCameraTime(previousIndex) - timeSeconds);
+        float nextDistance = MathF.Abs(timing.GetCameraTime(nextIndex) - timeSeconds);
+
+        return previousDistance <= nextDistance ? previousIndex : nextIndex;
     }
 
     /// <summary>
@@ -123,16 +120,8 @@ public static class FlybySequenceHelper
         if (cameras.Count == 0 || !float.IsFinite(timeSeconds))
             return cameras.Count;
 
-        for (int i = 0; i < cameras.Count - 1; i++)
-        {
-            float startTime = timing.GetCameraTime(i);
-            float endTime = timing.GetCameraTime(i + 1);
-
-            if (timeSeconds >= startTime && timeSeconds < endTime)
-                return i + 1;
-        }
-
-        return cameras.Count;
+        int nextIndex = FindFirstCameraTimeGreaterThan(cameras.Count, timeSeconds, timing);
+        return nextIndex > 0 && nextIndex < cameras.Count ? nextIndex : cameras.Count;
     }
 
     /// <summary>
@@ -266,6 +255,9 @@ public static class FlybySequenceHelper
             float midTime = FlybySequenceTiming.GetCameraTimeForSpeed(cameras,
                 targetCameraIndex, useSmoothPause, speedCameraIndex, mid);
 
+            if (MathF.Abs(midTime - targetTimeSeconds) <= FlybyConstants.SpeedSolveTargetTimeTolerance)
+                return mid;
+
             if (midTime > targetTimeSeconds)
                 low = mid;
             else
@@ -273,6 +265,31 @@ public static class FlybySequenceHelper
         }
 
         return (low + high) * 0.5f;
+    }
+
+    /// <summary>
+    /// Returns the first camera index whose timeline time is strictly greater than the requested time.
+    /// </summary>
+    /// <param name="cameraCount">Number of ordered cameras represented by the timing data.</param>
+    /// <param name="timeSeconds">Timeline time to test against.</param>
+    /// <param name="timing">Precomputed timing for the sequence.</param>
+    /// <returns>The first index with a camera time greater than <paramref name="timeSeconds"/>, or <paramref name="cameraCount"/> when no later camera exists.</returns>
+    private static int FindFirstCameraTimeGreaterThan(int cameraCount, float timeSeconds, FlybySequenceTiming timing)
+    {
+        int low = 0;
+        int high = cameraCount;
+
+        while (low < high)
+        {
+            int mid = low + ((high - low) / 2);
+
+            if (timing.GetCameraTime(mid) <= timeSeconds)
+                low = mid + 1;
+            else
+                high = mid;
+        }
+
+        return low;
     }
 
     /// <summary>
