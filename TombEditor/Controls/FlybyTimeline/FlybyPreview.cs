@@ -284,9 +284,9 @@ public sealed class FlybyPreview : IDisposable
         }
 
         var target = frame.Position + (Level.SectorSizeUnit * look);
-        float fov = frame.Fov > 0.01f ? frame.Fov : defaultFov;
+        float fov = frame.Fov > FlybyConstants.PreviewMinFieldOfView ? frame.Fov : defaultFov;
 
-        if (fov < 0.01f)
+        if (fov < FlybyConstants.PreviewMinFieldOfView)
             fov = MathC.DegToRad(80);
 
         var view = MathC.Matrix4x4CreateLookAtLH(frame.Position, target, up);

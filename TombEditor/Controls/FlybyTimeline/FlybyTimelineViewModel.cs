@@ -437,18 +437,17 @@ public partial class FlybyTimelineViewModel : ObservableObject
             return false;
 
         const float minimumSegmentDuration = FlybyConstants.TimeStep;
-        const float lastCameraTolerance = 0.0001f;
 
         float cursorTime = PlayheadSeconds;
-        float clampedCursorTime = Math.Max(cursorTime, 0.01f);
+        float clampedCursorTime = Math.Max(cursorTime, FlybyConstants.TimelineAddCameraMinCursorTime);
 
         var cameras = GetCamerasAsList();
         float lastCameraTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, cameras.Count - 1, UseSmoothPause);
 
-        if (MathF.Abs(cursorTime - lastCameraTime) <= lastCameraTolerance)
+        if (MathF.Abs(cursorTime - lastCameraTime) <= FlybyConstants.TimelineSequenceEndTolerance)
             return false; // Cursor is at the end of the sequence, fall back to AddCameraAtSequenceEnd
 
-        if (cursorTime > lastCameraTime + lastCameraTolerance)
+        if (cursorTime > lastCameraTime + FlybyConstants.TimelineSequenceEndTolerance)
         {
             AppendCameraAtPlayhead(cam, room, cameras, clampedCursorTime, lastCameraTime, minimumSegmentDuration);
             return true;

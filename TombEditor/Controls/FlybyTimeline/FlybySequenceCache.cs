@@ -393,7 +393,7 @@ public sealed class FlybySequenceCache
         float yaw = 0.0f;
         float pitch = 0.0f;
 
-        if (horizontalDist > 0.001f || MathF.Abs(dy) > 0.001f)
+        if (horizontalDist > FlybyConstants.RotationSolveDistanceEpsilon || MathF.Abs(dy) > FlybyConstants.RotationSolveDistanceEpsilon)
         {
             yaw = MathF.Atan2(dx, dz);
             pitch = MathF.Atan2(-dy, horizontalDist);
