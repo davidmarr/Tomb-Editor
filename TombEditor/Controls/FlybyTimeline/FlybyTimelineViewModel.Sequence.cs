@@ -164,7 +164,7 @@ public partial class FlybyTimelineViewModel
     /// </summary>
     /// <param name="cam">Camera instance being inserted.</param>
     /// <param name="room">Room that will own the inserted camera.</param>
-    /// <returns><see langword="true"/> when the camera was placed using the current playhead time; otherwise <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when the camera was inserted or appended using the current playhead time; <see langword="false"/> when the caller should fall back to adding the camera at the sequence end.</returns>
     private bool TryAddCameraAtPlayhead(FlybyCameraInstance cam, Room room)
     {
         if (!float.IsFinite(PlayheadSeconds) || PlayheadSeconds < 0.0f || CameraList.Count < 1)
@@ -412,6 +412,8 @@ public partial class FlybyTimelineViewModel
     /// <summary>
     /// Uses the already-visible timeline state when the camera is present in CameraList.
     /// </summary>
+    /// <param name="camera">Camera whose visible timecode should become the playhead position.</param>
+    /// <returns><see langword="true"/> when the camera is already visible in <see cref="CameraList"/> and the playhead was updated from that state; <see langword="false"/> when the caller must fall back to fresh editor data.</returns>
     private bool TryMovePlayheadToVisibleCamera(FlybyCameraInstance camera)
     {
         for (int i = 0; i < CameraList.Count; i++)
@@ -429,6 +431,8 @@ public partial class FlybyTimelineViewModel
     /// <summary>
     /// Falls back to fresh editor data for cameras that exist in the level but are not yet visible in CameraList.
     /// </summary>
+    /// <param name="camera">Camera whose current sequence timecode should become the playhead position.</param>
+    /// <returns><see langword="true"/> when the camera exists in the active sequence and the playhead was updated; <see langword="false"/> when the camera could not be found in the active sequence.</returns>
     private bool TryMovePlayheadToCurrentSequence(FlybyCameraInstance camera)
     {
         var cameras = GetCamerasForCurrentSequence();

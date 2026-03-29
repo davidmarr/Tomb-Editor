@@ -318,6 +318,9 @@ public partial class FlybyTimelineViewModel
     /// <summary>
     /// Returns cached sequence timing when it still matches the provided camera list by reference.
     /// </summary>
+    /// <param name="cameras">Visible sequence cameras that the cached timing must correspond to.</param>
+    /// <param name="cachedSequenceTiming">Receives the cached timing when it still matches the provided camera list.</param>
+    /// <returns><see langword="true"/> when cached timing exists and was built from the same camera instances in the same order; <see langword="false"/> when the timing must be rebuilt.</returns>
     private bool TryGetCachedSequenceTiming(IReadOnlyList<FlybyCameraInstance> cameras,
         [NotNullWhen(true)] out FlybySequenceTiming? cachedSequenceTiming)
     {
@@ -327,16 +330,10 @@ public partial class FlybyTimelineViewModel
         if (cachedSequenceTiming is null || cachedTimingCameras is null)
             return false;
 
-        if (cachedSequenceTiming.CameraCount != cameras.Count || cachedTimingCameras.Length != cameras.Count)
+        if (cachedSequenceTiming.CameraCount != cameras.Count)
             return false;
 
-        for (int i = 0; i < cameras.Count; i++)
-        {
-            if (!ReferenceEquals(cachedTimingCameras[i], cameras[i]))
-                return false;
-        }
-
-        return true;
+        return FlybySequenceHelper.CameraListsMatchByReference(cachedTimingCameras, cameras);
     }
 
     /// <summary>
@@ -390,6 +387,9 @@ public partial class FlybyTimelineViewModel
     /// <summary>
     /// Deletes the provided cameras and restores the visible timeline state if any camera remains.
     /// </summary>
+    /// <param name="cameras">The cameras that should be deleted.</param>
+    /// <param name="dialogOwner">Optional owner for confirmation or error dialogs raised by the delete action.</param>
+    /// <returns><see langword="true"/> when all requested cameras were deleted successfully; <see langword="false"/> when any requested camera remains in the level after the delete action.</returns>
     private bool TryDeleteCameras(IReadOnlyCollection<FlybyCameraInstance> cameras, IWin32Window? dialogOwner)
     {
         _preview.StopPlayback();
@@ -601,6 +601,8 @@ public partial class FlybyTimelineViewModel
     /// <summary>
     /// Returns the cached visible camera list when it still matches the current camera items by reference.
     /// </summary>
+    /// <param name="cachedVisibleCameras">Receives the cached visible camera list when it still matches the current camera items.</param>
+    /// <returns><see langword="true"/> when the cached list is still valid for the current <see cref="CameraList"/> contents; <see langword="false"/> when the list must be rebuilt.</returns>
     private bool TryGetCachedVisibleCameras([NotNullWhen(true)] out IReadOnlyList<FlybyCameraInstance>? cachedVisibleCameras)
     {
         cachedVisibleCameras = _cachedVisibleCameras;
@@ -749,6 +751,9 @@ public partial class FlybyTimelineViewModel
     /// <summary>
     /// Returns the active sequence context needed for preview operations.
     /// </summary>
+    /// <param name="cameras">Receives the currently visible flyby cameras when sequence context is available.</param>
+    /// <param name="sequence">Receives the currently selected sequence id when sequence context is available.</param>
+    /// <returns><see langword="true"/> when a sequence is selected and the current camera list is available for preview operations; <see langword="false"/> when preview operations should be skipped.</returns>
     private bool TryGetSequenceContext(out IReadOnlyList<FlybyCameraInstance> cameras, out ushort sequence)
     {
         if (SelectedSequence.HasValue && CameraList.Count > 0)

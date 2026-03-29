@@ -1,6 +1,5 @@
 using System.Numerics;
 using TombEditor.Controls.FlybyTimeline;
-using TombLib;
 using TombLib.LevelData;
 
 namespace TombEditor.Tests.FlybyTimeline;
@@ -75,5 +74,33 @@ public class FlybySequenceTimingTests
         Assert.IsTrue(timing.GetCutBypassDuration(1) > 0.0f);
         Assert.IsTrue(timing.CutRegions[0].EndTime > timing.CutRegions[0].StartTime);
         Assert.IsTrue(timing.TotalDuration >= timing.GetCameraTime(3));
+    }
+
+    [TestMethod]
+    public void Build_CompletesForLongSlowSequences()
+    {
+        const int cameraCount = 130;
+
+        var level = FlybyTestFactory.CreateLevel();
+        var positions = new Vector3[cameraCount];
+
+        for (int i = 0; i < positions.Length; i++)
+            positions[i] = new Vector3(0.0f, 0.0f, i * 1024.0f);
+
+        var cameras = FlybyTestFactory.CreateLinearSequence(level.Rooms[0], 4, positions);
+
+        foreach (var camera in cameras)
+            camera.Speed = FlybyConstants.MinSpeed;
+
+        var task = Task.Run(() => FlybySequenceTiming.Build(cameras, useSmoothPause: false));
+
+        Assert.IsTrue(task.Wait(TimeSpan.FromSeconds(5.0)));
+
+        var timing = task.Result;
+        float lastCameraTime = timing.GetCameraTime(cameras.Count - 1);
+
+        Assert.AreEqual(cameraCount, timing.CameraCount);
+        Assert.IsTrue(float.IsFinite(lastCameraTime));
+        Assert.IsTrue(lastCameraTime > 0.0f);
     }
 }

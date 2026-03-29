@@ -54,7 +54,7 @@ public class FlybySequenceHelperTests
 
         var cutFreezeCamera = new FlybyCameraInstance
         {
-            Flags = (ushort)(FlybyConstants.FlagFreezeCamera | FlybyConstants.FlagCameraCut),
+            Flags = FlybyConstants.FlagFreezeCamera | FlybyConstants.FlagCameraCut,
             Timer = FlybyTestFactory.FreezeFrames(60)
         };
 
@@ -95,7 +95,23 @@ public class FlybySequenceHelperTests
         Assert.IsTrue(FlybySequenceHelper.GetFlagBit(1 << 7, 7));
         Assert.IsFalse(FlybySequenceHelper.GetFlagBit(0, 20));
         Assert.AreEqual((ushort)(1 << 3), FlybySequenceHelper.SetFlagBit(0, 3, true));
-        Assert.AreEqual((ushort)0, FlybySequenceHelper.SetFlagBit((ushort)(1 << 3), 3, false));
+        Assert.AreEqual((ushort)0, FlybySequenceHelper.SetFlagBit(1 << 3, 3, false));
+    }
+
+    [TestMethod]
+    public void CameraListsMatchByReference_RequiresSameInstancesInSameOrder()
+    {
+        var first = new FlybyCameraInstance();
+        var second = new FlybyCameraInstance();
+        IReadOnlyList<FlybyCameraInstance> original = [first, second];
+        IReadOnlyList<FlybyCameraInstance> sameOrder = [first, second];
+        IReadOnlyList<FlybyCameraInstance> reversed = [second, first];
+        IReadOnlyList<FlybyCameraInstance> differentInstance = [first, new FlybyCameraInstance()];
+
+        Assert.IsTrue(FlybySequenceHelper.CameraListsMatchByReference(original, sameOrder));
+        Assert.IsFalse(FlybySequenceHelper.CameraListsMatchByReference(original, reversed));
+        Assert.IsFalse(FlybySequenceHelper.CameraListsMatchByReference(original, differentInstance));
+        Assert.IsFalse(FlybySequenceHelper.CameraListsMatchByReference(original, null));
     }
 
     [TestMethod]

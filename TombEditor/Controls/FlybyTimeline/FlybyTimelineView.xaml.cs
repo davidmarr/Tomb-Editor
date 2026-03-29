@@ -263,6 +263,9 @@ public partial class FlybyTimelineView : UserControl
     /// <summary>
     /// Tries to resolve a marker index and make it the active single-camera selection.
     /// </summary>
+    /// <param name="index">Timeline marker index to resolve.</param>
+    /// <param name="item">Receives the selected camera item when the marker index is valid.</param>
+    /// <returns><see langword="true"/> when the marker index resolves to a camera item and that item becomes the active selection; <see langword="false"/> when no camera exists at the requested index.</returns>
     private bool TrySelectSingleCamera(int index, [NotNullWhen(true)] out FlybyCameraItemViewModel? item)
     {
         if (!TryGetCameraItem(index, out item))
@@ -275,6 +278,9 @@ public partial class FlybyTimelineView : UserControl
     /// <summary>
     /// Returns the camera item for a valid timeline marker index.
     /// </summary>
+    /// <param name="index">Timeline marker index to resolve.</param>
+    /// <param name="item">Receives the matching camera item when the index is valid.</param>
+    /// <returns><see langword="true"/> when the index maps to an existing camera item; <see langword="false"/> when the view model is unavailable or the index is out of range.</returns>
     private bool TryGetCameraItem(int index, [NotNullWhen(true)] out FlybyCameraItemViewModel? item)
     {
         item = null;

@@ -191,6 +191,26 @@ public static class FlybySequenceHelper
     }
 
     /// <summary>
+    /// Returns whether two camera lists contain the same instances in the same order.
+    /// </summary>
+    /// <param name="first">First camera list to compare.</param>
+    /// <param name="second">Second camera list to compare.</param>
+    /// <returns><see langword="true"/> when both lists are non-null, have the same length, and match by reference at every index; otherwise <see langword="false"/>.</returns>
+    public static bool CameraListsMatchByReference(IReadOnlyList<FlybyCameraInstance>? first, IReadOnlyList<FlybyCameraInstance>? second)
+    {
+        if (first is null || second is null || first.Count != second.Count)
+            return false;
+
+        for (int i = 0; i < first.Count; i++)
+        {
+            if (!ReferenceEquals(first[i], second[i]))
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Solves the segment speed needed to reach a target camera at the requested time.
     /// </summary>
     /// <param name="cameras">Ordered flyby cameras in the active sequence.</param>

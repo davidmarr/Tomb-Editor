@@ -138,6 +138,9 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Validates and clamps a viewport before it is stored or animated.
     /// </summary>
+    /// <param name="startSeconds">Requested viewport start time, updated in place to the clamped value.</param>
+    /// <param name="endSeconds">Requested viewport end time, updated in place to the clamped value.</param>
+    /// <returns><see langword="true"/> when the clamped viewport still has a positive range; <see langword="false"/> when the requested viewport collapses to an invalid or empty span.</returns>
     private bool TryNormalizeViewport(ref float startSeconds, ref float endSeconds)
     {
         ClampViewportToBounds(ref startSeconds, ref endSeconds);
@@ -232,6 +235,10 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Converts a marker time to a pixel position when the marker has a valid timeline time.
     /// </summary>
+    /// <param name="marker">Marker whose x-position should be resolved.</param>
+    /// <param name="width">Current control width in pixels.</param>
+    /// <param name="x">Receives the resolved x-coordinate when the marker can be projected into the current viewport.</param>
+    /// <returns><see langword="true"/> when the marker time and viewport state are valid and an x-coordinate was produced; <see langword="false"/> when the marker cannot be projected.</returns>
     private bool TryGetMarkerPixel(TimelineMarker marker, float width, out float x)
     {
         x = 0.0f;

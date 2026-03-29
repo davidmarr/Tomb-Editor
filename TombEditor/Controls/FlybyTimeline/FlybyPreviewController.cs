@@ -383,9 +383,14 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
     /// <summary>
     /// Ensures the cache matches the current sequence and camera list.
     /// </summary>
+    /// <param name="cameras">The flyby cameras that should back the cache.</param>
+    /// <param name="sequence">The sequence id the cache should represent.</param>
+    /// <param name="cache">Receives the matching cache instance when one is available.</param>
+    /// <returns><see langword="true"/> when a valid cache exists or is built successfully; <see langword="false"/> when no valid cache can be produced.</returns>
     private bool TryEnsureValidCache(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence, [NotNullWhen(true)] out FlybySequenceCache? cache)
     {
-        bool cacheMatches = _cache is not null && _cacheSequence == sequence && MatchesCachedCameras(cameras);
+        bool cacheMatches = _cache is not null && _cacheSequence == sequence &&
+            FlybySequenceHelper.CameraListsMatchByReference(_cacheCameras, cameras);
 
         if (!cacheMatches)
         {
@@ -403,24 +408,5 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
 
         cache = _cache;
         return cache?.IsValid == true;
-    }
-
-    /// <summary>
-    /// Checks whether the current camera list matches the cached camera references.
-    /// </summary>
-    private bool MatchesCachedCameras(IReadOnlyList<FlybyCameraInstance> cameras)
-    {
-        var cachedCameras = _cacheCameras;
-
-        if (cachedCameras is null || cachedCameras.Length != cameras.Count)
-            return false;
-
-        for (int i = 0; i < cameras.Count; i++)
-        {
-            if (!ReferenceEquals(cachedCameras[i], cameras[i]))
-                return false;
-        }
-
-        return true;
     }
 }

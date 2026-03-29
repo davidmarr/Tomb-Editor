@@ -440,7 +440,15 @@ public sealed class FlybySequenceTiming
             emitSample?.Invoke(currentT);
             emittedSlots++;
             float speed = GetClampedSplineSpeed(currentT, speedKnots, numSegments);
-            currentT += Math.Max(speed, FlybyConstants.MinSpeed) * tickFactor;
+            float nextT = currentT + (Math.Max(speed, FlybyConstants.MinSpeed) * tickFactor);
+
+            if (!(nextT > currentT))
+            {
+                currentT = targetT;
+                break;
+            }
+
+            currentT = nextT;
         }
 
         currentT = Math.Min(currentT, targetT);
@@ -466,7 +474,17 @@ public sealed class FlybySequenceTiming
 
         while (easeProgress < 1.0f)
         {
-            easeProgress = Math.Min(easeProgress + (easeStep * FlybyConstants.TimeStep), 1.0f);
+            float nextEaseProgress = Math.Min(easeProgress + (easeStep * FlybyConstants.TimeStep), 1.0f);
+
+            if (!(nextEaseProgress > easeProgress))
+            {
+                currentT = boundaryT;
+                emitSample?.Invoke(boundaryT);
+                emittedSlots++;
+                break;
+            }
+
+            easeProgress = nextEaseProgress;
             currentT = easeStartT + (remainingDist * easeProgress * (2.0f - easeProgress));
             emitSample?.Invoke(Math.Min(currentT, boundaryT));
             emittedSlots++;
@@ -490,9 +508,19 @@ public sealed class FlybySequenceTiming
 
         while (easeInProgress < 1.0f)
         {
-            easeInProgress = Math.Min(easeInProgress + (easeInStep * FlybyConstants.TimeStep), 1.0f);
+            float nextEaseInProgress = Math.Min(easeInProgress + (easeInStep * FlybyConstants.TimeStep), 1.0f);
+
+            if (!(nextEaseInProgress > easeInProgress))
+                break;
+
+            easeInProgress = nextEaseInProgress;
             float speedFactor = easeInProgress * easeInProgress;
-            currentT += speedPerSec * speedFactor * FlybyConstants.TimeStep;
+            float nextT = currentT + (speedPerSec * speedFactor * FlybyConstants.TimeStep);
+
+            if (!(nextT > currentT))
+                break;
+
+            currentT = nextT;
             emitSample?.Invoke(currentT);
             emittedSlots++;
         }
