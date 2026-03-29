@@ -70,6 +70,11 @@ public sealed class FlybySequenceCache
     public bool IsValid => _frames.Length > 0;
 
     /// <summary>
+    /// Gets the peak precomputed speed used to normalize the timeline speed curve.
+    /// </summary>
+    public float PeakSpeed { get; }
+
+    /// <summary>
     /// Builds a new sequence cache for the provided cameras.
     /// </summary>
     /// <param name="cameras">The flyby cameras to cache.</param>
@@ -104,6 +109,7 @@ public sealed class FlybySequenceCache
             _frames = [];
             _cutRegions = [];
             _smoothedSpeeds = [];
+            PeakSpeed = 0.0f;
             return;
         }
 
@@ -129,6 +135,7 @@ public sealed class FlybySequenceCache
 
         // Pre-compute smoothed speed curve.
         _smoothedSpeeds = ComputeSmoothedSpeeds();
+        PeakSpeed = ComputePeakSpeed(_smoothedSpeeds);
     }
 
     /// <summary>
@@ -518,6 +525,7 @@ public sealed class FlybySequenceCache
 
         int count = _frames.Length - 1;
         var speeds = new float[count];
+        var buffer = new float[count];
 
         for (int i = 0; i < count; i++)
         {
@@ -534,7 +542,10 @@ public sealed class FlybySequenceCache
 
         // Three passes of box smoothing approximate a Gaussian filter.
         for (int pass = 0; pass < 3; pass++)
-            speeds = BoxSmooth(speeds, 5);
+        {
+            BoxSmooth(speeds, buffer, 5);
+            (speeds, buffer) = (buffer, speeds);
+        }
 
         return speeds;
     }
@@ -542,10 +553,9 @@ public sealed class FlybySequenceCache
     /// <summary>
     /// Applies one pass of box smoothing to the provided data.
     /// </summary>
-    private static float[] BoxSmooth(float[] data, int radius)
+    private static void BoxSmooth(float[] source, float[] destination, int radius)
     {
-        int len = data.Length;
-        var result = new float[len];
+        int len = source.Length;
 
         for (int i = 0; i < len; i++)
         {
@@ -554,12 +564,28 @@ public sealed class FlybySequenceCache
             int high = Math.Min(len - 1, i + radius);
 
             for (int j = low; j <= high; j++)
-                sum += data[j];
+                sum += source[j];
 
-            result[i] = sum / (high - low + 1);
+            destination[i] = sum / (high - low + 1);
+        }
+    }
+
+    /// <summary>
+    /// Returns the maximum valid speed value contained in the provided array.
+    /// </summary>
+    private static float ComputePeakSpeed(float[] speeds)
+    {
+        float peak = 0.0f;
+
+        for (int i = 0; i < speeds.Length; i++)
+        {
+            float speed = speeds[i];
+
+            if (float.IsFinite(speed) && speed > peak)
+                peak = speed;
         }
 
-        return result;
+        return peak;
     }
 
     #endregion Speed smoothing

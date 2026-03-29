@@ -87,7 +87,22 @@ public static class FlybySequenceHelper
         if (index < 0 || cameras.Count == 0)
             return 0.0f;
 
-        return AnalyzeSequence(cameras, useSmoothPause).GetCameraTime(index);
+        return GetTimecodeForCamera(cameras, index, AnalyzeSequence(cameras, useSmoothPause));
+    }
+
+    /// <summary>
+    /// Returns the timeline time for a camera index using precomputed sequence timing.
+    /// </summary>
+    /// <param name="cameras">Ordered flyby cameras in the active sequence.</param>
+    /// <param name="index">Camera index whose timeline time should be returned.</param>
+    /// <param name="timing">Precomputed timing for the provided sequence.</param>
+    /// <returns>The timeline time for the requested camera, or 0 when unavailable.</returns>
+    public static float GetTimecodeForCamera(IReadOnlyList<FlybyCameraInstance> cameras, int index, FlybySequenceTiming timing)
+    {
+        if (index < 0 || cameras.Count == 0)
+            return 0.0f;
+
+        return timing.GetCameraTime(index);
     }
 
     /// <summary>
@@ -102,9 +117,23 @@ public static class FlybySequenceHelper
         if (cameras.Count == 0 || !float.IsFinite(timeSeconds))
             return 0;
 
+        return FindCameraIndexAtTime(cameras, timeSeconds, AnalyzeSequence(cameras, useSmoothPause));
+    }
+
+    /// <summary>
+    /// Finds the camera whose timecode is closest to the given timeline time using precomputed timing.
+    /// </summary>
+    /// <param name="cameras">Ordered flyby cameras in the active sequence.</param>
+    /// <param name="timeSeconds">Timeline time to test against.</param>
+    /// <param name="timing">Precomputed timing for the provided sequence.</param>
+    /// <returns>The index of the closest camera in timeline time, or <c>0</c> when the list is empty or the input time is not finite.</returns>
+    public static int FindCameraIndexAtTime(IReadOnlyList<FlybyCameraInstance> cameras, float timeSeconds, FlybySequenceTiming timing)
+    {
+        if (cameras.Count == 0 || !float.IsFinite(timeSeconds))
+            return 0;
+
         int bestIndex = 0;
         float bestDist = float.MaxValue;
-        var timing = AnalyzeSequence(cameras, useSmoothPause);
 
         for (int i = 0; i < cameras.Count; i++)
         {
@@ -133,7 +162,20 @@ public static class FlybySequenceHelper
         if (cameras.Count == 0 || !float.IsFinite(timeSeconds))
             return cameras.Count;
 
-        var timing = AnalyzeSequence(cameras, useSmoothPause);
+        return FindInsertionIndex(cameras, timeSeconds, AnalyzeSequence(cameras, useSmoothPause));
+    }
+
+    /// <summary>
+    /// Finds the insertion index for a new camera at the given timeline time using precomputed timing.
+    /// </summary>
+    /// <param name="cameras">Ordered flyby cameras in the active sequence.</param>
+    /// <param name="timeSeconds">Timeline time where the new camera should be inserted.</param>
+    /// <param name="timing">Precomputed timing for the provided sequence.</param>
+    /// <returns>The list index where the new camera should be inserted, or the current camera count when no interior insertion point matches.</returns>
+    public static int FindInsertionIndex(IReadOnlyList<FlybyCameraInstance> cameras, float timeSeconds, FlybySequenceTiming timing)
+    {
+        if (cameras.Count == 0 || !float.IsFinite(timeSeconds))
+            return cameras.Count;
 
         for (int i = 0; i < cameras.Count - 1; i++)
         {
