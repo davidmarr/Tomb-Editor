@@ -132,7 +132,7 @@ public partial class FlybyTimelineViewModel
     }
 
     /// <summary>
-    /// Adds a new camera at the playhead or at the end of the current sequence.
+    /// Adds a new camera at the playhead, at the sequence start when the playhead is at 0.0, or at the end of the current sequence.
     /// </summary>
     [RelayCommand]
     private void AddCamera()
@@ -152,49 +152,80 @@ public partial class FlybyTimelineViewModel
             Sequence = SelectedSequence.Value,
         };
 
-        if (TryAddCameraAtPlayhead(cam, room))
-            return; // Camera inserted successfully.
-
-        // Fall back to sequence end.
-        AddCameraAtSequenceEnd(cam, room);
+        AddCameraUsingPlayhead(cam, room);
     }
 
     /// <summary>
-    /// Tries to place a new camera using the current playhead position.
+    /// Places a new camera using the current playhead position, or falls back to the sequence bounds when needed.
     /// </summary>
     /// <param name="cam">Camera instance being inserted.</param>
     /// <param name="room">Room that will own the inserted camera.</param>
-    /// <returns><see langword="true"/> when the camera was inserted or appended using the current playhead time; <see langword="false"/> when the caller should fall back to adding the camera at the sequence end.</returns>
-    private bool TryAddCameraAtPlayhead(FlybyCameraInstance cam, Room room)
+    private void AddCameraUsingPlayhead(FlybyCameraInstance cam, Room room)
     {
         if (!float.IsFinite(PlayheadSeconds) || PlayheadSeconds < 0.0f || CameraList.Count < 1)
-            return false;
+        {
+            AddCameraAtSequenceEnd(cam, room);
+            return;
+        }
+
+        float cursorTime = PlayheadSeconds;
+        var cameras = GetCamerasAsList();
+
+        if (cursorTime == 0.0f)
+        {
+            AddCameraAtSequenceStart(cam, room, cameras);
+            return;
+        }
 
         const float minimumSegmentDuration = FlybyConstants.TimeStep;
 
-        float cursorTime = PlayheadSeconds;
         float clampedCursorTime = Math.Max(cursorTime, FlybyConstants.TimelineAddCameraMinCursorTime);
-
-        var cameras = GetCamerasAsList();
         var timing = GetSequenceTiming(cameras);
         float lastCameraTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, cameras.Count - 1, timing);
 
         if (MathF.Abs(cursorTime - lastCameraTime) <= FlybyConstants.TimelineSequenceEndTolerance)
-            return false; // Cursor is at the end of the sequence, fall back to AddCameraAtSequenceEnd
+        {
+            AddCameraAtSequenceEnd(cam, room);
+            return;
+        }
 
         if (cursorTime > lastCameraTime + FlybyConstants.TimelineSequenceEndTolerance)
         {
             AppendCameraAtPlayhead(cam, room, cameras, clampedCursorTime, lastCameraTime, minimumSegmentDuration);
-            return true;
+            return;
         }
 
         int insertIndex = FlybySequenceHelper.FindInsertionIndex(cameras, cursorTime, timing);
 
         if (insertIndex <= 0 || insertIndex >= cameras.Count)
-            return false; // Insertion index is out of bounds, fall back to AddCameraAtSequenceEnd
+        {
+            AddCameraAtSequenceEnd(cam, room);
+            return;
+        }
 
         InsertCameraAtPlayhead(cam, room, cameras, insertIndex, clampedCursorTime, minimumSegmentDuration);
-        return true;
+    }
+
+    /// <summary>
+    /// Adds a camera to the start of the sequence using the default speed.
+    /// </summary>
+    private void AddCameraAtSequenceStart(FlybyCameraInstance cam, Room room, IReadOnlyList<FlybyCameraInstance> cameras)
+    {
+        var undoList = CreateFlybyCameraPropertyUndo(cameras);
+
+        cam.Number = 0;
+        cam.Speed = 1.0f;
+        ApplyEditorCameraPosition(cam, room);
+
+        if (cameras.Any(camera => camera.Number == cam.Number))
+            PrepareCamerasForInsertion(cameras, cam.Number);
+
+        room.AddObject(_editor.Level, cam);
+        _editor.ObjectChange(cam, ObjectChangeType.Add);
+        undoList.Add(new AddRemoveObjectUndoInstance(_editor.UndoManager, cam, true));
+
+        PushUndoIfAny(undoList);
+        FinalizeAddedCamera(cam, zoomToFit: true);
     }
 
     /// <summary>

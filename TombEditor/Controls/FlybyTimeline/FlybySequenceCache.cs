@@ -50,6 +50,28 @@ public sealed class FlybySequenceCache
         public float Fov { get; init; }
     }
 
+    /// <summary>
+    /// Stores one contiguous playback spline segment. Segments are split at camera cuts
+    /// so post-cut interpolation starts from a fresh local knot set.
+    /// </summary>
+    private readonly struct SplineSegment
+    {
+        public int StartCameraIndex { get; init; }
+        public int EndCameraIndex { get; init; }
+        public int NumSegments { get; init; }
+        public CameraSplineData SingleCamera { get; init; }
+        public float[] PosX { get; init; }
+        public float[] PosY { get; init; }
+        public float[] PosZ { get; init; }
+        public float[] TgtX { get; init; }
+        public float[] TgtY { get; init; }
+        public float[] TgtZ { get; init; }
+        public float[] RollKnots { get; init; }
+        public float[] FovKnots { get; init; }
+
+        public bool IsSingleCamera => NumSegments == 0;
+    }
+
     private readonly CachedFrame[] _frames;
     private readonly FlybyCutRegion[] _cutRegions;
     private readonly bool[] _framesInsideCutRegion;
@@ -117,14 +139,8 @@ public sealed class FlybySequenceCache
             return;
         }
 
-        // Build Catmull-Rom knot arrays for position, look target, roll, and FOV.
-        BuildKnotArrays(splineData,
-            out float[] posX, out float[] posY, out float[] posZ,
-            out float[] tgtX, out float[] tgtY, out float[] tgtZ,
-            out float[] rollKnots, out float[] fovKnots);
-
-        int numCameras = validCameras.Count;
-        int numSegments = numCameras - 1;
+        // Build playback spline sections with cut-aware tangent resets.
+        SplineSegment[] splineSegments = BuildSplineSegments(validCameras, splineData);
 
         // Precomputed spline timeline and cut regions come from FlybySequenceTiming.
         float[] splineParams = [.. Timing.SplineTimeline];
@@ -132,7 +148,7 @@ public sealed class FlybySequenceCache
         _cutRegions = [.. Timing.CutRegions];
 
         // Evaluate all spline channels in parallel.
-        _frames = EvaluateFramesParallel(splineParams, posX, posY, posZ, tgtX, tgtY, tgtZ, rollKnots, fovKnots, numSegments);
+        _frames = EvaluateFramesParallel(splineParams, splineSegments);
 
         // Unwrap yaw/pitch/roll to prevent discontinuities from atan2 wrapping.
         UnwrapFrameAngles(_frames);
@@ -346,32 +362,14 @@ public sealed class FlybySequenceCache
     /// Builds all cached frames by evaluating spline parameters in parallel.
     /// </summary>
     /// <param name="splineParams">Playback spline parameters sampled at fixed timeline steps.</param>
-    /// <param name="posX">Padded X-position spline knots.</param>
-    /// <param name="posY">Padded Y-position spline knots.</param>
-    /// <param name="posZ">Padded Z-position spline knots.</param>
-    /// <param name="tgtX">Padded X target-position spline knots.</param>
-    /// <param name="tgtY">Padded Y target-position spline knots.</param>
-    /// <param name="tgtZ">Padded Z target-position spline knots.</param>
-    /// <param name="rollKnots">Padded roll spline knots in degrees.</param>
-    /// <param name="fovKnots">Padded field-of-view spline knots in degrees.</param>
-    /// <param name="numSegments">Number of spline segments in the sequence.</param>
+    /// <param name="splineSegments">Cut-aware spline segments used for frame evaluation.</param>
     /// <returns>The fully evaluated cached frame array.</returns>
-    private static CachedFrame[] EvaluateFramesParallel(
-        float[] splineParams,
-        float[] posX, float[] posY, float[] posZ,
-        float[] tgtX, float[] tgtY, float[] tgtZ,
-        float[] rollKnots, float[] fovKnots,
-        int numSegments)
+    private static CachedFrame[] EvaluateFramesParallel(float[] splineParams, SplineSegment[] splineSegments)
     {
         int count = splineParams.Length;
         var result = new CachedFrame[count];
 
-        Parallel.For(0, count, i =>
-        {
-            result[i] = EvaluateSplineFrame(splineParams[i], posX, posY, posZ,
-                tgtX, tgtY, tgtZ, rollKnots, fovKnots, numSegments);
-        });
-
+        Parallel.For(0, count, i => result[i] = EvaluateSplineFrame(splineParams[i], splineSegments));
         return result;
     }
 
@@ -380,33 +378,25 @@ public sealed class FlybySequenceCache
     /// Pure function of the knot arrays, safe for parallel invocation.
     /// </summary>
     /// <param name="t">Spline parameter to evaluate.</param>
-    /// <param name="posX">Padded X-position spline knots.</param>
-    /// <param name="posY">Padded Y-position spline knots.</param>
-    /// <param name="posZ">Padded Z-position spline knots.</param>
-    /// <param name="tgtX">Padded X target-position spline knots.</param>
-    /// <param name="tgtY">Padded Y target-position spline knots.</param>
-    /// <param name="tgtZ">Padded Z target-position spline knots.</param>
-    /// <param name="rollKnots">Padded roll spline knots in degrees.</param>
-    /// <param name="fovKnots">Padded field-of-view spline knots in degrees.</param>
-    /// <param name="numSegments">Number of spline segments in the sequence.</param>
+    /// <param name="splineSegments">Cut-aware spline segments used for frame evaluation.</param>
     /// <returns>The evaluated cached frame for the requested spline position.</returns>
-    private static CachedFrame EvaluateSplineFrame(
-        float t,
-        float[] posX, float[] posY, float[] posZ,
-        float[] tgtX, float[] tgtY, float[] tgtZ,
-        float[] rollKnots, float[] fovKnots,
-        int numSegments)
+    private static CachedFrame EvaluateSplineFrame(float t, SplineSegment[] splineSegments)
     {
-        t = Math.Clamp(t, 0.0f, numSegments);
+        var segment = ResolveSplineSegment(t, splineSegments);
 
-        float px = CatmullRomSpline.Evaluate(t, posX);
-        float py = CatmullRomSpline.Evaluate(t, posY);
-        float pz = CatmullRomSpline.Evaluate(t, posZ);
-        float tx = CatmullRomSpline.Evaluate(t, tgtX);
-        float ty = CatmullRomSpline.Evaluate(t, tgtY);
-        float tz = CatmullRomSpline.Evaluate(t, tgtZ);
-        float roll = CatmullRomSpline.Evaluate(t, rollKnots);
-        float fov = CatmullRomSpline.Evaluate(t, fovKnots);
+        if (segment.IsSingleCamera)
+            return BuildCameraFrame(segment.SingleCamera);
+
+        float localT = Math.Clamp(t - segment.StartCameraIndex, 0.0f, segment.NumSegments);
+
+        float px = CatmullRomSpline.Evaluate(localT, segment.PosX);
+        float py = CatmullRomSpline.Evaluate(localT, segment.PosY);
+        float pz = CatmullRomSpline.Evaluate(localT, segment.PosZ);
+        float tx = CatmullRomSpline.Evaluate(localT, segment.TgtX);
+        float ty = CatmullRomSpline.Evaluate(localT, segment.TgtY);
+        float tz = CatmullRomSpline.Evaluate(localT, segment.TgtZ);
+        float roll = CatmullRomSpline.Evaluate(localT, segment.RollKnots);
+        float fov = CatmullRomSpline.Evaluate(localT, segment.FovKnots);
 
         float dx = tx - px;
         float dy = ty - py;
@@ -432,14 +422,130 @@ public sealed class FlybySequenceCache
         };
     }
 
+    /// <summary>
+    /// Resolves the active spline segment for a global playback parameter.
+    /// </summary>
+    private static SplineSegment ResolveSplineSegment(float t, IReadOnlyList<SplineSegment> splineSegments)
+    {
+        if (splineSegments.Count == 0)
+            throw new InvalidOperationException("At least one spline segment is required.");
+
+        int low = 0;
+        int high = splineSegments.Count - 1;
+
+        while (low < high)
+        {
+            int mid = (low + high + 1) >> 1;
+
+            if (t >= splineSegments[mid].StartCameraIndex)
+                low = mid;
+            else
+                high = mid - 1;
+        }
+
+        return splineSegments[low];
+    }
+
+    /// <summary>
+    /// Converts one camera sample directly into a cached frame.
+    /// </summary>
+    private static CachedFrame BuildCameraFrame(CameraSplineData camera) => new()
+    {
+        Position = camera.WorldPosition,
+        RotationY = MathC.DegToRad(camera.RotationY),
+        RotationX = -MathC.DegToRad(camera.RotationX),
+        Roll = MathC.DegToRad(camera.Roll),
+        Fov = MathC.DegToRad(camera.Fov)
+    };
+
     #endregion Parallel spline evaluation
 
     #region Knot building
 
     /// <summary>
+    /// Splits playback into cut-aware spline segments.
+    /// </summary>
+    private static SplineSegment[] BuildSplineSegments(IReadOnlyList<FlybyCameraInstance> cameras, IReadOnlyList<CameraSplineData> splineData)
+    {
+        var segments = new List<SplineSegment>();
+        int segmentStart = 0;
+        int processedBoundary = 0;
+        int lastCameraIndex = cameras.Count - 1;
+
+        while (processedBoundary < lastCameraIndex)
+        {
+            int nextCameraIndex = processedBoundary + 1;
+            processedBoundary = nextCameraIndex;
+
+            if (!FlybySequenceHelper.TryResolveCutTargetIndex(cameras, nextCameraIndex, out int targetIndex) || targetIndex <= nextCameraIndex)
+                continue;
+
+            segments.Add(CreateSplineSegment(segmentStart, nextCameraIndex, splineData));
+            segmentStart = targetIndex;
+            processedBoundary = targetIndex;
+        }
+
+        segments.Add(CreateSplineSegment(segmentStart, lastCameraIndex, splineData));
+        return [.. segments];
+    }
+
+    /// <summary>
+    /// Builds one playback spline segment from the requested camera range.
+    /// </summary>
+    private static SplineSegment CreateSplineSegment(int startIndex, int endIndex, IReadOnlyList<CameraSplineData> splineData)
+    {
+        int cameraCount = (endIndex - startIndex) + 1;
+
+        if (cameraCount <= 0)
+            throw new ArgumentOutOfRangeException(nameof(startIndex), "Spline segment must contain at least one camera.");
+
+        if (cameraCount == 1)
+        {
+            return new SplineSegment
+            {
+                StartCameraIndex = startIndex,
+                EndCameraIndex = endIndex,
+                NumSegments = 0,
+                SingleCamera = splineData[startIndex],
+                PosX = [],
+                PosY = [],
+                PosZ = [],
+                TgtX = [],
+                TgtY = [],
+                TgtZ = [],
+                RollKnots = [],
+                FovKnots = []
+            };
+        }
+
+        BuildKnotArrays(splineData, startIndex, cameraCount,
+            out float[] posX, out float[] posY, out float[] posZ,
+            out float[] tgtX, out float[] tgtY, out float[] tgtZ,
+            out float[] rollKnots, out float[] fovKnots);
+
+        return new SplineSegment
+        {
+            StartCameraIndex = startIndex,
+            EndCameraIndex = endIndex,
+            NumSegments = cameraCount - 1,
+            SingleCamera = splineData[startIndex],
+            PosX = posX,
+            PosY = posY,
+            PosZ = posZ,
+            TgtX = tgtX,
+            TgtY = tgtY,
+            TgtZ = tgtZ,
+            RollKnots = rollKnots,
+            FovKnots = fovKnots
+        };
+    }
+
+    /// <summary>
     /// Builds all spline knot arrays needed for cache frame evaluation.
     /// </summary>
     /// <param name="splineData">Ordered camera samples that define the sequence.</param>
+    /// <param name="startIndex">Start camera index of the segment to convert.</param>
+    /// <param name="cameraCount">Number of cameras to include in the segment.</param>
     /// <param name="posX">Receives padded X-position spline knots.</param>
     /// <param name="posY">Receives padded Y-position spline knots.</param>
     /// <param name="posZ">Receives padded Z-position spline knots.</param>
@@ -450,12 +556,12 @@ public sealed class FlybySequenceCache
     /// <param name="fovKnots">Receives padded field-of-view spline knots in degrees.</param>
     private static void BuildKnotArrays(
         IReadOnlyList<CameraSplineData> splineData,
+        int startIndex,
+        int cameraCount,
         out float[] posX, out float[] posY, out float[] posZ,
         out float[] tgtX, out float[] tgtY, out float[] tgtZ,
         out float[] rollKnots, out float[] fovKnots)
     {
-        int cameraCount = splineData.Count;
-
         var rawPosX = new float[cameraCount];
         var rawPosY = new float[cameraCount];
         var rawPosZ = new float[cameraCount];
@@ -467,18 +573,15 @@ public sealed class FlybySequenceCache
 
         for (int i = 0; i < cameraCount; i++)
         {
-            var camera = splineData[i];
-
-            float yawRad = MathC.DegToRad(camera.RotationY);
-            float pitchRad = MathC.DegToRad(camera.RotationX);
-            float cosPitch = MathF.Cos(pitchRad);
+            var camera = splineData[startIndex + i];
+            var target = BuildTargetPoint(camera);
 
             rawPosX[i] = camera.WorldPosition.X;
             rawPosY[i] = camera.WorldPosition.Y;
             rawPosZ[i] = camera.WorldPosition.Z;
-            rawTgtX[i] = camera.WorldPosition.X + (FlybyConstants.TargetDistance * cosPitch * MathF.Sin(yawRad));
-            rawTgtY[i] = camera.WorldPosition.Y + (FlybyConstants.TargetDistance * MathF.Sin(pitchRad));
-            rawTgtZ[i] = camera.WorldPosition.Z + (FlybyConstants.TargetDistance * cosPitch * MathF.Cos(yawRad));
+            rawTgtX[i] = target.X;
+            rawTgtY[i] = target.Y;
+            rawTgtZ[i] = target.Z;
             rawRoll[i] = camera.Roll;
             rawFov[i] = camera.Fov;
         }
@@ -493,6 +596,21 @@ public sealed class FlybySequenceCache
         tgtZ = CatmullRomSpline.PadKnots(rawTgtZ);
         rollKnots = CatmullRomSpline.PadKnots(rawRoll);
         fovKnots = CatmullRomSpline.PadKnots(rawFov);
+    }
+
+    /// <summary>
+    /// Converts flyby rotation data into a synthetic target point used for spline interpolation.
+    /// </summary>
+    private static Vector3 BuildTargetPoint(CameraSplineData camera)
+    {
+        float yawRad = MathC.DegToRad(camera.RotationY);
+        float pitchRad = MathC.DegToRad(camera.RotationX);
+        float cosPitch = MathF.Cos(pitchRad);
+
+        return new Vector3(
+            camera.WorldPosition.X + (FlybyConstants.TargetDistance * cosPitch * MathF.Sin(yawRad)),
+            camera.WorldPosition.Y + (FlybyConstants.TargetDistance * MathF.Sin(pitchRad)),
+            camera.WorldPosition.Z + (FlybyConstants.TargetDistance * cosPitch * MathF.Cos(yawRad)));
     }
 
     /// <summary>
