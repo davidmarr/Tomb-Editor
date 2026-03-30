@@ -66,6 +66,7 @@ public static class FlybyConstants
 
     public const float TimelineZoomOutScale = 1.05f;
     public const float TimelinePanStepFraction = 0.05f;
+    public const float TimelineDragSpeedStep = 0.01f;
     public const bool TimelineSmoothPanEnabled = true;
     public const bool TimelineSmoothZoomEnabled = true;
     public const int TimelineSmoothViewportTimerInterval = 8;

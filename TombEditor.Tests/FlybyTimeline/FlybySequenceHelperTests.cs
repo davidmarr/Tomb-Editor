@@ -139,6 +139,16 @@ public class FlybySequenceHelperTests
     }
 
     [TestMethod]
+    public void SnapSpeedToStep_RoundsToNearestIncrement()
+    {
+        float snappedDown = FlybySequenceHelper.SnapSpeedToStep(1.124f, FlybyConstants.TimelineDragSpeedStep);
+        float snappedUp = FlybySequenceHelper.SnapSpeedToStep(1.126f, FlybyConstants.TimelineDragSpeedStep);
+
+        Assert.AreEqual(1.12f, snappedDown, 0.001f);
+        Assert.AreEqual(1.13f, snappedUp, 0.001f);
+    }
+
+    [TestMethod]
     public void ApplyEditorCameraRotation_CopiesOrientationAndFov()
     {
         var editorCamera = new FreeCamera(new Vector3(10.0f, 20.0f, 30.0f), 0.0f, 0.0f,

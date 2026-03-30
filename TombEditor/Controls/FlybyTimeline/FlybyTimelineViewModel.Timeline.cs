@@ -221,12 +221,14 @@ public partial class FlybyTimelineViewModel
         float minTargetTime = prevTime + freezeAtPrev + FlybyConstants.TimeStep;
         float targetTime = Math.Max(newTimeSeconds, minTargetTime);
 
-        float newSpeed = FlybySequenceHelper.SolveSegmentSpeedForTargetTime(
-            cameras,
-            cameraIndex - 1,
-            cameraIndex,
-            targetTime,
-            UseSmoothPause);
+        float newSpeed = FlybySequenceHelper.SnapSpeedToStep(
+            FlybySequenceHelper.SolveSegmentSpeedForTargetTime(
+                cameras,
+                cameraIndex - 1,
+                cameraIndex,
+                targetTime,
+                UseSmoothPause),
+            FlybyConstants.TimelineDragSpeedStep);
 
         _isApplyingProperty = true;
 

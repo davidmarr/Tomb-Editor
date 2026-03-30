@@ -306,6 +306,23 @@ public static class FlybySequenceHelper
     }
 
     /// <summary>
+    /// Snaps a speed value to the nearest fixed increment while preserving valid flyby limits.
+    /// </summary>
+    /// <param name="speed">Speed value to snap.</param>
+    /// <param name="step">Increment size to snap to.</param>
+    /// <returns>The snapped speed value clamped to the supported flyby speed range.</returns>
+    public static float SnapSpeedToStep(float speed, float step)
+    {
+        float clampedSpeed = GetClampedSpeed(speed);
+
+        if (!float.IsFinite(step) || step <= 0.0f)
+            return clampedSpeed;
+
+        float snappedSpeed = MathF.Round(clampedSpeed / step, MidpointRounding.AwayFromZero) * step;
+        return GetClampedSpeed(snappedSpeed);
+    }
+
+    /// <summary>
     /// Returns the first camera index whose timeline time is strictly greater than the requested time.
     /// </summary>
     /// <param name="cameraCount">Number of ordered cameras represented by the timing data.</param>
