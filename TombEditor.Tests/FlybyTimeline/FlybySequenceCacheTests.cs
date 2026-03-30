@@ -79,4 +79,26 @@ public class FlybySequenceCacheTests
         Assert.AreEqual(-1.0f, cache.GetSpeedAtTime(insideCut), 0.001f);
         Assert.IsTrue(cache.GetSpeedAtTime(0.0f) > 0.0f);
     }
+
+    [TestMethod]
+    public void SampleAtTime_AfterCut_ResetsSplineFromSkippedCamera()
+    {
+        var level = FlybyTestFactory.CreateLevel();
+        var cameras = FlybyTestFactory.CreateLinearSequence(level.Rooms[0], 5,
+            new Vector3(0.0f, 0.0f, 0.0f),
+            new Vector3(0.0f, 0.0f, 1024.0f),
+            new Vector3(1024.0f, 0.0f, 2048.0f),
+            new Vector3(0.0f, 0.0f, 3072.0f),
+            new Vector3(0.0f, 0.0f, 4096.0f));
+
+        cameras[1].Flags = FlybyConstants.FlagCameraCut;
+        cameras[1].Timer = 3;
+
+        var cache = new FlybySequenceCache(cameras, useSmoothPause: false);
+        var cutRegion = cache.Timing.CutRegions[0];
+        var firstPostCutFrame = cache.SampleAtTime(cutRegion.EndTime + FlybyConstants.TimeStep);
+
+        Assert.AreEqual(0.0f, firstPostCutFrame.Position.X, 0.01f);
+        Assert.IsTrue(firstPostCutFrame.Position.Z > cameras[3].Position.Z);
+    }
 }
