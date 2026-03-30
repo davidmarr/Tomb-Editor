@@ -28,7 +28,7 @@ public static class FlybyConstants
     /// <summary>
     /// Smallest meaningful flyby speed. Also acts as a zero guard when normalizing speed-derived UI values.
     /// </summary>
-    public const float MinSpeed = 0.001f;
+    public const float MinSpeed = 0.01f;
 
     public const float MaxSpeed = 65535.0f / 655.0f;
 
