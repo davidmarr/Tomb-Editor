@@ -175,6 +175,7 @@ public partial class FlybyTimelineView : UserControl
         if (!TrySelectSingleCamera(index, out var item))
             return;
 
+        _viewModel?.MovePlayheadToCamera(item.Camera);
         _viewModel?.UpdateSelectedRoomByPosition(item.Camera.WorldPosition);
     }
 

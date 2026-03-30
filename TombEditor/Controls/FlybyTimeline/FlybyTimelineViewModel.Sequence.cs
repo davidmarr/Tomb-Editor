@@ -432,9 +432,9 @@ public partial class FlybyTimelineViewModel
 
     /// <summary>
     /// Moves the playhead to the given camera's current timecode.
-    /// Prefers the visible timeline state first, then falls back to editor data for newly inserted cameras.
+    /// Prefers the visible timeline state first, then falls back to editor data when needed.
     /// </summary>
-    private void MovePlayheadToCamera(FlybyCameraInstance camera)
+    public void MovePlayheadToCamera(FlybyCameraInstance camera)
     {
         if (TryMovePlayheadToVisibleCamera(camera))
             return;
