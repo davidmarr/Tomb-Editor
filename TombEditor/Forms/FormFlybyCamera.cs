@@ -30,6 +30,7 @@ namespace TombEditor.Forms
 
         private bool _isLoading;
         private bool _ownedPreview;
+        private bool _restoreOriginalValuesOnClose;
 
         public FormFlybyCamera(FlybyCameraInstance flyByCamera)
         {
@@ -44,6 +45,8 @@ namespace TombEditor.Forms
 
         private void butCancel_Click(object sender, EventArgs e)
         {
+            _restoreOriginalValuesOnClose = true;
+
             DialogResult = DialogResult.Cancel;
             Close();
         }
@@ -102,9 +105,22 @@ namespace TombEditor.Forms
             }
         }
 
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (e.CloseReason == CloseReason.UserClosing &&
+                !_restoreOriginalValuesOnClose &&
+                DialogResult != DialogResult.OK)
+            {
+                AcceptPendingChanges();
+                DialogResult = DialogResult.OK;
+            }
+
+            base.OnFormClosing(e);
+        }
+
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            if (DialogResult == DialogResult.Cancel)
+            if (_restoreOriginalValuesOnClose)
             {
                 RestoreOriginalValues();
 
@@ -134,11 +150,16 @@ namespace TombEditor.Forms
 
         private void butOK_Click(object sender, EventArgs e)
         {
-            HasChanges = HasPendingChanges();
-            ApplyPendingValues(_flyByCamera);
+            AcceptPendingChanges();
 
             DialogResult = DialogResult.OK;
             Close();
+        }
+
+        private void AcceptPendingChanges()
+        {
+            HasChanges = HasPendingChanges();
+            ApplyPendingValues(_flyByCamera);
         }
 
         private void SaveOriginalValues()
