@@ -26,7 +26,7 @@ public partial class FlybyTimelineViewModel
         if (IsPlaying)
             _preview.StopPlayback();
         else if (SelectedSequence.HasValue)
-            _preview.StartPlayback(GetCamerasAsList(), SelectedSequence.Value);
+            _preview.StartPlayback(GetCamerasAsList(), SelectedSequence.Value, PlayheadSeconds);
     }
 
     /// <summary>
@@ -51,7 +51,7 @@ public partial class FlybyTimelineViewModel
         SetSelectedCameras([flyby], SelectionUpdateBehavior.RestoreSelectedCameraState | SelectionUpdateBehavior.RefreshTimeline);
         ScrubToTime(0.0f);
 
-        _preview.StartPlayback(cameras, flyby.Sequence);
+        _preview.StartPlayback(cameras, flyby.Sequence, 0.0f);
     }
 
     /// <summary>

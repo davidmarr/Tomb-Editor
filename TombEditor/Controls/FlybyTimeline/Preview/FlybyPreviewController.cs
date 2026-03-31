@@ -87,7 +87,8 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
     /// </summary>
     /// <param name="cameras">The flyby cameras belonging to the sequence.</param>
     /// <param name="sequence">The sequence number to preview.</param>
-    public void StartPlayback(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence)
+    /// <param name="startTimelineSeconds">The timeline time, in seconds, from which playback should begin.</param>
+    public void StartPlayback(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence, float startTimelineSeconds)
     {
         if (cameras.Count < 2)
         {
@@ -112,15 +113,13 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
         _playbackPreview?.Dispose();
         _playbackPreview = new FlybyPreview(cache, camera);
 
-        bool restartFromBeginning = PlayheadSeconds >= cache.TotalDuration - FlybyConstants.PreviewReplayEndTolerance;
-        float startOffset = !restartFromBeginning && PlayheadSeconds > 0.0f
-            ? cache.Timing.TimelineToPlaybackTime(PlayheadSeconds)
+        float normalizedStartTime = NormalizePlaybackStartTime(startTimelineSeconds, cache.TotalDuration);
+        float startOffset = normalizedStartTime > 0.0f
+            ? cache.Timing.TimelineToPlaybackTime(normalizedStartTime)
             : 0.0f;
 
         _playbackPreview.BeginExternalUpdate(startOffset);
-
-        if (restartFromBeginning)
-            SetPlayheadSeconds(0.0f);
+        SetPlayheadSeconds(normalizedStartTime);
 
         IsPlaying = true;
 
@@ -325,6 +324,20 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
     /// </summary>
     private void OnPlaybackTimerTick(object? sender, EventArgs e)
         => OnPlaybackTick();
+
+    /// <summary>
+    /// Normalizes a requested timeline start time for playback.
+    /// </summary>
+    private static float NormalizePlaybackStartTime(float timeSeconds, float totalDuration)
+    {
+        if (!float.IsFinite(timeSeconds) || timeSeconds <= 0.0f)
+            return 0.0f;
+
+        if (timeSeconds >= totalDuration - FlybyConstants.PreviewReplayEndTolerance)
+            return 0.0f;
+
+        return Math.Min(timeSeconds, totalDuration);
+    }
 
     /// <summary>
     /// Updates the cached playhead position and notifies listeners.
