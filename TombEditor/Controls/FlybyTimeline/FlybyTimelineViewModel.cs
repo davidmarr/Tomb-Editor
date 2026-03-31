@@ -156,7 +156,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private ushort _cameraFlags;
 
     /// <summary>
-    /// Stores the formatted playhead timecode shown in the UI.
+    /// Stores the formatted real playback time shown at the playhead in the UI.
     /// </summary>
     [ObservableProperty]
     private string _playheadTimecode = "00:00.00";

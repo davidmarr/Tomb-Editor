@@ -196,51 +196,6 @@ public sealed class FlybySequenceCache
     }
 
     /// <summary>
-    /// Maps wall-clock playback time to timeline time, skipping over cut regions.
-    /// </summary>
-    /// <param name="playbackTime">The wall-clock playback time, in seconds.</param>
-    /// <returns>The corresponding timeline time, in seconds.</returns>
-    public float PlaybackToTimelineTime(float playbackTime)
-    {
-        float accumulatedCutTime = 0;
-
-        foreach (var cut in _cutRegions)
-        {
-            float cutPlaybackStart = cut.StartTime - accumulatedCutTime;
-
-            if (playbackTime < cutPlaybackStart)
-                break;
-
-            accumulatedCutTime += cut.Duration;
-        }
-
-        return playbackTime + accumulatedCutTime;
-    }
-
-    /// <summary>
-    /// Maps timeline time to wall-clock playback time (inverse of <see cref="PlaybackToTimelineTime"/>).
-    /// </summary>
-    /// <param name="timelineTime">The timeline time, in seconds.</param>
-    /// <returns>The corresponding wall-clock playback time, in seconds.</returns>
-    public float TimelineToPlaybackTime(float timelineTime)
-    {
-        float accumulatedCutTime = 0;
-
-        foreach (var cut in _cutRegions)
-        {
-            if (timelineTime <= cut.StartTime)
-                break;
-
-            if (timelineTime < cut.EndTime)
-                return cut.StartTime - accumulatedCutTime;
-
-            accumulatedCutTime += cut.Duration;
-        }
-
-        return timelineTime - accumulatedCutTime;
-    }
-
-    /// <summary>
     /// Returns the pre-computed smoothed speed (world units per second) at the given timeline time.
     /// Returns <c>-1.0f</c> if the time is outside the sequence, within a cut region,
     /// or the cache is not valid.

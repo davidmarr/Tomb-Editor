@@ -388,15 +388,42 @@ public partial class FlybyTimelineViewModel
 
         for (int i = 0; i < CameraList.Count; i++)
             CameraList[i].Timecode = FlybySequenceHelper.FormatTimecode(timing.GetCameraTime(i));
+
+        RefreshPlayheadTimecode();
     }
 
     /// <summary>
     /// Updates the formatted playhead timecode whenever the playhead position changes.
     /// </summary>
     partial void OnPlayheadSecondsChanged(float value)
+        => RefreshPlayheadTimecode(value);
+
+    /// <summary>
+    /// Recomputes the displayed real-time playhead label.
+    /// </summary>
+    private void RefreshPlayheadTimecode()
+        => RefreshPlayheadTimecode(PlayheadSeconds);
+
+    /// <summary>
+    /// Recomputes the displayed real-time playhead label for the provided timeline position.
+    /// </summary>
+    private void RefreshPlayheadTimecode(float timelineSeconds)
     {
-        float seconds = float.IsFinite(value) && value >= 0.0f ? value : 0.0f;
-        PlayheadTimecode = FlybySequenceHelper.FormatTimecode(seconds);
+        float displayTimelineSeconds = float.IsFinite(timelineSeconds) && timelineSeconds >= 0.0f ? timelineSeconds : 0.0f;
+        float realPlaybackSeconds = GetRealPlaybackSeconds(displayTimelineSeconds);
+
+        PlayheadTimecode = FlybySequenceHelper.FormatTimecode(realPlaybackSeconds);
+    }
+
+    /// <summary>
+    /// Returns the wall-clock playback time represented by the current timeline position.
+    /// </summary>
+    private float GetRealPlaybackSeconds(float timelineSeconds)
+    {
+        if (!SelectedSequence.HasValue || CameraList.Count == 0)
+            return 0.0f;
+
+        return GetSequenceTiming().TimelineToPlaybackTime(timelineSeconds);
     }
 
     /// <summary>

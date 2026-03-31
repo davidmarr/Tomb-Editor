@@ -81,7 +81,7 @@ public class FlybyPreviewTests
 
         var savedCamera = new FreeCamera(Vector3.Zero, 0.0f, 0.0f, -MathF.PI * 0.5f, MathF.PI * 0.5f, MathC.DegToRad(60.0f));
         using var preview = new FlybyPreview(level, 2, savedCamera);
-        float playbackEnd = preview.Cache.TimelineToPlaybackTime(preview.Cache.TotalDuration + 1.0f);
+        float playbackEnd = preview.Cache.Timing.TimelineToPlaybackTime(preview.Cache.TotalDuration + 1.0f);
 
         preview.BeginExternalUpdate(playbackEnd);
 
