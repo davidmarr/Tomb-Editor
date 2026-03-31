@@ -93,14 +93,19 @@ public static class FlybyConstants
     public const float TimelineAddCameraMinCursorTime = 0.01f;
 
     /// <summary>
+    /// Time tolerance, in seconds, for treating markers as visible when viewport comparisons are affected by float drift.
+    /// </summary>
+    public const float TimelineViewportTimeTolerance = 0.0001f;
+
+    /// <summary>
     /// Time tolerance, in seconds, for treating the playhead as being at the final camera marker.
     /// </summary>
-    public const float TimelineSequenceEndTolerance = 0.0001f;
+    public const float TimelineSequenceEndTolerance = TimelineViewportTimeTolerance;
 
     /// <summary>
     /// Time tolerance, in seconds, for aligning cut-region boundaries in ruler and viewport calculations.
     /// </summary>
-    public const float CutBoundaryTolerance = 0.0001f;
+    public const float CutBoundaryTolerance = TimelineViewportTimeTolerance;
 
     /// <summary>
     /// Smallest visible timeline span, in seconds, allowed after a zoom operation.

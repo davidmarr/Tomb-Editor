@@ -157,9 +157,9 @@ public partial class FlybyTimelineControl
     /// <param name="trackHeight">Height of the track area in pixels.</param>
     private void DrawSegmentRegions(DrawingContext context, float width, float trackY, float trackHeight)
     {
-        var cutSpans = CollectVisibleCutSpans(width);
+        PopulateVisibleCutSpans(width);
 
-        foreach (var (cutLeft, cutRight) in cutSpans)
+        foreach (var (cutLeft, cutRight) in _visibleCutSpans)
         {
             float cutWidth = cutRight - cutLeft;
             context.DrawRectangle(CameraCutRegionRulerBrush, null, new Rect(cutLeft, 0, cutWidth, FlybyConstants.TimelineRulerHeight));
@@ -190,10 +190,9 @@ public partial class FlybyTimelineControl
     /// Collects visible cut-region pixel spans from the current marker data.
     /// </summary>
     /// <param name="width">Current control width in pixels.</param>
-    /// <returns>A list of (left, right) pixel spans for each visible cut region.</returns>
-    private List<(float Left, float Right)> CollectVisibleCutSpans(float width)
+    private void PopulateVisibleCutSpans(float width)
     {
-        var spans = new List<(float Left, float Right)>();
+        _visibleCutSpans.Clear();
 
         for (int i = 0; i < _markers.Count - 1; i++)
         {
@@ -213,10 +212,8 @@ public partial class FlybyTimelineControl
             float cutRight = Math.Min(width, TimeToPixel(marker.TimeSeconds + bypassDuration, width));
 
             if (cutRight > cutLeft)
-                spans.Add((cutLeft, cutRight));
+                _visibleCutSpans.Add((cutLeft, cutRight));
         }
-
-        return spans;
     }
 
     /// <summary>

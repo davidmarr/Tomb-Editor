@@ -340,8 +340,8 @@ public partial class FlybyTimelineControl
         if (width <= 0.0f || !float.IsFinite(marker.TimeSeconds) || !float.IsFinite(range) || range <= 0.0f)
             return false;
 
-        if (marker.TimeSeconds < _visibleStartSeconds - FlybyConstants.CutBoundaryTolerance ||
-            marker.TimeSeconds > _visibleEndSeconds + FlybyConstants.CutBoundaryTolerance)
+        if (marker.TimeSeconds < _visibleStartSeconds - FlybyConstants.TimelineViewportTimeTolerance ||
+            marker.TimeSeconds > _visibleEndSeconds + FlybyConstants.TimelineViewportTimeTolerance)
         {
             return false;
         }

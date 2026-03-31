@@ -7,7 +7,7 @@ namespace TombEditor.Controls.FlybyTimeline.Preview;
 
 /// <summary>
 /// Stores the camera state for a single flyby frame. Used both as the internal cache
-/// element in <see cref="FlybySequenceCache"/> and as the public preview output.
+/// element in <see cref="Sequence.FlybySequenceCache"/> and as the public preview output.
 /// </summary>
 public struct FlybyFrameState
 {
