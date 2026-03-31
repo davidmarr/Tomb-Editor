@@ -114,7 +114,7 @@ public sealed class FlybyPreview : IDisposable
         if (IsFinished)
             return;
 
-        float timelineTime = Math.Min(Cache.PlaybackToTimelineTime(_startTimeOffset), Cache.TotalDuration);
+        float timelineTime = Math.Min(Cache.Timing.PlaybackToTimelineTime(_startTimeOffset), Cache.TotalDuration);
 
         if (timelineTime >= Cache.TotalDuration)
         {
@@ -198,7 +198,7 @@ public sealed class FlybyPreview : IDisposable
         if (!float.IsFinite(playbackElapsed))
             return 0.0f;
 
-        return Cache.PlaybackToTimelineTime(playbackElapsed);
+        return Cache.Timing.PlaybackToTimelineTime(playbackElapsed);
     }
 
     #region Static frame helpers

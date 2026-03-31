@@ -51,8 +51,8 @@ public class FlybySequenceCacheTests
 
         var cache = new FlybySequenceCache(cameras, useSmoothPause: false);
         var cutRegion = cache.Timing.CutRegions[0];
-        float playbackAfterCut = cache.TimelineToPlaybackTime(cutRegion.EndTime + FlybyConstants.TimeStep);
-        float timelineAfterCut = cache.PlaybackToTimelineTime(playbackAfterCut);
+        float playbackAfterCut = cache.Timing.TimelineToPlaybackTime(cutRegion.EndTime + FlybyConstants.TimeStep);
+        float timelineAfterCut = cache.Timing.PlaybackToTimelineTime(playbackAfterCut);
 
         Assert.IsTrue(playbackAfterCut < cutRegion.EndTime);
         Assert.AreEqual(cutRegion.EndTime + FlybyConstants.TimeStep, timelineAfterCut, 0.001f);

@@ -134,6 +134,51 @@ public sealed class FlybySequenceTiming
     }
 
     /// <summary>
+    /// Maps wall-clock playback time to timeline time, expanding cut regions.
+    /// </summary>
+    /// <param name="playbackTime">The wall-clock playback time, in seconds.</param>
+    /// <returns>The corresponding timeline time, in seconds.</returns>
+    public float PlaybackToTimelineTime(float playbackTime)
+    {
+        float accumulatedCutTime = 0.0f;
+
+        foreach (var cut in _cutRegions)
+        {
+            float cutPlaybackStart = cut.StartTime - accumulatedCutTime;
+
+            if (playbackTime < cutPlaybackStart)
+                break;
+
+            accumulatedCutTime += cut.Duration;
+        }
+
+        return playbackTime + accumulatedCutTime;
+    }
+
+    /// <summary>
+    /// Maps timeline time to wall-clock playback time, collapsing cut regions.
+    /// </summary>
+    /// <param name="timelineTime">The timeline time, in seconds.</param>
+    /// <returns>The corresponding wall-clock playback time, in seconds.</returns>
+    public float TimelineToPlaybackTime(float timelineTime)
+    {
+        float accumulatedCutTime = 0.0f;
+
+        foreach (var cut in _cutRegions)
+        {
+            if (timelineTime <= cut.StartTime)
+                break;
+
+            if (timelineTime < cut.EndTime)
+                return cut.StartTime - accumulatedCutTime;
+
+            accumulatedCutTime += cut.Duration;
+        }
+
+        return timelineTime - accumulatedCutTime;
+    }
+
+    /// <summary>
     /// Builds full timing data for the provided flyby sequence.
     /// </summary>
     /// <param name="cameras">Ordered flyby cameras that define the sequence.</param>

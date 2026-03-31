@@ -113,7 +113,7 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
 
         bool restartFromBeginning = PlayheadSeconds >= cache.TotalDuration - FlybyConstants.PreviewReplayEndTolerance;
         float startOffset = !restartFromBeginning && PlayheadSeconds > 0.0f
-            ? cache.TimelineToPlaybackTime(PlayheadSeconds)
+            ? cache.Timing.TimelineToPlaybackTime(PlayheadSeconds)
             : 0.0f;
 
         _playbackPreview.BeginExternalUpdate(startOffset);

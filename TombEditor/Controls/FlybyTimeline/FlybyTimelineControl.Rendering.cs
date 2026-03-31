@@ -25,6 +25,7 @@ public partial class FlybyTimelineControl
 
         context.DrawRectangle(BackgroundBrush, null, new Rect(0, 0, w, h));
         context.DrawRectangle(RulerBrush, null, new Rect(0, 0, w, FlybyConstants.TimelineRulerHeight));
+        DrawCutRegions(context, w, 0.0f, FlybyConstants.TimelineRulerHeight, true, false);
 
         DrawTimeRuler(context, w);
 
@@ -56,34 +57,66 @@ public partial class FlybyTimelineControl
     }
 
     /// <summary>
-    /// Draws ruler ticks and labels for the current viewport.
+    /// Draws ruler ticks and labels in displayed playback time for the current viewport.
     /// </summary>
     private void DrawTimeRuler(DrawingContext context, float width)
     {
-        float visibleDuration = _visibleEndSeconds - _visibleStartSeconds;
-
-        if (visibleDuration <= 0)
-            return;
-
         double pixelsPerDip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-        float pixelsPerSecond = width / visibleDuration;
-        float tickInterval = CalculateTickInterval(pixelsPerSecond);
-        float startTick = MathF.Floor(_visibleStartSeconds / tickInterval) * tickInterval;
 
-        for (float t = startTick; t <= _visibleEndSeconds; t += tickInterval)
+        if (!TryGetVisibleRulerRange(out float visibleRulerStartSeconds, out float visibleRulerEndSeconds))
         {
-            float x = TimeToPixel(t, width);
+            if (!IsVisibleViewportInsideCutRegion())
+                DrawCollapsedTimeRulerLabel(context, pixelsPerDip, TimelineToRulerTime(_visibleStartSeconds));
+
+            return;
+        }
+
+        float visibleTimelineDuration = _visibleEndSeconds - _visibleStartSeconds;
+
+        if (!float.IsFinite(visibleTimelineDuration) || visibleTimelineDuration <= 0.0f)
+        {
+            DrawCollapsedTimeRulerLabel(context, pixelsPerDip, visibleRulerStartSeconds);
+            return;
+        }
+
+        float timelinePixelsPerSecond = width / visibleTimelineDuration;
+        float tickInterval = CalculateTickInterval(timelinePixelsPerSecond);
+        float startTick = MathF.Floor(visibleRulerStartSeconds / tickInterval) * tickInterval;
+        float lastTickX = float.NegativeInfinity;
+
+        for (float rulerTime = startTick; rulerTime <= visibleRulerEndSeconds; rulerTime += tickInterval)
+        {
+            float x = TimeToPixel(RulerTimeToTimelineTime(rulerTime), width);
 
             if (x < 0 || x > width)
                 continue;
 
+            if (float.IsFinite(lastTickX) && x <= lastTickX + 1.0f)
+                continue;
+
+            lastTickX = x;
+
             context.DrawLine(GridLinePen, new Point(x, 0), new Point(x, ActualHeight));
 
-            string label = FlybySequenceHelper.FormatRulerLabel(t);
+            string label = FlybySequenceHelper.FormatRulerLabel(rulerTime);
             var formattedText = GetRulerLabelText(label, pixelsPerDip);
 
             context.DrawText(formattedText, new Point(x + 2, 2));
         }
+    }
+
+    /// <summary>
+    /// Draws a single ruler label when the visible viewport collapses to one playback instant.
+    /// </summary>
+    private void DrawCollapsedTimeRulerLabel(DrawingContext context, double pixelsPerDip, float rulerTime)
+    {
+        if (!float.IsFinite(rulerTime))
+            return;
+
+        string label = FlybySequenceHelper.FormatRulerLabel(rulerTime);
+        var formattedText = GetRulerLabelText(label, pixelsPerDip);
+
+        context.DrawText(formattedText, new Point(2, 2));
     }
 
     /// <summary>
@@ -112,7 +145,7 @@ public partial class FlybyTimelineControl
     }
 
     /// <summary>
-    /// Draws freeze and camera-cut overlays for visible segments.
+    /// Draws freeze and cut-region overlays for visible track segments.
     /// </summary>
     /// <param name="context">Drawing context receiving the overlays.</param>
     /// <param name="width">Current control width in pixels.</param>
@@ -120,6 +153,8 @@ public partial class FlybyTimelineControl
     /// <param name="trackHeight">Height of the track area in pixels.</param>
     private void DrawSegmentRegions(DrawingContext context, float width, float trackY, float trackHeight)
     {
+        DrawCutRegions(context, width, trackY, trackHeight, false, true);
+
         for (int i = 0; i < _markers.Count; i++)
         {
             var marker = _markers[i];
@@ -137,9 +172,31 @@ public partial class FlybyTimelineControl
                 if (freezeRight > freezeLeft)
                     context.DrawRectangle(FreezeRegionBrush, null, new Rect(freezeLeft, trackY, freezeRight - freezeLeft, trackHeight));
             }
+        }
+    }
 
-            if (i >= _markers.Count - 1 || !marker.HasCameraCut)
+    /// <summary>
+    /// Draws cut-region overlays for visible cut-bypassed segments.
+    /// </summary>
+    /// <param name="context">Drawing context receiving the overlays.</param>
+    /// <param name="width">Current control width in pixels.</param>
+    /// <param name="top">Top y-coordinate of the destination band.</param>
+    /// <param name="height">Height of the destination band in pixels.</param>
+    /// <param name="drawFill">Whether to draw the cut background fill inside the cut span.</param>
+    /// <param name="drawPattern">Whether to draw the diagonal hatch overlay inside the cut span.</param>
+    private void DrawCutRegions(DrawingContext context, float width, float top, float height, bool drawFill, bool drawPattern)
+    {
+        for (int i = 0; i < _markers.Count - 1; i++)
+        {
+            var marker = _markers[i];
+
+            if (!float.IsFinite(marker.TimeSeconds))
                 continue;
+
+            if (!marker.HasCameraCut)
+                continue;
+
+            float startX = TimeToPixel(marker.TimeSeconds, width);
 
             float bypassDuration = marker.CutBypassDuration > 0.0f
                 ? marker.CutBypassDuration
@@ -152,7 +209,16 @@ public partial class FlybyTimelineControl
             float cutRight = Math.Min(width, TimeToPixel(marker.TimeSeconds + bypassDuration, width));
 
             if (cutRight > cutLeft)
-                DrawDiagonalHatch(context, cutLeft, trackY, cutRight - cutLeft, trackHeight, CameraCutPen);
+            {
+                float cutWidth = cutRight - cutLeft;
+                var cutRect = new Rect(cutLeft, top, cutWidth, height);
+
+                if (drawFill)
+                    context.DrawRectangle(CameraCutRegionRulerBrush, null, cutRect);
+
+                if (drawPattern)
+                    DrawDiagonalHatch(context, cutLeft, top, cutWidth, height, CameraCutPen);
+            }
         }
     }
 
@@ -323,7 +389,7 @@ public partial class FlybyTimelineControl
             if (!TryGetMarkerPixel(marker, width, out float x))
                 continue;
 
-            if (x < -FlybyConstants.TimelineMarkerRadius || x > width + FlybyConstants.TimelineMarkerRadius)
+            if (x < 0.0f || x > width)
                 continue;
 
             var fill = GetMarkerFillBrush(marker);
@@ -436,7 +502,8 @@ public partial class FlybyTimelineControl
         if (_repositionTargetIndex >= 0 && _repositionTargetIndex < _markers.Count &&
             _repositionTargetIndex != _repositionFromIndex)
         {
-            if (TryGetMarkerPixel(_markers[_repositionTargetIndex], width, out float targetX))
+            if (TryGetMarkerPixel(_markers[_repositionTargetIndex], width, out float targetX) &&
+                targetX >= 0.0f && targetX <= width)
                 DrawMarker(context, _markers[_repositionTargetIndex], GhostMarkerBrush, GhostMarkerPen, targetX, centerY);
         }
     }

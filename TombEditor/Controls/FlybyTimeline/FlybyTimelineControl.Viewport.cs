@@ -245,6 +245,88 @@ public partial class FlybyTimelineControl
     }
 
     /// <summary>
+    /// Converts a timeline time to the ruler's displayed time.
+    /// </summary>
+    /// <param name="timeSeconds">Timeline time to convert.</param>
+    /// <returns>The displayed ruler time in seconds.</returns>
+    private float TimelineToRulerTime(float timeSeconds)
+    {
+        if (!float.IsFinite(timeSeconds))
+            return timeSeconds;
+
+        float rulerTime = _cache?.Timing.TimelineToPlaybackTime(timeSeconds) ?? timeSeconds;
+        return float.IsFinite(rulerTime) ? rulerTime : timeSeconds;
+    }
+
+    /// <summary>
+    /// Converts a displayed ruler time back into timeline time for viewport projection.
+    /// </summary>
+    /// <param name="rulerTime">Displayed ruler time in seconds.</param>
+    /// <returns>The corresponding timeline time in seconds.</returns>
+    private float RulerTimeToTimelineTime(float rulerTime)
+    {
+        if (!float.IsFinite(rulerTime) || _cache?.Timing is null)
+            return rulerTime;
+
+        const float CutBoundaryTolerance = 0.0001f;
+        float accumulatedCutTime = 0.0f;
+
+        foreach (var cut in _cache.Timing.CutRegions)
+        {
+            float cutPlaybackStart = cut.StartTime - accumulatedCutTime;
+            float playbackDelta = rulerTime - cutPlaybackStart;
+
+            if (playbackDelta < -CutBoundaryTolerance)
+                break;
+
+            if (MathF.Abs(playbackDelta) <= CutBoundaryTolerance)
+                return cut.StartTime;
+
+            accumulatedCutTime += cut.Duration;
+        }
+
+        return rulerTime + accumulatedCutTime;
+    }
+
+    /// <summary>
+    /// Converts the visible viewport into the ruler's displayed time range.
+    /// </summary>
+    /// <param name="rulerStartSeconds">Receives the visible ruler start time.</param>
+    /// <param name="rulerEndSeconds">Receives the visible ruler end time.</param>
+    /// <returns><see langword="true"/> when the visible viewport spans a positive playback range; otherwise <see langword="false"/>.</returns>
+    private bool TryGetVisibleRulerRange(out float rulerStartSeconds, out float rulerEndSeconds)
+    {
+        rulerStartSeconds = TimelineToRulerTime(_visibleStartSeconds);
+        rulerEndSeconds = TimelineToRulerTime(_visibleEndSeconds);
+
+        return float.IsFinite(rulerStartSeconds) &&
+            float.IsFinite(rulerEndSeconds) &&
+            rulerEndSeconds > rulerStartSeconds;
+    }
+
+    /// <summary>
+    /// Returns whether the entire visible viewport lies inside one cut-bypassed region.
+    /// </summary>
+    private bool IsVisibleViewportInsideCutRegion()
+    {
+        if (_cache?.Timing is null)
+            return false;
+
+        const float CutTolerance = 0.0001f;
+
+        foreach (var cut in _cache.Timing.CutRegions)
+        {
+            if (_visibleStartSeconds >= cut.StartTime - CutTolerance &&
+                _visibleEndSeconds <= cut.EndTime + CutTolerance)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Converts a marker time to a pixel position when the marker has a valid timeline time.
     /// </summary>
     /// <param name="marker">Marker whose x-position should be resolved.</param>
@@ -253,11 +335,16 @@ public partial class FlybyTimelineControl
     /// <returns><see langword="true"/> when the marker time and viewport state are valid and an x-coordinate was produced; <see langword="false"/> when the marker cannot be projected.</returns>
     private bool TryGetMarkerPixel(TimelineMarker marker, float width, out float x)
     {
+        const float ViewportTolerance = 0.0001f;
         x = 0.0f;
 
         float range = _visibleEndSeconds - _visibleStartSeconds;
 
         if (width <= 0.0f || !float.IsFinite(marker.TimeSeconds) || !float.IsFinite(range) || range <= 0.0f)
+            return false;
+
+        if (marker.TimeSeconds < _visibleStartSeconds - ViewportTolerance ||
+            marker.TimeSeconds > _visibleEndSeconds + ViewportTolerance)
             return false;
 
         x = TimeToPixel(marker.TimeSeconds, width);
