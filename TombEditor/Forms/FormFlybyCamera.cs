@@ -2,12 +2,15 @@
 using System;
 using System.Windows.Forms;
 using TombEditor.Controls.FlybyTimeline.Sequence;
+using TombLib;
 using TombLib.LevelData;
 
 namespace TombEditor.Forms
 {
     public partial class FormFlybyCamera : DarkForm
     {
+        private const float ChangeComparisonEpsilon = 0.0001f;
+
         public bool IsNew { get; set; }
         public bool HasChanges { get; private set; }
 
@@ -24,13 +27,6 @@ namespace TombEditor.Forms
         private float _originalRoll;
         private float _originalRotationX;
         private float _originalRotationY;
-
-        // Original UI values used when the stored numeric values are already valid.
-        private decimal _originalSpeedValue;
-        private decimal _originalFovValue;
-        private decimal _originalRollValue;
-        private decimal _originalRotationXValue;
-        private decimal _originalRotationYValue;
 
         private bool _isLoading;
         private bool _ownedPreview;
@@ -139,15 +135,7 @@ namespace TombEditor.Forms
         private void butOK_Click(object sender, EventArgs e)
         {
             HasChanges = HasPendingChanges();
-            _flyByCamera.Flags = CollectFlags();
-            _flyByCamera.Sequence = (ushort)numSequence.Value;
-            _flyByCamera.Number = (ushort)numNumber.Value;
-            _flyByCamera.Timer = (short)numTimer.Value;
-            _flyByCamera.Speed = (float)numSpeed.Value;
-            _flyByCamera.Fov = (float)numFOV.Value;
-            _flyByCamera.Roll = (float)numRoll.Value;
-            _flyByCamera.RotationX = (float)numRotationX.Value;
-            _flyByCamera.RotationY = (float)numRotationY.Value;
+            ApplyPendingValues(_flyByCamera);
 
             DialogResult = DialogResult.OK;
             Close();
@@ -164,12 +152,6 @@ namespace TombEditor.Forms
             _originalRoll = _flyByCamera.Roll;
             _originalRotationX = _flyByCamera.RotationX;
             _originalRotationY = _flyByCamera.RotationY;
-
-            _originalSpeedValue = ClampNumericValue(_flyByCamera.Speed, numSpeed);
-            _originalFovValue = ClampNumericValue(_flyByCamera.Fov, numFOV);
-            _originalRollValue = ClampNumericValue(_flyByCamera.Roll, numRoll);
-            _originalRotationXValue = ClampNumericValue(_flyByCamera.RotationX, numRotationX);
-            _originalRotationYValue = ClampNumericValue(_flyByCamera.RotationY, numRotationY);
         }
 
         private void RestoreOriginalValues()
@@ -187,33 +169,31 @@ namespace TombEditor.Forms
 
         private bool HasPendingChanges()
         {
-            return CollectFlags() != _originalFlags ||
-                (ushort)numSequence.Value != _originalSequence ||
-                (ushort)numNumber.Value != _originalNumber ||
-                (short)numTimer.Value != _originalTimer ||
-                HasPendingNumericChange(_originalSpeed, _originalSpeedValue, numSpeed) ||
-                HasPendingNumericChange(_originalFov, _originalFovValue, numFOV) ||
-                HasPendingNumericChange(_originalRoll, _originalRollValue, numRoll) ||
-                HasPendingNumericChange(_originalRotationX, _originalRotationXValue, numRotationX) ||
-                HasPendingNumericChange(_originalRotationY, _originalRotationYValue, numRotationY);
+            var pendingCamera = new FlybyCameraInstance();
+            ApplyPendingValues(pendingCamera);
+
+            return pendingCamera.Flags != _originalFlags ||
+                pendingCamera.Sequence != _originalSequence ||
+                pendingCamera.Number != _originalNumber ||
+                pendingCamera.Timer != _originalTimer ||
+                !MathC.WithinEpsilon(pendingCamera.Speed, _originalSpeed, ChangeComparisonEpsilon) ||
+                !MathC.WithinEpsilon(pendingCamera.Fov, _originalFov, ChangeComparisonEpsilon) ||
+                !MathC.WithinEpsilon(pendingCamera.Roll, _originalRoll, ChangeComparisonEpsilon) ||
+                !MathC.WithinEpsilon(pendingCamera.RotationX, _originalRotationX, ChangeComparisonEpsilon) ||
+                !MathC.WithinEpsilon(pendingCamera.RotationY, _originalRotationY, ChangeComparisonEpsilon);
         }
 
-        private static bool HasPendingNumericChange(float originalValue, decimal originalDisplayValue, NumericUpDown numeric)
+        private void ApplyPendingValues(FlybyCameraInstance camera)
         {
-            if (RequiresNumericNormalization(originalValue, numeric))
-                return true;
-
-            return numeric.Value != originalDisplayValue;
-        }
-
-        private static bool RequiresNumericNormalization(float value, NumericUpDown numeric)
-        {
-            if (!float.IsFinite(value))
-                return true;
-
-            double min = (double)numeric.Minimum;
-            double max = (double)numeric.Maximum;
-            return value < min || value > max;
+            camera.Flags = CollectFlags();
+            camera.Sequence = (ushort)numSequence.Value;
+            camera.Number = (ushort)numNumber.Value;
+            camera.Timer = (short)numTimer.Value;
+            camera.Speed = (float)numSpeed.Value;
+            camera.Fov = (float)numFOV.Value;
+            camera.Roll = (float)numRoll.Value;
+            camera.RotationX = (float)numRotationX.Value;
+            camera.RotationY = (float)numRotationY.Value;
         }
 
         private static decimal ClampNumericValue(float value, NumericUpDown numeric)
