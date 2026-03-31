@@ -109,7 +109,12 @@ namespace TombEditor.Forms
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             if (DialogResult == DialogResult.Cancel)
+            {
                 RestoreOriginalValues();
+
+                if (!_ownedPreview && _editor.CameraPreviewMode != CameraPreviewType.None)
+                    _editor.CameraPreviewUpdated(_flyByCamera);
+            }
 
             // Only exit the preview mode if we were the one who entered it.
             if (_ownedPreview && _editor.CameraPreviewMode != CameraPreviewType.None)

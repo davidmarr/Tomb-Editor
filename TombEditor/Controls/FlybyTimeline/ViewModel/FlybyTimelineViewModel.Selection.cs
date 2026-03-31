@@ -105,7 +105,7 @@ public partial class FlybyTimelineViewModel
             (flybyCamera.Sequence == SelectedSequence.Value || CameraList.Any(item => item.Camera == flybyCamera));
 
         if (!_isApplyingProperty)
-            RefreshSequenceList();
+            RefreshSequenceListIfNeeded();
 
         if (!affectsVisibleSequence)
             return;
@@ -235,6 +235,21 @@ public partial class FlybyTimelineViewModel
     }
 
     /// <summary>
+    /// Restores timeline selection from the editor's current flyby selection when it belongs to the active sequence.
+    /// </summary>
+    /// <returns><see langword="true"/> when at least one selected editor flyby camera was restored into the current timeline selection; otherwise <see langword="false"/>.</returns>
+    private bool TryRestoreSelectionFromEditor()
+    {
+        var selectedCameras = GetSelectedFlybyCameras(_editor.SelectedObject);
+
+        if (selectedCameras.Count == 0)
+            return false;
+
+        SetSelectedCameras(selectedCameras, SelectionUpdateBehavior.RestoreSelectedCameraState | SelectionUpdateBehavior.RefreshTimeline);
+        return _selectedCameras.Count > 0;
+    }
+
+    /// <summary>
     /// Switches the active sequence to match the current camera selection.
     /// </summary>
     private void AlignSequenceToSelection(IReadOnlyList<FlybyCameraInstance> selectedCameras)
@@ -276,9 +291,7 @@ public partial class FlybyTimelineViewModel
     private IReadOnlyList<PositionBasedObjectInstance> GetMergedEditorSelection()
     {
         var mergedSelection = GetEditorSelectionObjects()
-            .Where(objectInstance => objectInstance is not FlybyCameraInstance flybyCamera ||
-                                     !SelectedSequence.HasValue ||
-                                     flybyCamera.Sequence != SelectedSequence.Value)
+            .Where(objectInstance => objectInstance is not FlybyCameraInstance)
             .ToList();
 
         mergedSelection.AddRange(_selectedCameras);

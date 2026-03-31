@@ -81,6 +81,25 @@ public partial class FlybyTimelineViewModel
     }
 
     /// <summary>
+    /// Rebuilds the available sequence list only when level data changed the visible set of sequence ids.
+    /// </summary>
+    private void RefreshSequenceListIfNeeded()
+    {
+        var sequences = new HashSet<ushort>(_userAddedSequences);
+
+        if (_editor.Level is not null)
+        {
+            foreach (ushort seq in FlybySequenceHelper.GetAllSequences(_editor.Level))
+                sequences.Add(seq);
+        }
+
+        if (AvailableSequences.Count == sequences.Count && AvailableSequences.All(sequences.Contains))
+            return;
+
+        RefreshSequenceList();
+    }
+
+    /// <summary>
     /// Rebuilds the camera list for the currently selected sequence.
     /// </summary>
     private void RefreshCameraList()

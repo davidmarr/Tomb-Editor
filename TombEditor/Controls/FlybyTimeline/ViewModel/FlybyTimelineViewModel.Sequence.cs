@@ -89,8 +89,25 @@ public partial class FlybyTimelineViewModel
         RefreshCameraList();
         RecalculateTimecodes();
 
-        if (!_isSyncingSelection && _selectedCameras.Count == 0 && CameraList.Count > 0)
-            SetSelectedCameras([CameraList[0].Camera], SelectionUpdateBehavior.RestoreSelectedCameraState | SelectionUpdateBehavior.RefreshTimeline);
+        if (_isSyncingSelection)
+            return;
+
+        if (_selectedCameras.Count > 0)
+        {
+            SyncEditorSelection();
+            return;
+        }
+
+        if (TryRestoreSelectionFromEditor())
+            return;
+
+        if (CameraList.Count > 0)
+        {
+            SetSelectedCameras([CameraList[0].Camera], SelectionUpdateBehavior.All);
+            return;
+        }
+
+        SetSelectedCameras([], SelectionUpdateBehavior.All);
     }
 
     #endregion Sequence management
