@@ -108,7 +108,7 @@ namespace TombEditor.Forms
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            if (DialogResult != DialogResult.OK)
+            if (DialogResult == DialogResult.Cancel)
                 RestoreOriginalValues();
 
             // Only exit the preview mode if we were the one who entered it.
