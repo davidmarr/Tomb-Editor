@@ -8,7 +8,7 @@ using TombLib;
 using TombLib.Graphics;
 using TombLib.LevelData;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.Sequence;
 
 /// <summary>
 /// Static helpers for flyby sequence discovery, formatting, flag access, and editor-camera conversions.
@@ -64,21 +64,6 @@ public static class FlybySequenceHelper
 
         int frames = camera.TimerToFrames;
         return frames > 0 ? frames / FlybyConstants.TickRate : 0.0f;
-    }
-
-    /// <summary>
-    /// Returns the timeline time for a camera index using precomputed sequence timing.
-    /// </summary>
-    /// <param name="cameras">Ordered flyby cameras in the active sequence.</param>
-    /// <param name="index">Camera index whose timeline time should be returned.</param>
-    /// <param name="timing">Precomputed timing for the provided sequence.</param>
-    /// <returns>The timeline time for the requested camera, or 0 when unavailable.</returns>
-    public static float GetTimecodeForCamera(IReadOnlyList<FlybyCameraInstance> cameras, int index, FlybySequenceTiming timing)
-    {
-        if (index < 0 || cameras.Count == 0)
-            return 0.0f;
-
-        return timing.GetCameraTime(index);
     }
 
     /// <summary>
@@ -145,7 +130,7 @@ public static class FlybySequenceHelper
     /// </summary>
     /// <param name="bit">Zero-based bit index to validate.</param>
     /// <returns><see langword="true"/> when the bit index is within the valid <see langword="ushort"/> range; otherwise <see langword="false"/>.</returns>
-    public static bool IsValidFlagBit(int bit)
+    private static bool IsValidFlagBit(int bit)
         => bit >= 0 && bit < sizeof(ushort) * 8;
 
     /// <summary>

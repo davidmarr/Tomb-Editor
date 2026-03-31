@@ -1,5 +1,6 @@
 using System.Numerics;
 using TombEditor.Controls.FlybyTimeline;
+using TombEditor.Controls.FlybyTimeline.Sequence;
 
 namespace TombEditor.Tests.FlybyTimeline;
 
@@ -11,7 +12,7 @@ public class FlybySequenceCacheTests
     {
         var level = FlybyTestFactory.CreateLevel();
         var camera = FlybyTestFactory.AddCamera(level.Rooms[0], 1, 0, Vector3.Zero);
-        var cache = new FlybySequenceCache([camera], useSmoothPause: false);
+        var cache = FlybySequenceCache.Build([camera], useSmoothPause: false);
 
         Assert.IsFalse(cache.IsValid);
         Assert.AreEqual(0.0f, cache.TotalDuration, 0.001f);
@@ -25,15 +26,13 @@ public class FlybySequenceCacheTests
             new Vector3(0.0f, 0.0f, 0.0f),
             new Vector3(0.0f, 0.0f, 1024.0f));
 
-        var cache = new FlybySequenceCache(cameras, useSmoothPause: false);
+        var cache = FlybySequenceCache.Build(cameras, useSmoothPause: false);
 
         var firstFrame = cache.SampleAtTime(float.NegativeInfinity);
         var lastFrame = cache.SampleAtTime(float.PositiveInfinity);
 
         Assert.AreEqual(cameras[0].Position, firstFrame.Position);
         Assert.AreEqual(cameras[1].Position, lastFrame.Position);
-        Assert.IsFalse(firstFrame.Finished);
-        Assert.IsFalse(lastFrame.Finished);
     }
 
     [TestMethod]
@@ -49,7 +48,7 @@ public class FlybySequenceCacheTests
         cameras[1].Flags = FlybyConstants.FlagCameraCut;
         cameras[1].Timer = 3;
 
-        var cache = new FlybySequenceCache(cameras, useSmoothPause: false);
+        var cache = FlybySequenceCache.Build(cameras, useSmoothPause: false);
         var cutRegion = cache.Timing.CutRegions[0];
         float playbackAfterCut = cache.Timing.TimelineToPlaybackTime(cutRegion.EndTime + FlybyConstants.TimeStep);
         float timelineAfterCut = cache.Timing.PlaybackToTimelineTime(playbackAfterCut);
@@ -71,7 +70,7 @@ public class FlybySequenceCacheTests
         cameras[1].Flags = FlybyConstants.FlagCameraCut;
         cameras[1].Timer = 3;
 
-        var cache = new FlybySequenceCache(cameras, useSmoothPause: false);
+        var cache = FlybySequenceCache.Build(cameras, useSmoothPause: false);
         var cutRegion = cache.Timing.CutRegions[0];
         float insideCut = (cutRegion.StartTime + cutRegion.EndTime) * 0.5f;
 
@@ -94,7 +93,7 @@ public class FlybySequenceCacheTests
         cameras[1].Flags = FlybyConstants.FlagCameraCut;
         cameras[1].Timer = 3;
 
-        var cache = new FlybySequenceCache(cameras, useSmoothPause: false);
+        var cache = FlybySequenceCache.Build(cameras, useSmoothPause: false);
         var cutRegion = cache.Timing.CutRegions[0];
         var firstPostCutFrame = cache.SampleAtTime(cutRegion.EndTime + FlybyConstants.TimeStep);
 

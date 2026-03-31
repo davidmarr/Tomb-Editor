@@ -4,11 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Threading.Tasks;
+using TombEditor.Controls.FlybyTimeline.Preview;
 using TombLib;
 using TombLib.LevelData;
 using TombLib.Utils;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.Sequence;
 
 /// <summary>
 /// <para>
@@ -25,18 +26,6 @@ namespace TombEditor.Controls.FlybyTimeline;
 public sealed class FlybySequenceCache
 {
     private const float InvalidSpeed = -1.0f;
-
-    /// <summary>
-    /// Stores one cached flyby frame ready for interpolation.
-    /// </summary>
-    private struct CachedFrame
-    {
-        public Vector3 Position;
-        public float RotationY;
-        public float RotationX;
-        public float Roll;
-        public float Fov;
-    }
 
     /// <summary>
     /// Stores the non-null camera data needed to build spline knots.
@@ -72,7 +61,7 @@ public sealed class FlybySequenceCache
         public bool IsSingleCamera => NumSegments == 0;
     }
 
-    private readonly CachedFrame[] _frames;
+    private readonly FlybyFrameState[] _frames;
     private readonly FlybyCutRegion[] _cutRegions;
     private readonly bool[] _framesInsideCutRegion;
     private readonly bool[] _cutBoundaryFrames;
@@ -103,7 +92,16 @@ public sealed class FlybySequenceCache
     /// </summary>
     /// <param name="cameras">The flyby cameras to cache.</param>
     /// <param name="useSmoothPause">Whether TombEngine smooth-pause behavior should be applied.</param>
-    public FlybySequenceCache(IReadOnlyList<FlybyCameraInstance> cameras, bool useSmoothPause)
+    /// <returns>The pre-calculated flyby sequence cache.</returns>
+    public static FlybySequenceCache Build(IReadOnlyList<FlybyCameraInstance> cameras, bool useSmoothPause)
+        => new(cameras, useSmoothPause);
+
+    /// <summary>
+    /// Returns an empty cache with no frame data.
+    /// </summary>
+    public static FlybySequenceCache Empty { get; } = new([], false);
+
+    private FlybySequenceCache(IReadOnlyList<FlybyCameraInstance> cameras, bool useSmoothPause)
     {
         var validCameras = new List<FlybyCameraInstance>(cameras.Count);
         var splineData = new List<CameraSplineData>(cameras.Count);
@@ -166,31 +164,31 @@ public sealed class FlybySequenceCache
     /// valid sequence frames and dummy still frames filling the cut gap.
     /// </summary>
     /// <param name="timeSeconds">The timeline time, in seconds, to sample.</param>
-    /// <returns>The sampled preview frame, or a finished frame when the cache is invalid.</returns>
-    public FlybyPreview.FrameState SampleAtTime(float timeSeconds)
+    /// <returns>The sampled preview frame, or <see langword="default"/> when the cache is invalid.</returns>
+    public FlybyFrameState SampleAtTime(float timeSeconds)
     {
         if (!IsValid)
-            return new FlybyPreview.FrameState { Finished = true };
+            return default;
 
         if (float.IsNaN(timeSeconds) || float.IsNegativeInfinity(timeSeconds))
-            return FrameToState(_frames[0]);
+            return _frames[0];
 
         if (float.IsPositiveInfinity(timeSeconds))
-            return FrameToState(_frames[^1]);
+            return _frames[^1];
 
         if (timeSeconds <= 0.0f)
-            return FrameToState(_frames[0]);
+            return _frames[0];
 
         float index = timeSeconds / FlybyConstants.TimeStep;
         int frameIndex = (int)MathF.Floor(index);
         float interpolationFactor = index - frameIndex;
 
         if (frameIndex >= _frames.Length - 1)
-            return FrameToState(_frames[^1]);
+            return _frames[^1];
 
         // Suppress interpolation across cut region boundaries.
         if (interpolationFactor > 0.0f && IsAtCutBoundary(frameIndex))
-            return FrameToState(_frames[IsInsideCutRegion(frameIndex) ? frameIndex + 1 : frameIndex]);
+            return _frames[IsInsideCutRegion(frameIndex) ? frameIndex + 1 : frameIndex];
 
         return LerpFrames(_frames[frameIndex], _frames[frameIndex + 1], interpolationFactor);
     }
@@ -226,33 +224,19 @@ public sealed class FlybySequenceCache
     }
 
     /// <summary>
-    /// Converts two cached frames into an interpolated preview frame.
+    /// Interpolates two frames into a blended frame.
     /// </summary>
     /// <param name="a">Frame sampled at the lower timeline slot.</param>
     /// <param name="b">Frame sampled at the upper timeline slot.</param>
     /// <param name="t">Interpolation factor between <paramref name="a"/> and <paramref name="b"/>.</param>
     /// <returns>The interpolated preview frame.</returns>
-    private static FlybyPreview.FrameState LerpFrames(CachedFrame a, CachedFrame b, float t) => new()
+    private static FlybyFrameState LerpFrames(FlybyFrameState a, FlybyFrameState b, float t) => new()
     {
         Position = Vector3.Lerp(a.Position, b.Position, t),
         RotationY = a.RotationY + ((b.RotationY - a.RotationY) * t),
         RotationX = a.RotationX + ((b.RotationX - a.RotationX) * t),
         Roll = a.Roll + ((b.Roll - a.Roll) * t),
-        Fov = a.Fov + ((b.Fov - a.Fov) * t),
-        Finished = false
-    };
-
-    /// <summary>
-    /// Converts a cached frame into a preview frame state.
-    /// </summary>
-    private static FlybyPreview.FrameState FrameToState(CachedFrame frame) => new()
-    {
-        Position = frame.Position,
-        RotationY = frame.RotationY,
-        RotationX = frame.RotationX,
-        Roll = frame.Roll,
-        Fov = frame.Fov,
-        Finished = false
+        Fov = a.Fov + ((b.Fov - a.Fov) * t)
     };
 
     /// <summary>
@@ -319,23 +303,23 @@ public sealed class FlybySequenceCache
     /// <param name="splineParams">Playback spline parameters sampled at fixed timeline steps.</param>
     /// <param name="splineSegments">Cut-aware spline segments used for frame evaluation.</param>
     /// <returns>The fully evaluated cached frame array.</returns>
-    private static CachedFrame[] EvaluateFramesParallel(float[] splineParams, SplineSegment[] splineSegments)
+    private static FlybyFrameState[] EvaluateFramesParallel(float[] splineParams, SplineSegment[] splineSegments)
     {
         int count = splineParams.Length;
-        var result = new CachedFrame[count];
+        var result = new FlybyFrameState[count];
 
         Parallel.For(0, count, i => result[i] = EvaluateSplineFrame(splineParams[i], splineSegments));
         return result;
     }
 
     /// <summary>
-    /// Evaluates all spline channels at parameter t and converts to a CachedFrame.
+    /// Evaluates all spline channels at parameter t and returns a frame.
     /// Pure function of the knot arrays, safe for parallel invocation.
     /// </summary>
     /// <param name="t">Spline parameter to evaluate.</param>
     /// <param name="splineSegments">Cut-aware spline segments used for frame evaluation.</param>
-    /// <returns>The evaluated cached frame for the requested spline position.</returns>
-    private static CachedFrame EvaluateSplineFrame(float t, SplineSegment[] splineSegments)
+    /// <returns>The evaluated frame for the requested spline position.</returns>
+    private static FlybyFrameState EvaluateSplineFrame(float t, SplineSegment[] splineSegments)
     {
         var segment = ResolveSplineSegment(t, splineSegments);
 
@@ -367,7 +351,7 @@ public sealed class FlybySequenceCache
             pitch = MathF.Atan2(-dy, horizontalDist);
         }
 
-        return new CachedFrame
+        return new FlybyFrameState
         {
             Position = new Vector3(px, py, pz),
             RotationY = yaw,
@@ -402,16 +386,13 @@ public sealed class FlybySequenceCache
     }
 
     /// <summary>
-    /// Converts one camera sample directly into a cached frame.
+    /// Converts one camera sample directly into a frame.
     /// </summary>
-    private static CachedFrame BuildCameraFrame(CameraSplineData camera) => new()
+    private static FlybyFrameState BuildCameraFrame(CameraSplineData camera)
     {
-        Position = camera.WorldPosition,
-        RotationY = MathC.DegToRad(camera.RotationY),
-        RotationX = -MathC.DegToRad(camera.RotationX),
-        Roll = MathC.DegToRad(camera.Roll),
-        Fov = MathC.DegToRad(camera.Fov)
-    };
+        return FlybyFrameState.FromDegrees(
+            camera.WorldPosition, camera.RotationY, camera.RotationX, camera.Roll, camera.Fov);
+    }
 
     #endregion Parallel spline evaluation
 
@@ -584,7 +565,7 @@ public sealed class FlybySequenceCache
     /// Unwraps RotationY, RotationX and Roll across consecutive cached frames to prevent
     /// discontinuities from atan2 wrapping at the +/-pi boundary.
     /// </summary>
-    private static void UnwrapFrameAngles(CachedFrame[] frames)
+    private static void UnwrapFrameAngles(FlybyFrameState[] frames)
     {
         for (int i = 1; i < frames.Length; i++)
         {

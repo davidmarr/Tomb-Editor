@@ -1,5 +1,6 @@
 using System.Numerics;
 using TombEditor.Controls.FlybyTimeline;
+using TombEditor.Controls.FlybyTimeline.Sequence;
 using TombLib;
 using TombLib.Graphics;
 using TombLib.LevelData;
@@ -93,8 +94,8 @@ public class FlybySequenceHelperTests
         Assert.AreEqual("00:00.00", FlybySequenceHelper.FormatTimecode(float.PositiveInfinity));
         Assert.AreEqual("0.00", FlybySequenceHelper.FormatRulerLabel(float.NaN));
 
-        Assert.IsTrue(FlybySequenceHelper.IsValidFlagBit(15));
-        Assert.IsFalse(FlybySequenceHelper.IsValidFlagBit(16));
+        Assert.IsTrue(FlybySequenceHelper.GetFlagBit(1 << 15, 15));
+        Assert.IsFalse(FlybySequenceHelper.GetFlagBit(ushort.MaxValue, 16));
         Assert.IsTrue(FlybySequenceHelper.GetFlagBit(1 << 7, 7));
         Assert.IsFalse(FlybySequenceHelper.GetFlagBit(0, 20));
         Assert.AreEqual((ushort)(1 << 3), FlybySequenceHelper.SetFlagBit(0, 3, true));

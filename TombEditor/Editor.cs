@@ -6,7 +6,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
-using TombEditor.Controls.FlybyTimeline;
+using TombEditor.Controls.FlybyTimeline.Preview;
 using TombLib;
 using TombLib.Forms;
 using TombLib.Graphics;
@@ -748,13 +748,13 @@ namespace TombEditor
         public class CameraPreviewFrameEvent : IEditorCameraEvent
         {
             public FlybyCameraInstance FlybyCameraInstance { get; set; }
-            public FlybyPreview.FrameState? Frame { get; set; }
+            public FlybyFrameState? Frame { get; set; }
         }
         public void CameraPreviewUpdated(FlybyCameraInstance flybyCamera)
         {
             RaiseEvent(new CameraPreviewFrameEvent { FlybyCameraInstance = flybyCamera });
         }
-        public void CameraPreviewScrub(FlybyPreview.FrameState frame)
+        public void CameraPreviewScrub(FlybyFrameState frame)
         {
             RaiseEvent(new CameraPreviewFrameEvent { Frame = frame });
         }

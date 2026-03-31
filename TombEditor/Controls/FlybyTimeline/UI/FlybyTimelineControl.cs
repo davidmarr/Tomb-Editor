@@ -6,9 +6,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using TombEditor.Controls.FlybyTimeline.Sequence;
 using TombLib.WPF;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.UI;
 
 /// <summary>
 /// A custom WPF timeline control that displays draggable camera keyframes.
@@ -65,7 +66,7 @@ public partial class FlybyTimelineControl : Control
     }
 
     // Timeline data: markers displayed by the control.
-    private IReadOnlyList<TimelineMarker> _markers = [];
+    private IReadOnlyList<FlybyTimelineMarker> _markers = [];
 
     // Cache reference for distance-based speed sampling.
     private FlybySequenceCache? _cache;
@@ -75,6 +76,7 @@ public partial class FlybyTimelineControl : Control
     private readonly Dictionary<string, FormattedText> _rulerTextCache = [];
     private float[] _speedCurveSamples = [];
     private readonly List<(int Start, int End)> _speedCurveSpans = [];
+    private readonly List<(float Left, float Right)> _visibleCutSpans = [];
     private double _rulerTextPixelsPerDip = -1.0f;
 
     // Zoom and scroll state.
@@ -151,57 +153,6 @@ public partial class FlybyTimelineControl : Control
     }
 
     /// <summary>
-    /// Represents one rendered marker on the timeline.
-    /// </summary>
-    public readonly struct TimelineMarker
-    {
-        /// <summary>
-        /// Gets the marker time on the timeline.
-        /// </summary>
-        public float TimeSeconds { get; init; }
-
-        /// <summary>
-        /// Gets whether this marker has a duplicate camera index.
-        /// </summary>
-        public bool IsDuplicate { get; init; }
-
-        /// <summary>
-        /// Gets whether this marker is currently selected.
-        /// </summary>
-        public bool IsSelected { get; init; }
-
-        /// <summary>
-        /// Gets whether this marker starts a camera cut.
-        /// </summary>
-        public bool HasCameraCut { get; init; }
-
-        /// <summary>
-        /// Gets whether this marker lies inside a cut-bypassed region.
-        /// </summary>
-        public bool IsInCutBypass { get; init; }
-
-        /// <summary>
-        /// Gets the duration bypassed by a cut starting at this marker.
-        /// </summary>
-        public float CutBypassDuration { get; init; }
-
-        /// <summary>
-        /// Gets the duration of the outgoing segment starting at this marker.
-        /// </summary>
-        public float SegmentDuration { get; init; }
-
-        /// <summary>
-        /// Gets whether this marker starts a freeze region.
-        /// </summary>
-        public bool HasFreeze { get; init; }
-
-        /// <summary>
-        /// Gets the duration of the freeze starting at this marker.
-        /// </summary>
-        public float FreezeDuration { get; init; }
-    }
-
-    /// <summary>
     /// Sets the playhead position. Negative value hides the playhead.
     /// </summary>
     public void SetPlayheadSeconds(float seconds)
@@ -219,7 +170,7 @@ public partial class FlybyTimelineControl : Control
     /// <param name="markers">Markers to render on the timeline.</param>
     /// <param name="totalDuration">Total analyzed sequence duration in seconds.</param>
     /// <param name="cache">Optional cache used to draw the speed curve.</param>
-    public void SetMarkers(IReadOnlyList<TimelineMarker> markers, float totalDuration, FlybySequenceCache? cache = null)
+    public void SetMarkers(IReadOnlyList<FlybyTimelineMarker> markers, float totalDuration, FlybySequenceCache? cache = null)
     {
         _markers = markers ?? [];
         _totalDurationSeconds = float.IsFinite(totalDuration)

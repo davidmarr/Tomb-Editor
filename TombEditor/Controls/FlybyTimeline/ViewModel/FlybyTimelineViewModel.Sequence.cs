@@ -4,11 +4,13 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TombEditor.Controls.FlybyTimeline.Sequence;
 using TombLib.Forms;
 using TombLib.LevelData;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.ViewModel;
 
+// Sequence and camera CRUD operations (add, delete, duplicate, move).
 public partial class FlybyTimelineViewModel
 {
     #region Sequence management
@@ -47,7 +49,7 @@ public partial class FlybyTimelineViewModel
             return;
 
         ushort seq = SelectedSequence.Value;
-        var cameras = GetCamerasForCurrentSequence();
+        var cameras = GetCamerasWithFallback();
 
         if (cameras.Count > 0)
         {
@@ -185,7 +187,7 @@ public partial class FlybyTimelineViewModel
 
         float clampedCursorTime = Math.Max(cursorTime, FlybyConstants.TimelineAddCameraMinCursorTime);
         var timing = GetSequenceTiming(cameras);
-        float lastCameraTime = FlybySequenceHelper.GetTimecodeForCamera(cameras, cameras.Count - 1, timing);
+        float lastCameraTime = timing.GetCameraTime(cameras.Count - 1);
 
         if (MathF.Abs(cursorTime - lastCameraTime) <= FlybyConstants.TimelineSequenceEndTolerance)
         {
@@ -278,8 +280,8 @@ public partial class FlybyTimelineViewModel
         var undoList = CreateFlybyCameraPropertyUndo(cameras);
         var timing = GetSequenceTiming(cameras);
 
-        float segmentStart = FlybySequenceHelper.GetTimecodeForCamera(cameras, prevIndex, timing);
-        float segmentEnd = FlybySequenceHelper.GetTimecodeForCamera(cameras, insertIndex, timing);
+        float segmentStart = timing.GetCameraTime(prevIndex);
+        float segmentEnd = timing.GetCameraTime(insertIndex);
         float minimumInsertTime = segmentStart + minimumSegmentDuration;
         float maximumInsertTime = segmentEnd - minimumSegmentDuration;
 
@@ -472,7 +474,7 @@ public partial class FlybyTimelineViewModel
     /// <returns><see langword="true"/> when the camera exists in the active sequence and the playhead was updated; <see langword="false"/> when the camera could not be found in the active sequence.</returns>
     private bool TryMovePlayheadToCurrentSequence(FlybyCameraInstance camera)
     {
-        var cameras = GetCamerasForCurrentSequence();
+        var cameras = GetCamerasWithFallback();
         var timing = GetSequenceTiming(cameras);
 
         for (int i = 0; i < cameras.Count; i++)
@@ -480,7 +482,7 @@ public partial class FlybyTimelineViewModel
             if (cameras[i] != camera)
                 continue;
 
-            PlayheadSeconds = FlybySequenceHelper.GetTimecodeForCamera(cameras, i, timing);
+            PlayheadSeconds = timing.GetCameraTime(i);
             return true;
         }
 

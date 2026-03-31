@@ -5,11 +5,15 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
+using TombEditor.Controls.FlybyTimeline.Sequence;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.UI;
 
+// WPF OnRender drawing for ruler, track, markers, and playhead.
 public partial class FlybyTimelineControl
 {
+    private const int RulerTextCacheCapacity = 128;
+
     /// <summary>
     /// Renders the ruler, track, markers, selection, and playhead.
     /// </summary>
@@ -25,7 +29,6 @@ public partial class FlybyTimelineControl
 
         context.DrawRectangle(BackgroundBrush, null, new Rect(0, 0, w, h));
         context.DrawRectangle(RulerBrush, null, new Rect(0, 0, w, FlybyConstants.TimelineRulerHeight));
-        DrawCutRegions(context, w, 0.0f, FlybyConstants.TimelineRulerHeight, true, false);
 
         DrawTimeRuler(context, w);
 
@@ -133,7 +136,7 @@ public partial class FlybyTimelineControl
         if (_rulerTextCache.TryGetValue(label, out var formattedText))
             return formattedText;
 
-        if (_rulerTextCache.Count >= 128)
+        if (_rulerTextCache.Count >= RulerTextCacheCapacity)
             _rulerTextCache.Clear();
 
         formattedText = new FormattedText(
@@ -146,6 +149,7 @@ public partial class FlybyTimelineControl
 
     /// <summary>
     /// Draws freeze and cut-region overlays for visible track segments.
+    /// Cut regions are collected once and drawn to both the ruler and track bands.
     /// </summary>
     /// <param name="context">Drawing context receiving the overlays.</param>
     /// <param name="width">Current control width in pixels.</param>
@@ -153,7 +157,14 @@ public partial class FlybyTimelineControl
     /// <param name="trackHeight">Height of the track area in pixels.</param>
     private void DrawSegmentRegions(DrawingContext context, float width, float trackY, float trackHeight)
     {
-        DrawCutRegions(context, width, trackY, trackHeight, false, true);
+        PopulateVisibleCutSpans(width);
+
+        foreach (var (cutLeft, cutRight) in _visibleCutSpans)
+        {
+            float cutWidth = cutRight - cutLeft;
+            context.DrawRectangle(CameraCutRegionRulerBrush, null, new Rect(cutLeft, 0, cutWidth, FlybyConstants.TimelineRulerHeight));
+            DrawDiagonalHatch(context, cutLeft, trackY, cutWidth, trackHeight, CameraCutPen);
+        }
 
         for (int i = 0; i < _markers.Count; i++)
         {
@@ -176,27 +187,19 @@ public partial class FlybyTimelineControl
     }
 
     /// <summary>
-    /// Draws cut-region overlays for visible cut-bypassed segments.
+    /// Collects visible cut-region pixel spans from the current marker data.
     /// </summary>
-    /// <param name="context">Drawing context receiving the overlays.</param>
     /// <param name="width">Current control width in pixels.</param>
-    /// <param name="top">Top y-coordinate of the destination band.</param>
-    /// <param name="height">Height of the destination band in pixels.</param>
-    /// <param name="drawFill">Whether to draw the cut background fill inside the cut span.</param>
-    /// <param name="drawPattern">Whether to draw the diagonal hatch overlay inside the cut span.</param>
-    private void DrawCutRegions(DrawingContext context, float width, float top, float height, bool drawFill, bool drawPattern)
+    private void PopulateVisibleCutSpans(float width)
     {
+        _visibleCutSpans.Clear();
+
         for (int i = 0; i < _markers.Count - 1; i++)
         {
             var marker = _markers[i];
 
-            if (!float.IsFinite(marker.TimeSeconds))
+            if (!float.IsFinite(marker.TimeSeconds) || !marker.HasCameraCut)
                 continue;
-
-            if (!marker.HasCameraCut)
-                continue;
-
-            float startX = TimeToPixel(marker.TimeSeconds, width);
 
             float bypassDuration = marker.CutBypassDuration > 0.0f
                 ? marker.CutBypassDuration
@@ -205,20 +208,11 @@ public partial class FlybyTimelineControl
             if (!float.IsFinite(bypassDuration) || bypassDuration <= 0.0f)
                 continue;
 
-            float cutLeft = Math.Max(0.0f, startX);
+            float cutLeft = Math.Max(0.0f, TimeToPixel(marker.TimeSeconds, width));
             float cutRight = Math.Min(width, TimeToPixel(marker.TimeSeconds + bypassDuration, width));
 
             if (cutRight > cutLeft)
-            {
-                float cutWidth = cutRight - cutLeft;
-                var cutRect = new Rect(cutLeft, top, cutWidth, height);
-
-                if (drawFill)
-                    context.DrawRectangle(CameraCutRegionRulerBrush, null, cutRect);
-
-                if (drawPattern)
-                    DrawDiagonalHatch(context, cutLeft, top, cutWidth, height, CameraCutPen);
-            }
+                _visibleCutSpans.Add((cutLeft, cutRight));
         }
     }
 
@@ -251,7 +245,7 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Returns the normalized speed sample for the given timeline time, or a negative value when no sample is available.
     /// </summary>
-    private float GetSpeedAtTime(float timeSeconds)
+    private float GetNormalizedSpeedAtTime(float timeSeconds)
     {
         if (!float.IsFinite(timeSeconds) || _cache?.IsValid != true || _markers.Count < 2)
             return -1.0f;
@@ -291,7 +285,7 @@ public partial class FlybyTimelineControl
         for (int i = 0; i <= sampleCount; i++)
         {
             float x = width * i / sampleCount;
-            float speed = GetSpeedAtTime(PixelToTime(x, width));
+            float speed = GetNormalizedSpeedAtTime(PixelToTime(x, width));
             cachedSpeeds[i] = speed;
 
             if (speed >= 0)
@@ -389,11 +383,8 @@ public partial class FlybyTimelineControl
             if (!TryGetMarkerPixel(marker, width, out float x))
                 continue;
 
-            if (x < 0.0f || x > width)
-                continue;
-
             var fill = GetMarkerFillBrush(marker);
-            DrawMarker(context, marker, fill, x, centerY);
+            DrawMarker(context, marker, fill, MarkerOutlinePen, x, centerY);
         }
 
         if (_interactionMode == InteractionMode.Repositioning)
@@ -403,7 +394,7 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Returns the fill brush for a marker based on its state.
     /// </summary>
-    private static Brush GetMarkerFillBrush(TimelineMarker marker)
+    private static Brush GetMarkerFillBrush(FlybyTimelineMarker marker)
     {
         if (marker.IsDuplicate)
             return MarkerErrorBrush;
@@ -415,17 +406,6 @@ public partial class FlybyTimelineControl
     }
 
     /// <summary>
-    /// Draws a single marker using the shape implied by its flags.
-    /// </summary>
-    /// <param name="context">Drawing context receiving the marker.</param>
-    /// <param name="marker">Marker data to render.</param>
-    /// <param name="fill">Brush used to fill the marker.</param>
-    /// <param name="x">Horizontal center of the marker.</param>
-    /// <param name="centerY">Vertical center of the marker.</param>
-    private static void DrawMarker(DrawingContext context, TimelineMarker marker, Brush fill, float x, float centerY)
-        => DrawMarker(context, marker, fill, MarkerOutlinePen, x, centerY);
-
-    /// <summary>
     /// Draws a single marker using the provided outline pen.
     /// </summary>
     /// <param name="context">Drawing context receiving the marker.</param>
@@ -434,7 +414,7 @@ public partial class FlybyTimelineControl
     /// <param name="outlinePen">Pen used to outline the marker.</param>
     /// <param name="x">Horizontal center of the marker.</param>
     /// <param name="centerY">Vertical center of the marker.</param>
-    private static void DrawMarker(DrawingContext context, TimelineMarker marker, Brush fill, Pen outlinePen, float x, float centerY)
+    private static void DrawMarker(DrawingContext context, FlybyTimelineMarker marker, Brush fill, Pen outlinePen, float x, float centerY)
     {
         if (marker.HasCameraCut)
         {
@@ -504,7 +484,9 @@ public partial class FlybyTimelineControl
         {
             if (TryGetMarkerPixel(_markers[_repositionTargetIndex], width, out float targetX) &&
                 targetX >= 0.0f && targetX <= width)
+            {
                 DrawMarker(context, _markers[_repositionTargetIndex], GhostMarkerBrush, GhostMarkerPen, targetX, centerY);
+            }
         }
     }
 
