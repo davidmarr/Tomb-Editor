@@ -5,6 +5,7 @@ using System.Windows;
 
 namespace TombEditor.Controls.FlybyTimeline;
 
+// Coordinate conversion, scrolling, zooming, and smooth viewport animation.
 public partial class FlybyTimelineControl
 {
     /// <summary>
@@ -268,7 +269,6 @@ public partial class FlybyTimelineControl
         if (!float.IsFinite(rulerTime) || _cache?.Timing is null)
             return rulerTime;
 
-        const float CutBoundaryTolerance = 0.0001f;
         float accumulatedCutTime = 0.0f;
 
         foreach (var cut in _cache.Timing.CutRegions)
@@ -276,10 +276,10 @@ public partial class FlybyTimelineControl
             float cutPlaybackStart = cut.StartTime - accumulatedCutTime;
             float playbackDelta = rulerTime - cutPlaybackStart;
 
-            if (playbackDelta < -CutBoundaryTolerance)
+            if (playbackDelta < -FlybyConstants.CutBoundaryTolerance)
                 break;
 
-            if (MathF.Abs(playbackDelta) <= CutBoundaryTolerance)
+            if (MathF.Abs(playbackDelta) <= FlybyConstants.CutBoundaryTolerance)
                 return cut.StartTime;
 
             accumulatedCutTime += cut.Duration;
@@ -312,12 +312,10 @@ public partial class FlybyTimelineControl
         if (_cache?.Timing is null)
             return false;
 
-        const float CutTolerance = 0.0001f;
-
         foreach (var cut in _cache.Timing.CutRegions)
         {
-            if (_visibleStartSeconds >= cut.StartTime - CutTolerance &&
-                _visibleEndSeconds <= cut.EndTime + CutTolerance)
+            if (_visibleStartSeconds >= cut.StartTime - FlybyConstants.CutBoundaryTolerance &&
+                _visibleEndSeconds <= cut.EndTime + FlybyConstants.CutBoundaryTolerance)
             {
                 return true;
             }
@@ -333,9 +331,8 @@ public partial class FlybyTimelineControl
     /// <param name="width">Current control width in pixels.</param>
     /// <param name="x">Receives the resolved x-coordinate when the marker can be projected into the current viewport.</param>
     /// <returns><see langword="true"/> when the marker time and viewport state are valid and an x-coordinate was produced; <see langword="false"/> when the marker cannot be projected.</returns>
-    private bool TryGetMarkerPixel(TimelineMarker marker, float width, out float x)
+    private bool TryGetMarkerPixel(FlybyTimelineMarker marker, float width, out float x)
     {
-        const float ViewportTolerance = 0.0001f;
         x = 0.0f;
 
         float range = _visibleEndSeconds - _visibleStartSeconds;
@@ -343,9 +340,11 @@ public partial class FlybyTimelineControl
         if (width <= 0.0f || !float.IsFinite(marker.TimeSeconds) || !float.IsFinite(range) || range <= 0.0f)
             return false;
 
-        if (marker.TimeSeconds < _visibleStartSeconds - ViewportTolerance ||
-            marker.TimeSeconds > _visibleEndSeconds + ViewportTolerance)
+        if (marker.TimeSeconds < _visibleStartSeconds - FlybyConstants.CutBoundaryTolerance ||
+            marker.TimeSeconds > _visibleEndSeconds + FlybyConstants.CutBoundaryTolerance)
+        {
             return false;
+        }
 
         x = TimeToPixel(marker.TimeSeconds, width);
         return float.IsFinite(x);

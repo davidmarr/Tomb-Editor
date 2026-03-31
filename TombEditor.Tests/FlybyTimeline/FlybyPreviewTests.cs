@@ -30,7 +30,7 @@ public class FlybyPreviewTests
     public void ApplyFrame_UpdatesCameraStateAndTarget()
     {
         var camera = new FreeCamera(Vector3.Zero, 0.0f, 0.0f, -MathF.PI * 0.5f, MathF.PI * 0.5f, MathC.DegToRad(60.0f));
-        var frame = new FlybyPreview.FrameState
+        var frame = new FlybyFrameState
         {
             Position = new Vector3(10.0f, 20.0f, 30.0f),
             RotationY = MathC.DegToRad(90.0f),
@@ -55,7 +55,7 @@ public class FlybyPreviewTests
         var savedCamera = new FreeCamera(Vector3.Zero, 0.0f, 0.0f, -MathF.PI * 0.5f, MathF.PI * 0.5f, MathC.DegToRad(60.0f));
         using var preview = new FlybyPreview(savedCamera);
         var previewCamera = new FreeCamera(Vector3.Zero, 0.0f, 0.0f, -MathF.PI * 0.5f, MathF.PI * 0.5f, MathC.DegToRad(60.0f));
-        var frame = new FlybyPreview.FrameState
+        var frame = new FlybyFrameState
         {
             Position = new Vector3(64.0f, 32.0f, 16.0f),
             RotationY = MathC.DegToRad(180.0f),
@@ -86,7 +86,6 @@ public class FlybyPreviewTests
         preview.BeginExternalUpdate(playbackEnd);
 
         Assert.IsTrue(preview.IsFinished);
-        Assert.IsTrue(preview.LastFrame.Finished);
         Assert.AreEqual(preview.Cache.TotalDuration, preview.GetCurrentTimeSeconds(), 0.001f);
     }
 }

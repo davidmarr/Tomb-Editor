@@ -228,7 +228,7 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
     /// <param name="sequence">The sequence number to sample.</param>
     /// <param name="timeSeconds">The timeline time, in seconds, to sample.</param>
     /// <returns>The interpolated frame, or <see langword="null"/> when no valid cache can be produced.</returns>
-    public FlybyPreview.FrameState? GetInterpolatedFrameAtTime(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence, float timeSeconds)
+    public FlybyFrameState? GetInterpolatedFrameAtTime(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence, float timeSeconds)
     {
         if (!float.IsFinite(timeSeconds))
             return null;
@@ -305,7 +305,7 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
 
         var frame = _playbackPreview.Update();
 
-        if (frame.Finished)
+        if (_playbackPreview.IsFinished)
         {
             float totalDuration = _playbackPreview.Cache.TotalDuration; // Cache before stopping playback, as preview dispose will invalidate the cache reference.
             StopPlayback();
@@ -382,7 +382,7 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
             }
             else
             {
-                _cache = new FlybySequenceCache(cameras, UseSmoothPause);
+                _cache = FlybySequenceCache.Build(cameras, UseSmoothPause);
                 _cacheSequence = sequence;
                 _cacheCameras = [.. cameras];
             }

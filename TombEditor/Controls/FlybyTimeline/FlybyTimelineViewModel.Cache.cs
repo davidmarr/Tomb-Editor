@@ -9,6 +9,7 @@ using TombLib.LevelData;
 
 namespace TombEditor.Controls.FlybyTimeline;
 
+// Timing cache, sequence cache, and camera snapshot helpers.
 public partial class FlybyTimelineViewModel
 {
     #region Timing cache
@@ -82,9 +83,9 @@ public partial class FlybyTimelineViewModel
     #region Camera list helpers
 
     /// <summary>
-    /// Returns the current sequence cameras from the editor state.
+    /// Returns the current sequence cameras, falling back to the editor state when the camera list is empty.
     /// </summary>
-    private IReadOnlyList<FlybyCameraInstance> GetCamerasForCurrentSequence()
+    private IReadOnlyList<FlybyCameraInstance> GetCamerasWithFallback()
     {
         if (!SelectedSequence.HasValue || _editor.Level is null)
             return [];
@@ -112,11 +113,11 @@ public partial class FlybyTimelineViewModel
     /// </summary>
     /// <param name="cachedVisibleCameras">Receives the cached visible camera list when it still matches the current camera items.</param>
     /// <returns><see langword="true"/> when the cached list is still valid for the current <see cref="CameraList"/> contents; <see langword="false"/> when the list must be rebuilt.</returns>
-    private bool TryGetCachedVisibleCameras([NotNullWhen(true)] out IReadOnlyList<FlybyCameraInstance>? cachedVisibleCameras)
+    private bool TryGetCachedVisibleCameras([NotNullWhen(true)] out FlybyCameraInstance[]? cachedVisibleCameras)
     {
         cachedVisibleCameras = _cachedVisibleCameras;
 
-        if (cachedVisibleCameras is null || cachedVisibleCameras.Count != CameraList.Count)
+        if (cachedVisibleCameras is null || cachedVisibleCameras.Length != CameraList.Count)
             return false;
 
         for (int i = 0; i < CameraList.Count; i++)

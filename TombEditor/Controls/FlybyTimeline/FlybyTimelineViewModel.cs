@@ -18,27 +18,6 @@ namespace TombEditor.Controls.FlybyTimeline;
 /// </summary>
 public partial class FlybyTimelineViewModel : ObservableObject
 {
-    /// <summary>
-    /// Represents the data required to render the current timeline state.
-    /// </summary>
-    public readonly struct TimelineRenderState(IReadOnlyList<FlybyTimelineControl.TimelineMarker> markers, FlybySequenceCache? cache, float totalDuration)
-    {
-        /// <summary>
-        /// Gets the markers that should be rendered by the timeline control.
-        /// </summary>
-        public IReadOnlyList<FlybyTimelineControl.TimelineMarker> Markers { get; } = markers;
-
-        /// <summary>
-        /// Gets the sequence cache associated with the rendered timeline.
-        /// </summary>
-        public FlybySequenceCache? Cache { get; } = cache;
-
-        /// <summary>
-        /// Gets the total duration to use for the visible timeline range.
-        /// </summary>
-        public float TotalDuration { get; } = totalDuration;
-    }
-
     [Flags]
     private enum SelectionUpdateBehavior
     {
@@ -65,7 +44,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private bool _queuedTimelineRefreshTimeline;
     private bool _queuedTimelineRefreshPreview;
     private int _activeDraggedCameraIndex = -1;
-    private List<FlybyCameraInstance>? _cachedVisibleCameras;
+    private FlybyCameraInstance[]? _cachedVisibleCameras;
     private FlybySequenceTiming? _cachedSequenceTiming;
     private FlybyCameraInstance[]? _cachedSequenceTimingCameras;
     private DispatcherOperation? _queuedTimelineRefreshOperation;

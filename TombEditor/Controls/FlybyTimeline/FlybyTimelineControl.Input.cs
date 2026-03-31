@@ -7,6 +7,7 @@ using System.Windows.Input;
 
 namespace TombEditor.Controls.FlybyTimeline;
 
+// Mouse and keyboard input handling for the timeline control.
 public partial class FlybyTimelineControl
 {
     /// <summary>

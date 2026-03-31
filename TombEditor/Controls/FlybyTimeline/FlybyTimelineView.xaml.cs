@@ -256,12 +256,6 @@ public partial class FlybyTimelineView : UserControl
         => _viewModel?.MoveCameraToIndex(fromIndex, toIndex);
 
     /// <summary>
-    /// Replaces the current selection with a single camera item.
-    /// </summary>
-    private void SelectSingleCamera(FlybyCameraItemViewModel item)
-        => _viewModel?.UpdateSelectedCameras([item]);
-
-    /// <summary>
     /// Tries to resolve a marker index and make it the active single-camera selection.
     /// </summary>
     /// <param name="index">Timeline marker index to resolve.</param>
@@ -272,7 +266,7 @@ public partial class FlybyTimelineView : UserControl
         if (!TryGetCameraItem(index, out item))
             return false;
 
-        SelectSingleCamera(item);
+        _viewModel?.UpdateSelectedCameras([item]);
         return true;
     }
 

@@ -7,6 +7,7 @@ using TombLib.Utils;
 
 namespace TombEditor.Controls.FlybyTimeline;
 
+// Editor event handling and camera selection synchronization.
 public partial class FlybyTimelineViewModel
 {
     #region Editor event handling

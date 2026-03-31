@@ -16,19 +16,6 @@ namespace TombEditor.Controls.FlybyTimeline;
 /// </summary>
 public sealed class FlybyPreview : IDisposable
 {
-    /// <summary>
-    /// Stores the camera state for a sampled preview frame.
-    /// </summary>
-    public struct FrameState
-    {
-        public Vector3 Position;
-        public float RotationY;
-        public float RotationX;
-        public float Roll;
-        public float Fov;
-        public bool Finished;
-    }
-
     private readonly Stopwatch _stopwatch = new();
     private float _startTimeOffset;
 
@@ -45,12 +32,12 @@ public sealed class FlybyPreview : IDisposable
     /// <summary>
     /// Gets the last sampled playback frame.
     /// </summary>
-    public FrameState LastFrame { get; private set; }
+    public FlybyFrameState LastFrame { get; private set; }
 
     /// <summary>
     /// Gets the static preview frame when preview is pinned to one frame.
     /// </summary>
-    public FrameState? StaticFrame { get; private set; }
+    public FlybyFrameState? StaticFrame { get; private set; }
 
     /// <summary>
     /// Gets or sets the camera state that should be restored after preview ends.
@@ -65,7 +52,7 @@ public sealed class FlybyPreview : IDisposable
     /// <param name="savedCamera">The camera state to restore after preview ends.</param>
     public FlybyPreview(Level level, int sequence, Camera savedCamera)
         : this(
-            new FlybySequenceCache(
+            FlybySequenceCache.Build(
                 FlybySequenceHelper.GetCameras(level, sequence),
                 useSmoothPause: FlybyConstants.UseSmoothPause(level.Settings.GameVersion)),
             savedCamera)
@@ -94,7 +81,7 @@ public sealed class FlybyPreview : IDisposable
     {
         SavedCamera = savedCamera;
         IsFinished = true;
-        Cache = new FlybySequenceCache([], false);
+        Cache = FlybySequenceCache.Empty;
     }
 
     /// <summary>
@@ -129,10 +116,10 @@ public sealed class FlybyPreview : IDisposable
     /// <summary>
     /// Advances playback by wall-clock delta and returns the current frame.
     /// </summary>
-    public FrameState Update()
+    public FlybyFrameState Update()
     {
         if (IsFinished || !Cache.IsValid)
-            return new FrameState { Finished = true };
+            return LastFrame;
 
         float timelineTime = GetTimelineTimeSeconds();
 
@@ -181,12 +168,8 @@ public sealed class FlybyPreview : IDisposable
         IsFinished = true;
     }
 
-    private FrameState SampleFinishedFrame()
-    {
-        var frame = Cache.SampleAtTime(Cache.TotalDuration);
-        frame.Finished = true;
-        return frame;
-    }
+    private FlybyFrameState SampleFinishedFrame()
+        => Cache.SampleAtTime(Cache.TotalDuration);
 
     /// <summary>
     /// Converts the current stopwatch time into timeline time.
@@ -204,25 +187,18 @@ public sealed class FlybyPreview : IDisposable
     #region Static frame helpers
 
     /// <summary>
-    /// Computes a single-camera FrameState from a flyby camera's current properties.
+    /// Computes a single-camera frame from a flyby camera's current properties.
     /// </summary>
     /// <param name="camera">The flyby camera instance to sample.</param>
     /// <returns>The sampled frame, or <see langword="default"/> when the flyby camera is not assigned to a room.</returns>
-    public static FrameState GetFrameForCamera(FlybyCameraInstance camera)
+    public static FlybyFrameState GetFrameForCamera(FlybyCameraInstance camera)
     {
         if (camera.Room is null)
             return default;
 
-        var worldPos = camera.Position + camera.Room.WorldPos;
-
-        return new FrameState
-        {
-            Position = worldPos,
-            RotationY = MathC.DegToRad(camera.RotationY),
-            RotationX = -MathC.DegToRad(camera.RotationX),
-            Roll = MathC.DegToRad(camera.Roll),
-            Fov = MathC.DegToRad(camera.Fov)
-        };
+        return FlybyFrameState.FromDegrees(
+            camera.Position + camera.Room.WorldPos,
+            camera.RotationY, camera.RotationX, camera.Roll, camera.Fov);
     }
 
     /// <summary>
@@ -230,7 +206,7 @@ public sealed class FlybyPreview : IDisposable
     /// </summary>
     /// <param name="camera">The preview camera to update.</param>
     /// <param name="frame">The frame state to apply.</param>
-    public static void ApplyFrame(Camera camera, FrameState frame)
+    public static void ApplyFrame(Camera camera, FlybyFrameState frame)
     {
         camera.Position = frame.Position;
         camera.RotationY = frame.RotationY;
@@ -248,7 +224,7 @@ public sealed class FlybyPreview : IDisposable
     /// </summary>
     /// <param name="camera">The preview camera to update.</param>
     /// <param name="frame">The frame state to pin as the static preview frame.</param>
-    public void SetStaticFrame(Camera camera, FrameState frame)
+    public void SetStaticFrame(Camera camera, FlybyFrameState frame)
     {
         StaticFrame = frame;
         ApplyFrame(camera, frame);
@@ -292,7 +268,7 @@ public sealed class FlybyPreview : IDisposable
     /// <summary>
     /// Builds the yaw-pitch rotation matrix for a frame.
     /// </summary>
-    private static Matrix4x4 CreateFrameRotation(FrameState frame)
+    private static Matrix4x4 CreateFrameRotation(FlybyFrameState frame)
         => Matrix4x4.CreateFromYawPitchRoll(frame.RotationY, frame.RotationX, 0);
 
     #endregion Static frame helpers

@@ -13,12 +13,12 @@ public static class FlybyConstants
     /// </summary>
     public const float SpeedScale = TickRate / 100.0f;
 
-    /* Native camera flags */
+    // Native camera flags.
 
     public const int FlagCameraCut = 1 << 7;
     public const int FlagFreezeCamera = 1 << 8;
 
-    /* Spline constants */
+    // Spline constants.
 
     /// <summary>
     /// Distance, in normalized segment time, over which freeze cameras ease in and out instead of snapping.
@@ -48,7 +48,7 @@ public static class FlybyConstants
     /// </summary>
     public const float RotationSolveDistanceEpsilon = 0.001f;
 
-    /* Preview constants */
+    // Preview constants.
 
     public const int PreviewTimerInterval = 16;
 
@@ -62,7 +62,7 @@ public static class FlybyConstants
     /// </summary>
     public const float PreviewMinFieldOfView = 0.01f;
 
-    /* Timeline constants */
+    // Timeline constants.
 
     public const float TimelineZoomOutScale = 1.05f;
     public const float TimelinePanStepFraction = 0.05f;
@@ -96,6 +96,11 @@ public static class FlybyConstants
     /// Time tolerance, in seconds, for treating the playhead as being at the final camera marker.
     /// </summary>
     public const float TimelineSequenceEndTolerance = 0.0001f;
+
+    /// <summary>
+    /// Time tolerance, in seconds, for aligning cut-region boundaries in ruler and viewport calculations.
+    /// </summary>
+    public const float CutBoundaryTolerance = 0.0001f;
 
     /// <summary>
     /// Smallest visible timeline span, in seconds, allowed after a zoom operation.
