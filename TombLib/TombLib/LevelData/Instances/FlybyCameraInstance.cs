@@ -5,7 +5,7 @@ namespace TombLib.LevelData
 {
     public class FlybyCameraInstance : PositionAndScriptBasedObjectInstance, IRotateableYXRoll
     {
-        private const float MaxFlybySpeed = 65535.0f / 655.0f;
+        public const float MaxFlybySpeed = 65535.0f / 655.0f;
 
         public ushort Sequence { get; set; }
         public ushort Number { get; set; }

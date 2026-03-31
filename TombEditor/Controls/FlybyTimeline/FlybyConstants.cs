@@ -30,7 +30,7 @@ public static class FlybyConstants
     /// </summary>
     public const float MinSpeed = 0.001f;
 
-    public const float MaxSpeed = 65535.0f / 655.0f;
+    public const float MaxSpeed = FlybyCameraInstance.MaxFlybySpeed;
 
     /// <summary>
     /// Time tolerance, in seconds, used by the speed solver to stop once the requested camera time is matched closely enough.

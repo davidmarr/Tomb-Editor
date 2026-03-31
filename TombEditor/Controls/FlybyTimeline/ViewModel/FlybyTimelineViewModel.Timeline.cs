@@ -63,9 +63,7 @@ public partial class FlybyTimelineViewModel
             return;
 
         var cameras = GetCamerasAsList();
-        _preview.ScrubToTime(cameras, SelectedSequence.Value, timeSeconds);
-
-        var frame = _preview.GetInterpolatedFrameAtTime(cameras, SelectedSequence.Value, timeSeconds);
+        var frame = _preview.ScrubToTime(cameras, SelectedSequence.Value, timeSeconds);
 
         if (frame.HasValue)
             UpdateSelectedRoomByPosition(frame.Value.Position);

@@ -151,33 +151,44 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
     /// <param name="cameras">The flyby cameras belonging to the sequence.</param>
     /// <param name="sequence">The sequence number to sample.</param>
     /// <param name="timeSeconds">The timeline time, in seconds, to preview.</param>
-    public void ScrubToTime(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence, float timeSeconds)
+    /// <returns>The sampled frame used for preview, or <see langword="null"/> when no frame could be resolved.</returns>
+    public FlybyFrameState? ScrubToTime(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence, float timeSeconds)
     {
         if (cameras.Count == 0)
-            return;
+            return null;
 
         if (!float.IsFinite(timeSeconds))
-            return;
+            return null;
 
         if (IsPlaying)
             StopPlayback();
 
         if (!EnsureStaticPreviewActive())
-            return;
+            return null;
+
+        FlybyFrameState? frame = null;
 
         if (TryEnsureValidCache(cameras, sequence, out var cache))
         {
-            var frame = cache.SampleAtTime(timeSeconds);
-            _editor.CameraPreviewScrub(frame);
+            var sampledFrame = cache.SampleAtTime(timeSeconds);
+
+            _editor.CameraPreviewScrub(sampledFrame);
+            frame = sampledFrame;
         }
         else
         {
             var timing = FlybySequenceTiming.Build(cameras, UseSmoothPause);
             int nearestIndex = FlybySequenceHelper.FindCameraIndexAtTime(cameras, timeSeconds, timing);
-            _editor.CameraPreviewUpdated(cameras[nearestIndex]);
+            var camera = cameras[nearestIndex];
+
+            _editor.CameraPreviewUpdated(camera);
+
+            if (camera.Room is not null)
+                frame = FlybyPreview.GetFrameForCamera(camera);
         }
 
         SetPlayheadSeconds(timeSeconds);
+        return frame;
     }
 
     /// <summary>
@@ -219,24 +230,6 @@ public sealed class FlybyPreviewController(Editor editor) : IDisposable
         _cache = null;
         _cacheSequence = null;
         _cacheCameras = null;
-    }
-
-    /// <summary>
-    /// Returns the interpolated frame at the given time in seconds (for camera insertion).
-    /// </summary>
-    /// <param name="cameras">The flyby cameras belonging to the sequence.</param>
-    /// <param name="sequence">The sequence number to sample.</param>
-    /// <param name="timeSeconds">The timeline time, in seconds, to sample.</param>
-    /// <returns>The interpolated frame, or <see langword="null"/> when no valid cache can be produced.</returns>
-    public FlybyFrameState? GetInterpolatedFrameAtTime(IReadOnlyList<FlybyCameraInstance> cameras, ushort sequence, float timeSeconds)
-    {
-        if (!float.IsFinite(timeSeconds))
-            return null;
-
-        if (!TryEnsureValidCache(cameras, sequence, out var cache))
-            return null;
-
-        return cache.SampleAtTime(timeSeconds);
     }
 
     /// <summary>
