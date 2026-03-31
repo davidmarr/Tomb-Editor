@@ -1,5 +1,5 @@
 using System.Numerics;
-using TombEditor.Controls.FlybyTimeline;
+using TombEditor.Controls.FlybyTimeline.Preview;
 using TombLib;
 using TombLib.Graphics;
 using TombLib.LevelData;

@@ -5,8 +5,9 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using TombEditor.Controls.FlybyTimeline.ViewModel;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.UI;
 
 /// <summary>
 /// WPF UserControl that embeds the flyby timeline and its controls.

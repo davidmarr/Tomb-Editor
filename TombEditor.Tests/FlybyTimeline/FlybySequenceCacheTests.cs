@@ -1,5 +1,6 @@
 using System.Numerics;
 using TombEditor.Controls.FlybyTimeline;
+using TombEditor.Controls.FlybyTimeline.Sequence;
 
 namespace TombEditor.Tests.FlybyTimeline;
 

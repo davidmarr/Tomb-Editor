@@ -5,8 +5,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
+using TombEditor.Controls.FlybyTimeline.Sequence;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.UI;
 
 // WPF OnRender drawing for ruler, track, markers, and playhead.
 public partial class FlybyTimelineControl

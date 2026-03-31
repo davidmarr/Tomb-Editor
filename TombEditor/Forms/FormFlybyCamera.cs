@@ -1,7 +1,7 @@
 ﻿using DarkUI.Forms;
 using System;
 using System.Windows.Forms;
-using TombEditor.Controls.FlybyTimeline;
+using TombEditor.Controls.FlybyTimeline.Sequence;
 using TombLib.LevelData;
 
 namespace TombEditor.Forms

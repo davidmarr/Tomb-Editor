@@ -3,7 +3,7 @@
 using System;
 using System.Windows;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.UI;
 
 // Coordinate conversion, scrolling, zooming, and smooth viewport animation.
 public partial class FlybyTimelineControl

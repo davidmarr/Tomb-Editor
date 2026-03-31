@@ -6,11 +6,13 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows.Forms;
 using System.Windows.Threading;
+using TombEditor.Controls.FlybyTimeline.Preview;
+using TombEditor.Controls.FlybyTimeline.Sequence;
 using TombLib.LevelData;
 using TombLib.WPF.Services;
 using TombLib.WPF.Services.Abstract;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.ViewModel;
 
 /// <summary>
 /// Main view model for the Flyby Sequence Manager window.

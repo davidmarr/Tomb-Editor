@@ -1,4 +1,4 @@
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.UI;
 
 /// <summary>
 /// Represents one rendered marker on the timeline.

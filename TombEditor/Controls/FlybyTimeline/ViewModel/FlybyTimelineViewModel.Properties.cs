@@ -3,7 +3,7 @@
 using System;
 using TombLib.LevelData;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.ViewModel;
 
 // Camera property editing with undo support.
 public partial class FlybyTimelineViewModel

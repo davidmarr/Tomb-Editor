@@ -3,11 +3,12 @@
 using System;
 using System.Diagnostics;
 using System.Numerics;
+using TombEditor.Controls.FlybyTimeline.Sequence;
 using TombLib;
 using TombLib.Graphics;
 using TombLib.LevelData;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.Preview;
 
 /// <summary>
 /// Handles camera preview for flyby sequences. All frame interpolation is backed

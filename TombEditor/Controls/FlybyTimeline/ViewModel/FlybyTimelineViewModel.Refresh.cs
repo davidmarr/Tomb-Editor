@@ -4,9 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
+using TombEditor.Controls.FlybyTimeline.Sequence;
 using TombLib.LevelData;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.ViewModel;
 
 // Data refresh, camera list rebuilding, and renumbering.
 public partial class FlybyTimelineViewModel

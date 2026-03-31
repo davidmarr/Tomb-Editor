@@ -6,9 +6,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using TombEditor.Controls.FlybyTimeline.Sequence;
 using TombLib.WPF;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.UI;
 
 /// <summary>
 /// A custom WPF timeline control that displays draggable camera keyframes.

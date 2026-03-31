@@ -4,10 +4,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Windows.Threading;
+using TombEditor.Controls.FlybyTimeline.Sequence;
 using TombLib.Forms;
 using TombLib.LevelData;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.Preview;
 
 /// <summary>
 /// Manages flyby camera preview and playback lifecycle.

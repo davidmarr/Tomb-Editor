@@ -4,11 +4,13 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using TombEditor.Controls.FlybyTimeline.Sequence;
+using TombEditor.Controls.FlybyTimeline.UI;
 using TombLib;
 using TombLib.Forms;
 using TombLib.LevelData;
 
-namespace TombEditor.Controls.FlybyTimeline;
+namespace TombEditor.Controls.FlybyTimeline.ViewModel;
 
 // Preview playback, timeline scrubbing, and timecode calculation.
 public partial class FlybyTimelineViewModel
