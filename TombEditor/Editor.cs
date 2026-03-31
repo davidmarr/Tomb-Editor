@@ -46,12 +46,11 @@ namespace TombEditor
         SpatialObject
     }
 
-	public enum CameraPreviewType
-	{
-		None,
-		Static,
-		Sequence
-	}
+    public enum CameraPreviewType
+    {
+        None,
+        Static
+    }
 
     public interface IEditorObjectChangedEvent : IEditorEventCausesUnsavedChanges
     {

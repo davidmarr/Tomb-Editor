@@ -14,116 +14,137 @@ public partial class FlybyTimelineViewModel
     /// <summary>
     /// Handles editor events that affect flyby data, preview, or selection.
     /// </summary>
-    private void OnEditorEventRaised(IEditorEvent obj)
+    private void OnEditorEventRaised(IEditorEvent @event)
     {
-        if (_isDisposed)
+        if (_isDisposed || TryQueueEditorEventOnDispatcher(@event))
             return;
 
-        if (!_dispatcher.CheckAccess())
+        switch (@event)
         {
-            if (_isDisposed)
-                return;
+            case Editor.LevelChangedEvent or Editor.GameVersionChangedEvent:
+                HandleLevelOrGameVersionChangedEvent(@event);
+                break;
 
-            _dispatcher.BeginInvoke(() => OnEditorEventRaised(obj));
-            return;
+            case Editor.RoomPositionChangedEvent roomPositionChangedEvent:
+                HandleRoomPositionChangedEvent(roomPositionChangedEvent);
+                break;
+
+            case Editor.ObjectChangedEvent changeEvent when changeEvent.Object is FlybyCameraInstance flybyCamera:
+                HandleFlybyObjectChangedEvent(changeEvent, flybyCamera);
+                break;
+
+            case Editor.ToggleCameraPreviewEvent previewEvent:
+                HandlePreviewToggleEvent(previewEvent);
+                break;
+
+            case Editor.SelectedObjectChangedEvent selectedObjectChangedEvent when !_isSyncingSelection:
+                HandleSelectedObjectChangedEvent(selectedObjectChangedEvent);
+                break;
         }
-
-        if (obj is Editor.LevelChangedEvent or Editor.GameVersionChangedEvent)
-        {
-            // Level-wide changes can keep the same SelectedSequence value, so force a full list rebuild here.
-            _preview.StopPlayback();
-
-            if (IsPreviewActive)
-                _preview.ExitPreview();
-
-            _preview.InvalidateCache();
-            InvalidateVisibleCameraState();
-            ResetPlayhead();
-
-            if (obj is Editor.LevelChangedEvent)
-                _userAddedSequences.Clear();
-
-            RefreshSequenceList();
-            RefreshTimelineState(true, false);
-            return;
-        }
-
-        if (obj is Editor.ObjectChangedEvent changeEvent &&
-            changeEvent.Object is FlybyCameraInstance flyby)
-        {
-            bool affectsVisibleSequence = SelectedSequence.HasValue &&
-                (flyby.Sequence == SelectedSequence.Value || CameraList.Any(item => item.Camera == flyby));
-
-            if (!_isApplyingProperty)
-                RefreshSequenceList();
-
-            if (affectsVisibleSequence)
-            {
-                _preview.InvalidateCache();
-
-                if (_isApplyingProperty && changeEvent.ChangeType == ObjectChangeType.Change)
-                    InvalidateSequenceTiming();
-                else
-                    InvalidateVisibleCameraState();
-
-                if (!_isApplyingProperty)
-                    OnDataChanged();
-            }
-        }
-
-        if (obj is Editor.ToggleCameraPreviewEvent previewEvent && !previewEvent.PreviewState)
-            _preview.OnExternalPreviewExit();
-
-        if (obj is Editor.SelectedObjectChangedEvent selEvent && !_isSyncingSelection)
-            SyncSelectionFromEditor(selEvent.Current);
     }
+
+    /// <summary>
+    /// Queues editor event processing back onto the UI dispatcher when required.
+    /// </summary>
+    private bool TryQueueEditorEventOnDispatcher(IEditorEvent @event)
+    {
+        if (_dispatcher.CheckAccess())
+            return false;
+
+        if (_isDisposed)
+            return true;
+
+        _dispatcher.BeginInvoke(() => OnEditorEventRaised(@event));
+        return true;
+    }
+
+    /// <summary>
+    /// Rebuilds the visible sequence state after level-wide flyby changes.
+    /// </summary>
+    private void HandleLevelOrGameVersionChangedEvent(IEditorEvent @event)
+    {
+        // Level-wide changes can keep the same SelectedSequence value, so force a full list rebuild here.
+        _preview.StopPlayback();
+
+        if (IsPreviewActive)
+            _preview.ExitPreview();
+
+        _preview.InvalidateCache();
+        InvalidateVisibleCameraState();
+        ResetPlayhead();
+
+        if (@event is Editor.LevelChangedEvent)
+            _userAddedSequences.Clear();
+
+        RefreshSequenceList();
+        RefreshTimelineState(true, false);
+    }
+
+    /// <summary>
+    /// Refreshes the visible timeline state after a room move affects flyby cameras.
+    /// </summary>
+    private void HandleRoomPositionChangedEvent(Editor.RoomPositionChangedEvent roomPositionChangedEvent)
+    {
+        bool affectsVisibleSequence = CameraList.Any(item => item.Camera.Room == roomPositionChangedEvent.Room);
+
+        if (!affectsVisibleSequence)
+            return;
+
+        _preview.InvalidateCache();
+        InvalidateVisibleCameraState();
+        RefreshAfterDataChange();
+    }
+
+    /// <summary>
+    /// Updates sequence and preview state after a flyby camera changes in the editor.
+    /// </summary>
+    private void HandleFlybyObjectChangedEvent(Editor.ObjectChangedEvent changeEvent, FlybyCameraInstance flybyCamera)
+    {
+        bool affectsVisibleSequence = SelectedSequence.HasValue &&
+            (flybyCamera.Sequence == SelectedSequence.Value || CameraList.Any(item => item.Camera == flybyCamera));
+
+        if (!_isApplyingProperty)
+            RefreshSequenceList();
+
+        if (!affectsVisibleSequence)
+            return;
+
+        _preview.InvalidateCache();
+
+        if (_isApplyingProperty && changeEvent.ChangeType == ObjectChangeType.Change)
+            InvalidateSequenceTiming();
+        else
+            InvalidateVisibleCameraState();
+
+        if (!_isApplyingProperty)
+            RefreshAfterDataChange();
+    }
+
+    /// <summary>
+    /// Handles external camera-preview requests raised through the editor command layer.
+    /// Flyby sequences are redirected into the timeline playback path so playhead updates stay in sync.
+    /// </summary>
+    private void HandlePreviewToggleEvent(Editor.ToggleCameraPreviewEvent previewEvent)
+    {
+        if (!previewEvent.PreviewState)
+        {
+            _preview.OnExternalPreviewExit();
+            return;
+        }
+
+        if (previewEvent.Object is FlybyCameraInstance flyby)
+            StartSequencePreviewFromBeginning(flyby);
+    }
+
+    /// <summary>
+    /// Mirrors editor selection changes into the timeline selection state.
+    /// </summary>
+    private void HandleSelectedObjectChangedEvent(Editor.SelectedObjectChangedEvent selectedObjectChangedEvent)
+        => SyncSelectionFromEditor(selectedObjectChangedEvent.Current);
 
     #endregion Editor event handling
 
-    /// <summary>
-    /// Creates undo instances for property changes on the given cameras.
-    /// </summary>
-    private List<UndoRedoInstance> CreateFlybyCameraPropertyUndo(IEnumerable<FlybyCameraInstance> cameras)
-    {
-        return [.. cameras
-            .Where(camera => camera.Room is not null)
-            .Distinct()
-            .Select(camera => new ChangeObjectPropertyUndoInstance(_editor.UndoManager, camera))];
-    }
-
-    /// <summary>
-    /// Creates undo instances for deleting the given cameras.
-    /// </summary>
-    private List<UndoRedoInstance> CreateFlybyCameraDeletionUndo(IEnumerable<FlybyCameraInstance> cameras)
-    {
-        return [.. cameras
-            .Where(camera => camera.Room is not null)
-            .Distinct()
-            .Select(camera => new AddRemoveObjectUndoInstance(_editor.UndoManager, camera, false))];
-    }
-
-    /// <summary>
-    /// Pushes undo instances only when there is captured undo state.
-    /// </summary>
-    private void PushUndoIfAny(List<UndoRedoInstance> undoInstances)
-    {
-        if (undoInstances.Count > 0)
-            _editor.UndoManager.Push(undoInstances);
-    }
-
-    /// <summary>
-    /// Creates an undo snapshot when a timeline drag starts affecting a segment.
-    /// </summary>
-    private void EnsureTimelineDragUndoSnapshot(int cameraIndex)
-    {
-        int speedCameraIndex = cameraIndex - 1;
-
-        if (_activeDraggedCameraIndex == speedCameraIndex || speedCameraIndex < 0 || speedCameraIndex >= CameraList.Count)
-            return;
-
-        PushUndoIfAny(CreateFlybyCameraPropertyUndo([CameraList[speedCameraIndex].Camera]));
-        _activeDraggedCameraIndex = speedCameraIndex;
-    }
+    #region Selection synchronization
 
     /// <summary>
     /// Replaces the selected flyby cameras and optionally syncs editor selection.
@@ -304,4 +325,55 @@ public partial class FlybyTimelineViewModel
 
         return new ObjectGroup([.. selectedObjects]);
     }
+
+    #endregion Selection synchronization
+
+    #region Undo helpers
+
+    /// <summary>
+    /// Creates undo instances for property changes on the given cameras.
+    /// </summary>
+    private List<UndoRedoInstance> CreateFlybyCameraPropertyUndo(IEnumerable<FlybyCameraInstance> cameras)
+    {
+        return [.. cameras
+            .Where(camera => camera.Room is not null)
+            .Distinct()
+            .Select(camera => new ChangeObjectPropertyUndoInstance(_editor.UndoManager, camera))];
+    }
+
+    /// <summary>
+    /// Creates undo instances for deleting the given cameras.
+    /// </summary>
+    private List<UndoRedoInstance> CreateFlybyCameraDeletionUndo(IEnumerable<FlybyCameraInstance> cameras)
+    {
+        return [.. cameras
+            .Where(camera => camera.Room is not null)
+            .Distinct()
+            .Select(camera => new AddRemoveObjectUndoInstance(_editor.UndoManager, camera, false))];
+    }
+
+    /// <summary>
+    /// Pushes undo instances only when there is captured undo state.
+    /// </summary>
+    private void PushUndoIfAny(List<UndoRedoInstance> undoInstances)
+    {
+        if (undoInstances.Count > 0)
+            _editor.UndoManager.Push(undoInstances);
+    }
+
+    /// <summary>
+    /// Creates an undo snapshot when a timeline drag starts affecting a segment.
+    /// </summary>
+    private void EnsureTimelineDragUndoSnapshot(int cameraIndex)
+    {
+        int speedCameraIndex = cameraIndex - 1;
+
+        if (_activeDraggedCameraIndex == speedCameraIndex || speedCameraIndex < 0 || speedCameraIndex >= CameraList.Count)
+            return;
+
+        PushUndoIfAny(CreateFlybyCameraPropertyUndo([CameraList[speedCameraIndex].Camera]));
+        _activeDraggedCameraIndex = speedCameraIndex;
+    }
+
+    #endregion Undo helpers
 }

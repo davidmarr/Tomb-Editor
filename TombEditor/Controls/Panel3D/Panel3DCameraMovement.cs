@@ -193,59 +193,56 @@ namespace TombEditor.Controls.Panel3D
 
         public void ToggleCameraPreview(bool state, PositionBasedObjectInstance obj = null)
         {
-            if (state)
-            {
-                // Don't start if fly mode is active.
-                if (_editor.FlyMode)
-                    return;
-
-                // Restart cleanly when switching between preview targets or modes.
-                if (_editor.CameraPreviewMode != CameraPreviewType.None || _flybyPreview != null)
-                    ExitCameraPreview(false);
-
-                // Stop any in-progress camera animation so it doesn't interfere with preview.
-                _movementTimer.Stop(true);
-
-                // Save the current camera before swapping to a free camera for preview.
-                var savedCamera = Camera;
-                Camera = new FreeCamera(savedCamera.GetPosition(),
-                    savedCamera.RotationX, savedCamera.RotationY - (float)Math.PI, -(float)Math.PI / 2, (float)Math.PI / 2,
-                    savedCamera.FieldOfView);
-
-                if (obj is FlybyCameraInstance flyby)
-                {
-                    if (!TryStartSequencePreview(flyby, savedCamera))
-                        return;
-                }
-                else if (obj is CameraInstance cam)
-                {
-                    // Static camera preview: position the camera at the instance's world position
-                    // and orient it towards the trigger-defined target or Lara.
-                    var preview = new FlybyPreview(savedCamera);
-                    Camera.Position = cam.WorldPosition;
-
-                    var targetPos = ResolveCameraTarget(cam);
-                    var toTarget = targetPos - Camera.Position;
-                    float distSq = toTarget.LengthSquared();
-
-                    // Fall back to +Z if target coincides with camera position.
-                    var direction = distSq > 0.001f ? toTarget / (float)Math.Sqrt(distSq) : Vector3.UnitZ;
-
-                    Camera.RotationY = (float)Math.Atan2(direction.X, direction.Z);
-                    Camera.RotationX = (float)Math.Asin(-direction.Y);
-
-                    EnterStaticPreview(preview, "Camera preview active. Press ESC or click to exit.");
-                }
-                else
-                {
-                    // No specific object - enter static preview mode for external control (e.g. FormFlybyCamera).
-                    EnterStaticPreview(new FlybyPreview(savedCamera), "Camera preview active. Change parameters to update.");
-                }
-            }
-            else
+            if (!state)
             {
                 ExitCameraPreview();
+                return;
             }
+
+            // Don't start if fly mode is active.
+            if (_editor.FlyMode)
+                return;
+
+            // Flyby sequence playback is handled by FlybyTimelineViewModel so the timeline and playhead stay synchronized.
+            if (obj is FlybyCameraInstance)
+                return;
+
+            // Restart cleanly when switching between preview targets or modes.
+            if (_editor.CameraPreviewMode != CameraPreviewType.None || _flybyPreview != null)
+                ExitCameraPreview(false);
+
+            // Stop any in-progress camera animation so it doesn't interfere with preview.
+            _movementTimer.Stop(true);
+
+            // Save the current camera before swapping to a free camera for preview.
+            var savedCamera = Camera;
+            Camera = new FreeCamera(savedCamera.GetPosition(),
+                savedCamera.RotationX, savedCamera.RotationY - (float)Math.PI, -(float)Math.PI / 2, (float)Math.PI / 2,
+                savedCamera.FieldOfView);
+
+            if (obj is not CameraInstance cam)
+            {
+                // No specific object - enter static preview mode for external control (e.g. FormFlybyCamera).
+                EnterStaticPreview(new FlybyPreview(savedCamera), "Camera preview active. Change parameters to update.");
+                return;
+            }
+
+            // Static camera preview: position the camera at the instance's world position
+            // and orient it towards the trigger-defined target or Lara.
+            var preview = new FlybyPreview(savedCamera);
+            Camera.Position = cam.WorldPosition;
+
+            var targetPos = ResolveCameraTarget(cam);
+            var toTarget = targetPos - Camera.Position;
+            float distSq = toTarget.LengthSquared();
+
+            // Fall back to +Z if target coincides with camera position.
+            var direction = distSq > 0.001f ? toTarget / (float)Math.Sqrt(distSq) : Vector3.UnitZ;
+
+            Camera.RotationY = (float)Math.Atan2(direction.X, direction.Z);
+            Camera.RotationX = (float)Math.Asin(-direction.Y);
+
+            EnterStaticPreview(preview, "Camera preview active. Press ESC or click to exit.");
         }
 
         public void UpdateFlybyFramePreview(FlybyCameraInstance flybyCamera)
@@ -257,58 +254,8 @@ namespace TombEditor.Controls.Panel3D
             Invalidate();
         }
 
-        private void PreviewTimer_Tick(object sender, EventArgs e)
-        {
-            if (_flybyPreview == null || _flybyPreview.IsFinished)
-            {
-                ToggleCameraPreview(false);
-                return;
-            }
-
-            // Check for ESC key to cancel
-            if (filter.IsKeyPressed(Keys.Escape))
-            {
-                ToggleCameraPreview(false);
-                return;
-            }
-
-            // Update the preview and get the current frame
-            var frame = _flybyPreview.Update();
-
-            if (frame.Finished)
-            {
-                ToggleCameraPreview(false);
-                return;
-            }
-
-            // Apply frame to camera, updating target to prevent portal culling issues.
-            FlybyPreview.ApplyFrame(Camera, frame);
-            Invalidate();
-        }
-
-        private bool TryStartSequencePreview(FlybyCameraInstance flyby, Camera savedCamera)
-        {
-            _flybyPreview = new FlybyPreview(_editor.Level, flyby.Sequence, savedCamera);
-
-            if (_flybyPreview.IsFinished)
-            {
-                Camera = savedCamera;
-                _flybyPreview.Dispose();
-                _flybyPreview = null;
-                _editor.SendMessage("Flyby sequence needs at least 2 cameras to preview.", PopupType.Info);
-                return false;
-            }
-
-            _flybyPreview.BeginExternalUpdate();
-            _cameraPreviewTimer.Start();
-            _editor.CameraPreviewMode = CameraPreviewType.Sequence;
-            _editor.SendMessage("Flyby preview playing... Press ESC or click to stop.", PopupType.Info);
-            return true;
-        }
-
         private void EnterStaticPreview(FlybyPreview preview, string message)
         {
-            _cameraPreviewTimer.Stop();
             _flybyPreview = preview;
 
             _editor.CameraPreviewMode = CameraPreviewType.Static;
@@ -319,8 +266,6 @@ namespace TombEditor.Controls.Panel3D
 
         private void ExitCameraPreview(bool notifyUser = true)
         {
-            _cameraPreviewTimer.Stop();
-
             if (_flybyPreview != null)
             {
                 Camera = _flybyPreview.SavedCamera;

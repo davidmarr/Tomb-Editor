@@ -128,7 +128,7 @@ public partial class FlybyTimelineViewModel
 
         // If the same sequence is still active after refresh, update the timeline to reflect removed cameras and new timing.
         if (SelectedSequence == previousSequence)
-            OnDataChanged();
+            RefreshAfterDataChange();
     }
 
     /// <summary>
@@ -173,7 +173,11 @@ public partial class FlybyTimelineViewModel
 
         if (cursorTime == 0.0f)
         {
-            AddCameraAtSequenceStart(cam, room, cameras);
+            if (cameras.Count == 1)
+                AddCameraAtSequenceEnd(cam, room);
+            else
+                AddCameraAtSequenceStart(cam, room, cameras);
+
             return;
         }
 
@@ -424,7 +428,7 @@ public partial class FlybyTimelineViewModel
         // Stage selection and playhead first so the single rebuild paints the new camera in its final state.
         SetSelectedCameras([camera], SelectionUpdateBehavior.SyncEditorSelection);
         MovePlayheadToCamera(camera);
-        OnDataChanged();
+        RefreshAfterDataChange();
 
         if (zoomToFit)
             RequestZoomToFit();
@@ -552,7 +556,7 @@ public partial class FlybyTimelineViewModel
         InvalidateVisibleCameraState();
         PushUndoIfAny(undoList);
         SetSelectedCameras([movedCamera], SelectionUpdateBehavior.SyncEditorSelection);
-        OnDataChanged();
+        RefreshAfterDataChange();
     }
 
     /// <summary>

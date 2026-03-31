@@ -7,6 +7,7 @@ using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
 using TombLib;
+using TombLib.Forms;
 using TombLib.LevelData;
 
 namespace TombEditor.Controls.FlybyTimeline;
@@ -165,6 +166,31 @@ public partial class FlybyTimelineViewModel
             _preview.StopPlayback();
         else if (SelectedSequence.HasValue)
             _preview.StartPlayback(GetCamerasAsList(), SelectedSequence.Value);
+    }
+
+    /// <summary>
+    /// Starts preview playback for the flyby's sequence from the beginning using the timeline controller.
+    /// </summary>
+    private void StartSequencePreviewFromBeginning(FlybyCameraInstance flyby)
+    {
+        if (_editor.Level is null)
+            return;
+
+        if (SelectedSequence != flyby.Sequence)
+            SelectedSequence = flyby.Sequence;
+
+        var cameras = GetCamerasAsList();
+
+        if (cameras.Count < 2)
+        {
+            _editor.SendMessage("Flyby sequence needs at least 2 cameras to play.", PopupType.Info);
+            return;
+        }
+
+        SetSelectedCameras([flyby], SelectionUpdateBehavior.RestoreSelectedCameraState | SelectionUpdateBehavior.RefreshTimeline);
+        ScrubToTime(0.0f);
+
+        _preview.StartPlayback(cameras, flyby.Sequence);
     }
 
     /// <summary>
@@ -385,7 +411,7 @@ public partial class FlybyTimelineViewModel
     /// <summary>
     /// Refreshes the full timeline state after underlying data changes.
     /// </summary>
-    private void OnDataChanged() => RefreshTimelineState(true);
+    private void RefreshAfterDataChange() => RefreshTimelineState(true);
 
     /// <summary>
     /// Requests the view to zoom the timeline to fit the current sequence.
