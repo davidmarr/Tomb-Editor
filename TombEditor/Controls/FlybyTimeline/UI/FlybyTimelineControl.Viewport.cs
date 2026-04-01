@@ -62,9 +62,19 @@ public partial class FlybyTimelineControl
         if (!float.IsFinite(newStart) || !float.IsFinite(visibleRange) || visibleRange <= 0.0f)
             return 0.0f;
 
+        return Math.Clamp(newStart, 0.0f, GetMaxViewportStart(visibleRange));
+    }
+
+    /// <summary>
+    /// Returns the maximum allowed viewport start for a given visible range.
+    /// </summary>
+    private float GetMaxViewportStart(float visibleRange)
+    {
+        if (!float.IsFinite(visibleRange) || visibleRange <= 0.0f)
+            return 0.0f;
+
         float maxEnd = Math.Max(_totalDurationSeconds * 1.5f, visibleRange);
-        float maxStart = Math.Max(0.0f, maxEnd - visibleRange);
-        return Math.Clamp(newStart, 0.0f, maxStart);
+        return Math.Max(0.0f, maxEnd - visibleRange);
     }
 
     /// <summary>

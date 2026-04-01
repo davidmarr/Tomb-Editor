@@ -393,6 +393,66 @@ public partial class FlybyTimelineControl
 
         if (MathF.Abs(deltaPixels) >= SystemParameters.MinimumHorizontalDragDistance)
             _rightButtonPanned = true;
+
+        if (TryWarpPanCursor(currentPixelX, newStart, w, out float warpedPixelX))
+        {
+            UpdateMouseTracking(warpedPixelX);
+            ResetPanAnchor(warpedPixelX);
+        }
+    }
+
+    /// <summary>
+    /// Re-anchors the pan drag origin to the current cursor position and viewport state after a cursor warp.
+    /// </summary>
+    private void ResetPanAnchor(float currentPixelX)
+    {
+        GetInteractiveViewport(out float startSeconds, out float endSeconds);
+        _panStartPixelX = currentPixelX;
+        _panStartViewSeconds = startSeconds;
+        _panStartViewRange = endSeconds - startSeconds;
+    }
+
+    /// <summary>
+    /// Warps the OS cursor to the opposite edge when it reaches the control boundary during a pan drag.
+    /// Returns <see langword="true"/> and the new local pixel X when a warp occurred.
+    /// </summary>
+    private bool TryWarpPanCursor(float currentPixelX, float newStart, float width, out float warpedPixelX)
+    {
+        const float edgeThreshold = 1.0f;
+        const float edgeInset = 2.0f;
+
+        warpedPixelX = currentPixelX;
+
+        if (!IsMouseCaptured || width <= edgeInset * 2.0f)
+            return false;
+
+        if (currentPixelX <= edgeThreshold)
+        {
+            if (newStart >= GetMaxViewportStart(_panStartViewRange))
+                return false;
+
+            warpedPixelX = width - edgeInset;
+        }
+        else if (currentPixelX >= width - edgeThreshold)
+        {
+            if (newStart <= 0.0f)
+                return false;
+
+            warpedPixelX = edgeInset;
+        }
+        else
+        {
+            return false;
+        }
+
+        var localY = Math.Clamp(Mouse.GetPosition(this).Y, 0.0, Math.Max(0.0, ActualHeight - 1.0));
+        var screenPoint = PointToScreen(new Point(warpedPixelX, localY));
+
+        System.Windows.Forms.Cursor.Position = new System.Drawing.Point( // TODO: Remove dependency on WinForms for cursor warping if possible.
+            (int)Math.Round(screenPoint.X),
+            (int)Math.Round(screenPoint.Y));
+
+        return true;
     }
 
     /// <summary>
