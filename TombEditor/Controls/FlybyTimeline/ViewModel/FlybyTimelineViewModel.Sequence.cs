@@ -81,6 +81,8 @@ public partial class FlybyTimelineViewModel
     /// </summary>
     partial void OnSelectedSequenceChanged(ushort? value)
     {
+        _editor.SelectedFlybySequence = value;
+
         _preview.StopPlayback();
         _preview.InvalidateCache();
         InvalidateVisibleCameraState();

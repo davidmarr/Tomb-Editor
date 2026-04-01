@@ -744,6 +744,9 @@ namespace TombEditor
         }
         public CameraPreviewType CameraPreviewMode { get; set; } = CameraPreviewType.None;
 
+        // The flyby sequence currently visible in the timeline; used to redirect pasted cameras to the correct target sequence.
+        public ushort? SelectedFlybySequence { get; set; }
+
         // Camera preview frame updated (live editing or scrub playback).
         public class CameraPreviewFrameEvent : IEditorCameraEvent
         {

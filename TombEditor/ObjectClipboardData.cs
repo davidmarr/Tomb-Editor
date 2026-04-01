@@ -120,6 +120,12 @@ namespace TombEditor
             if (pastedFlybys.Count == 0)
                 return;
 
+            // Reassign all pasted cameras to the currently visible sequence, or sequence 0 when none exists.
+            ushort targetSequence = editor.SelectedFlybySequence ?? 0;
+
+            foreach (var camera in pastedFlybys)
+                camera.Sequence = targetSequence;
+
             var nextNumberBySequence = editor.Level.GetAllObjects()
                 .OfType<FlybyCameraInstance>()
                 .GroupBy(camera => camera.Sequence)
@@ -127,8 +133,8 @@ namespace TombEditor
 
             foreach (var sequenceGroup in pastedFlybys.GroupBy(camera => camera.Sequence))
             {
-                if (!nextNumberBySequence.TryGetValue(sequenceGroup.Key, out int nextNumber))
-                    continue;
+                // Start numbering for the target sequence from the next available number, or 0 when no existing cameras are present.
+                nextNumberBySequence.TryGetValue(sequenceGroup.Key, out int nextNumber);
 
                 var remappedNumbers = new Dictionary<ushort, ushort>();
                 var orderedSequenceGroup = sequenceGroup.OrderBy(camera => camera.Number).ToList();
