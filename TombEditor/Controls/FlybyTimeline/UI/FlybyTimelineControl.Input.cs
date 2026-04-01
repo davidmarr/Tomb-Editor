@@ -466,8 +466,7 @@ public partial class FlybyTimelineControl
             return true;
 
         _panWarpPending = false;
-        ResetPanAnchor(currentPixelX);
-        return true;
+        return false;
     }
 
     /// <summary>
@@ -751,7 +750,7 @@ public partial class FlybyTimelineControl
     /// Returns whether a marquee selection drag is large enough to count.
     /// </summary>
     private bool HasExceededSelectionThreshold(Point currentPoint)
-        => HasExceededDragThreshold(_rangeStartPoint, currentPoint);
+        => Math.Abs(currentPoint.X - _rangeStartPoint.X) >= SystemParameters.MinimumHorizontalDragDistance;
 
     /// <summary>
     /// Returns whether a left-button-driven interaction is currently active or pending.
