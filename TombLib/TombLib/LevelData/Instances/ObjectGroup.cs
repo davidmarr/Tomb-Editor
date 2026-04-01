@@ -32,7 +32,7 @@ namespace TombLib.LevelData
         private ObjectGroup(IReadOnlyList<PositionBasedObjectInstance> objects, PositionBasedObjectInstance? rootObject, float rotationY)
         {
             if (objects is null || objects.Count == 0)
-                throw new ArgumentException("The collection of objects must not be empty.", nameof(objects));
+                throw new ArgumentException("The collection of objects must not be null or empty.", nameof(objects));
 
             // Ensure the provided root belongs to the collection; otherwise fall back to the first element.
             var initialObject = rootObject is not null && objects.Contains(rootObject) ? rootObject : objects[0];
