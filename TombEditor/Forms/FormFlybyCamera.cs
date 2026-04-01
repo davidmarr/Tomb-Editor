@@ -1,5 +1,6 @@
 ﻿using DarkUI.Forms;
 using System;
+using System.Drawing;
 using System.Windows.Forms;
 using TombEditor.Controls.FlybyTimeline.Sequence;
 using TombLib;
@@ -10,6 +11,8 @@ namespace TombEditor.Forms
     public partial class FormFlybyCamera : DarkForm
     {
         private const float ChangeComparisonEpsilon = 0.0001f;
+        private static readonly Size DefaultWindowSize = new Size(561, 461);
+        private static readonly Size CompactWindowSize = new Size(205, 319);
 
         public bool IsNew { get; set; }
         public bool HasChanges { get; private set; }
@@ -39,8 +42,7 @@ namespace TombEditor.Forms
 
             InitializeComponent();
 
-            // Set window property handlers.
-            Configuration.ConfigureWindow(this, _editor.Configuration);
+            LoadWindowState();
         }
 
         private void butCancel_Click(object sender, EventArgs e)
@@ -78,10 +80,6 @@ namespace TombEditor.Forms
                 cbBit12.Text = "Make fade-in";
                 cbBit13.Text = "Make fade-out";
             }
-            else if (_editor.Level.Settings.GameVersion.Native() <= TRVersion.Game.TR3)
-            {
-                Size = new System.Drawing.Size(205, 319);
-            }
 
             _isLoading = false;
 
@@ -116,6 +114,9 @@ namespace TombEditor.Forms
             }
 
             base.OnFormClosing(e);
+
+            if (!e.Cancel)
+                ConfigurationBase.SaveWindowProperties(this, _editor.Configuration);
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
@@ -160,6 +161,27 @@ namespace TombEditor.Forms
         {
             HasChanges = HasPendingChanges();
             ApplyPendingValues(_flyByCamera);
+        }
+
+        private void LoadWindowState()
+        {
+            ConfigurationBase.LoadWindowProperties(this, _editor.Configuration);
+            WindowState = FormWindowState.Normal;
+            ApplyWindowSizeForGameVersion();
+            ConfigurationBase.ClampWindowLocation(this);
+        }
+
+        private void ApplyWindowSizeForGameVersion()
+        {
+            Size = UsesCompactWindowLayout() ? CompactWindowSize : DefaultWindowSize;
+        }
+
+        private bool UsesCompactWindowLayout()
+        {
+            if (_editor.Level is null)
+                return false;
+
+            return _editor.Level.Settings.GameVersion.Native() <= TRVersion.Game.TR3;
         }
 
         private void SaveOriginalValues()

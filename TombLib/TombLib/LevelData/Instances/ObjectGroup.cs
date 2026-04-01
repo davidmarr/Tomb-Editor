@@ -11,7 +11,7 @@ namespace TombLib.LevelData
     /// </summary>
     public class ObjectGroup : PositionBasedObjectInstance, IRotateableY, IColorable, IEnumerable<PositionBasedObjectInstance>
     {
-        private readonly HashSet<PositionBasedObjectInstance> _objects = new HashSet<PositionBasedObjectInstance>();
+        private readonly HashSet<PositionBasedObjectInstance> _objects = new();
         private PositionBasedObjectInstance _rootObject;
 
         public ObjectGroup(PositionBasedObjectInstance initialObject)
@@ -24,17 +24,20 @@ namespace TombLib.LevelData
         }
 
         public ObjectGroup(IReadOnlyList<PositionBasedObjectInstance> objects)
+            : this(objects, objects[0], 0.0f)
+        { }
+
+        private ObjectGroup(IReadOnlyList<PositionBasedObjectInstance> objects, PositionBasedObjectInstance rootObject, float rotationY)
         {
-            var initialObject = objects.First();
+            var initialObject = rootObject is null ? objects[0] : rootObject;
 
             Room = initialObject.Room;
             Position = initialObject.Position;
             _rootObject = initialObject;
+            _rotationY = rotationY;
 
             foreach (var obj in objects)
-            {
                 _objects.Add(obj);
-            }
         }
 
         public ObjectGroup(ObjectGroup other)
@@ -50,15 +53,25 @@ namespace TombLib.LevelData
 
         public override ObjectInstance Clone()
         {
-            return new ObjectGroup(_objects.Select(o => o.Clone() as PositionBasedObjectInstance).ToList());
+            var clonedObjects = new List<PositionBasedObjectInstance>(_objects.Count);
+            PositionBasedObjectInstance clonedRootObject = null;
+
+            foreach (var obj in _objects)
+            {
+                var clonedObject = (PositionBasedObjectInstance)obj.Clone();
+                clonedObjects.Add(clonedObject);
+
+                if (obj == _rootObject)
+                    clonedRootObject = clonedObject;
+            }
+
+            return new ObjectGroup(clonedObjects, clonedRootObject, _rotationY);
         }
 
         public void Add(PositionBasedObjectInstance objectInstance)
         {
             _objects.Add(objectInstance);
-
-            if (_rootObject == null)
-                _rootObject = objectInstance;
+            _rootObject ??= objectInstance;
         }
 
         public void Remove(PositionBasedObjectInstance objectInstance)
@@ -77,13 +90,9 @@ namespace TombLib.LevelData
         public void AddOrRemove(PositionBasedObjectInstance objectInstance)
         {
             if (Contains(objectInstance))
-            {
                 Remove(objectInstance);
-            }
             else
-            {
                 Add(objectInstance);
-            }
         }
 
         protected override void SetPosition(Vector3 position)
@@ -92,17 +101,14 @@ namespace TombLib.LevelData
             base.SetPosition(position);
 
             foreach (var i in _objects)
-                i.Position = i.Position + difference;
+                i.Position += difference;
         }
 
         private float _rotationY;
 
         public float RotationY
         {
-            get
-            {
-                return _rotationY;
-            }
+            get => _rotationY;
             set
             {
                 var difference = value - _rotationY;
@@ -125,7 +131,6 @@ namespace TombLib.LevelData
                 else
                     return Vector3.Zero;
             }
-
             set
             {
                 foreach (var o in this.Where(o => o.CanBeColored()))
