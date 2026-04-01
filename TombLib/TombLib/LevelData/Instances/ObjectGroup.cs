@@ -1,4 +1,6 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,12 +26,16 @@ namespace TombLib.LevelData
         }
 
         public ObjectGroup(IReadOnlyList<PositionBasedObjectInstance> objects)
-            : this(objects, objects[0], 0.0f)
+            : this(objects, null, 0.0f)
         { }
 
-        private ObjectGroup(IReadOnlyList<PositionBasedObjectInstance> objects, PositionBasedObjectInstance rootObject, float rotationY)
+        private ObjectGroup(IReadOnlyList<PositionBasedObjectInstance> objects, PositionBasedObjectInstance? rootObject, float rotationY)
         {
-            var initialObject = rootObject is null ? objects[0] : rootObject;
+            if (objects is null || objects.Count == 0)
+                throw new ArgumentException("The collection of objects must not be empty.", nameof(objects));
+
+            // Ensure the provided root belongs to the collection; otherwise fall back to the first element.
+            var initialObject = rootObject is not null && objects.Contains(rootObject) ? rootObject : objects[0];
 
             Room = initialObject.Room;
             Position = initialObject.Position;
@@ -54,7 +60,7 @@ namespace TombLib.LevelData
         public override ObjectInstance Clone()
         {
             var clonedObjects = new List<PositionBasedObjectInstance>(_objects.Count);
-            PositionBasedObjectInstance clonedRootObject = null;
+            PositionBasedObjectInstance? clonedRootObject = null;
 
             foreach (var obj in _objects)
             {
@@ -65,7 +71,12 @@ namespace TombLib.LevelData
                     clonedRootObject = clonedObject;
             }
 
-            return new ObjectGroup(clonedObjects, clonedRootObject, _rotationY);
+            // Ensure we always pass a non-null root to the private ctor: fall back to the first cloned object.
+            if (clonedObjects.Count == 0)
+                throw new InvalidOperationException("Cannot clone an empty ObjectGroup.");
+
+            var rootToUse = clonedRootObject ?? clonedObjects[0];
+            return new ObjectGroup(clonedObjects, rootToUse, _rotationY);
         }
 
         public void Add(PositionBasedObjectInstance objectInstance)
@@ -80,7 +91,12 @@ namespace TombLib.LevelData
                 return;
 
             if (_rootObject == objectInstance)
-                _rootObject = _objects.FirstOrDefault();
+            {
+                if (_objects.Count == 0)
+                    throw new InvalidOperationException("ObjectGroup cannot be left empty.");
+
+                _rootObject = _objects.First();
+            }
         }
 
         public bool Contains(PositionBasedObjectInstance obInstance) => _objects.Contains(obInstance);
@@ -125,16 +141,19 @@ namespace TombLib.LevelData
             get
             {
                 if (RootObject.CanBeColored())
-                    return (RootObject as IColorable).Color; // Prioritize root object for picking color
-                else if (this.Any(o => o.CanBeColored()))
-                    return (this.First(o => o.CanBeColored()) as IColorable).Color;
-                else
-                    return Vector3.Zero;
+                    return ((IColorable)RootObject).Color; // Prioritize root object for picking color
+
+                var coloredObject = this.FirstOrDefault(o => o.CanBeColored());
+
+                if (coloredObject is not null)
+                    return ((IColorable)coloredObject).Color;
+
+                return Vector3.Zero;
             }
             set
             {
                 foreach (var o in this.Where(o => o.CanBeColored()))
-                    (o as IColorable).Color = value;
+                    ((IColorable)o).Color = value;
             }
         }
 
