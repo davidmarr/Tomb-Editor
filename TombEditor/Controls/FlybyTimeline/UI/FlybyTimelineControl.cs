@@ -101,8 +101,8 @@ public partial class FlybyTimelineControl : Control
     private bool _isMouseOver;
 
     // Range selection state.
-    private float _rangeStartX;
-    private float _rangeEndX;
+    private Point _rangeStartPoint;
+    private Point _rangeEndPoint;
 
     // Playhead position in seconds (negative = hidden).
     private float _playheadSeconds = -1.0f;
@@ -113,9 +113,13 @@ public partial class FlybyTimelineControl : Control
     private int _repositionFromIndex = -1;
 
     // Pan state for middle/right mouse button dragging.
-    private float _panStartPixelX;
-    private float _panStartViewSeconds;
-    private float _panStartViewRange;
+    private Point _panThresholdStartPoint;
+    private float _panAnchorPixelX;
+    private float _panAnchorViewSeconds;
+    private float _panAnchorViewRange;
+    private bool _panThresholdPending;
+    private bool _panWarpPending;
+    private float _panWarpTargetPixelX;
     private bool _rightButtonPanned;
 
     public event Action<int, float>? MarkerDragged;
@@ -123,6 +127,7 @@ public partial class FlybyTimelineControl : Control
     public event Action<int>? MarkerDoubleClicked;
     public event Action<int>? MarkerDragCompleted;
     public event Action<IReadOnlyList<int>>? RangeSelected;
+    public event Action<float>? PlayheadRequested;
     public event Action<float>? ScrubRequested;
     public event Action? PlayStopRequested;
     public event Action? DeleteRequested;

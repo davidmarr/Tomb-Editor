@@ -40,10 +40,9 @@ public partial class FlybyTimelineControl
         DrawSpeedCurve(context, w, trackY, trackHeight);
         DrawMarkers(context, w, trackY, trackHeight);
 
-        if (_interactionMode == InteractionMode.RangeSelecting)
+        if (_interactionMode == InteractionMode.RangeSelecting && HasExceededSelectionThreshold(_rangeEndPoint))
         {
-            float selLeft = Math.Min(_rangeStartX, _rangeEndX);
-            float selRight = Math.Max(_rangeStartX, _rangeEndX);
+            GetRangeSelectionBounds(out float selLeft, out float selRight);
             context.DrawRectangle(SelectionBrush, null, new Rect(selLeft, trackY, selRight - selLeft, trackHeight));
         }
 

@@ -93,6 +93,7 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.MarkerDragged += OnTimelineMarkerDragged;
         timelineControl.MarkerDragCompleted += OnTimelineMarkerDragCompleted;
         timelineControl.RangeSelected += OnTimelineRangeSelected;
+        timelineControl.PlayheadRequested += OnTimelinePlayheadRequested;
         timelineControl.ScrubRequested += OnTimelineScrubRequested;
         timelineControl.PlayStopRequested += OnTimelinePlayStopRequested;
         timelineControl.DeleteRequested += OnTimelineDeleteRequested;
@@ -110,6 +111,7 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.MarkerDragged -= OnTimelineMarkerDragged;
         timelineControl.MarkerDragCompleted -= OnTimelineMarkerDragCompleted;
         timelineControl.RangeSelected -= OnTimelineRangeSelected;
+        timelineControl.PlayheadRequested -= OnTimelinePlayheadRequested;
         timelineControl.ScrubRequested -= OnTimelineScrubRequested;
         timelineControl.PlayStopRequested -= OnTimelinePlayStopRequested;
         timelineControl.DeleteRequested -= OnTimelineDeleteRequested;
@@ -233,6 +235,12 @@ public partial class FlybyTimelineView : UserControl
 
         _viewModel.UpdateSelectedCameras(selectedItems);
     }
+
+    /// <summary>
+    /// Moves the timeline playhead without activating preview.
+    /// </summary>
+    private void OnTimelinePlayheadRequested(float timeSeconds)
+        => _viewModel?.MovePlayheadToTime(timeSeconds);
 
     /// <summary>
     /// Scrubs preview playback to the requested timeline time.

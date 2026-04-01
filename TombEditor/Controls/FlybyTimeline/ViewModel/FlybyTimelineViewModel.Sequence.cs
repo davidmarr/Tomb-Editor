@@ -484,6 +484,17 @@ public partial class FlybyTimelineViewModel
     }
 
     /// <summary>
+    /// Moves the playhead to a timeline time without activating preview.
+    /// </summary>
+    public void MovePlayheadToTime(float timeSeconds)
+    {
+        if (!SelectedSequence.HasValue || CameraList.Count == 0 || !float.IsFinite(timeSeconds))
+            return;
+
+        PlayheadSeconds = Math.Max(0.0f, timeSeconds);
+    }
+
+    /// <summary>
     /// Uses the already-visible timeline state when the camera is present in CameraList.
     /// </summary>
     /// <param name="camera">Camera whose visible timecode should become the playhead position.</param>
