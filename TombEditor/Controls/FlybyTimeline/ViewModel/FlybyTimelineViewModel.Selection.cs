@@ -232,6 +232,7 @@ public partial class FlybyTimelineViewModel
         {
             AlignSequenceToSelection(selectedCameras);
             SetSelectedCameras(selectedCameras, SelectionUpdateBehavior.RestoreSelectedCameraState | SelectionUpdateBehavior.RefreshTimeline);
+            MovePlayheadToSingleSelectedCamera(selectedCameras);
         }
         finally
         {
@@ -251,7 +252,19 @@ public partial class FlybyTimelineViewModel
             return false;
 
         SetSelectedCameras(selectedCameras, SelectionUpdateBehavior.RestoreSelectedCameraState | SelectionUpdateBehavior.RefreshTimeline);
+        MovePlayheadToSingleSelectedCamera(selectedCameras);
         return _selectedCameras.Count > 0;
+    }
+
+    /// <summary>
+    /// Moves the playhead when exactly one externally selected flyby camera is active in the timeline.
+    /// </summary>
+    private void MovePlayheadToSingleSelectedCamera(IReadOnlyList<FlybyCameraInstance> selectedCameras)
+    {
+        if (selectedCameras.Count != 1 || _selectedCameras.Count != 1)
+            return;
+
+        MovePlayheadToCamera(selectedCameras[0]);
     }
 
     /// <summary>

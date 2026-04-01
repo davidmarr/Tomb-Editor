@@ -113,11 +113,6 @@ public static class FlybyConstants
     public const float TimelineMinViewportRange = 0.1f;
 
     /// <summary>
-    /// Minimum horizontal drag distance, in pixels, before a marquee selection is considered intentional.
-    /// </summary>
-    public const float TimelineSelectionThresholdPixels = 3.0f;
-
-    /// <summary>
     /// Distance from camera to target point used when converting flyby rotations into a synthetic look target.
     /// This matches the level compiler convention so editor preview and exported data stay aligned.
     /// </summary>

@@ -11,7 +11,7 @@ namespace TombEditor.Controls.FlybyTimeline.UI;
 public partial class FlybyTimelineControl
 {
     /// <summary>
-    /// Starts scrubbing, dragging, repositioning, or range selection from a left click.
+    /// Starts scrubbing, dragging, repositioning, or track click / range selection from a left click.
     /// </summary>
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
@@ -41,7 +41,7 @@ public partial class FlybyTimelineControl
             return;
         }
 
-        BeginRangeSelection((float)pos.X);
+        BeginRangeSelection(pos);
     }
 
     /// <summary>
@@ -57,7 +57,7 @@ public partial class FlybyTimelineControl
         UpdateMouseTracking(mouseX);
 
         if (_interactionMode == InteractionMode.Panning)
-            UpdatePan(mouseX);
+            UpdatePan(pos);
         else if (_interactionMode == InteractionMode.Repositioning && e.LeftButton == MouseButtonState.Pressed)
             UpdateReposition(mouseX);
         else if (_interactionMode == InteractionMode.MarkerDrag && _dragIndex >= 0 && e.LeftButton == MouseButtonState.Pressed)
@@ -65,7 +65,7 @@ public partial class FlybyTimelineControl
         else if (_interactionMode == InteractionMode.Scrubbing && e.LeftButton == MouseButtonState.Pressed)
             UpdateScrub(mouseX);
         else if (_interactionMode == InteractionMode.RangeSelecting && e.LeftButton == MouseButtonState.Pressed)
-            UpdateRangeSelection(mouseX);
+            UpdateRangeSelection(pos);
 
         InvalidateVisual();
     }
@@ -76,7 +76,7 @@ public partial class FlybyTimelineControl
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonUp(e);
-        EndLeftMouseInteraction();
+        EndLeftMouseInteraction(e.GetPosition(this));
     }
 
     /// <summary>
@@ -143,7 +143,7 @@ public partial class FlybyTimelineControl
         base.OnMouseDown(e);
 
         if (e.ChangedButton == MouseButton.Middle)
-            BeginPan(e.GetPosition(this));
+            BeginPan(e.GetPosition(this), false);
     }
 
     /// <summary>
@@ -154,7 +154,7 @@ public partial class FlybyTimelineControl
         base.OnMouseRightButtonDown(e);
         _rightButtonPanned = false;
 
-        BeginPan(e.GetPosition(this));
+        BeginPan(e.GetPosition(this), true);
     }
 
     /// <summary>
@@ -169,7 +169,7 @@ public partial class FlybyTimelineControl
     }
 
     /// <summary>
-    /// Ends right-button panning and suppresses the context menu after a drag.
+    /// Ends right-button panning, moving the playhead on a click and suppressing the context menu for both click and drag.
     /// </summary>
     protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
     {
@@ -177,6 +177,12 @@ public partial class FlybyTimelineControl
 
         if (_interactionMode != InteractionMode.Panning)
             return;
+
+        if (!_rightButtonPanned)
+        {
+            CommitTrackClick((float)e.GetPosition(this).X);
+            e.Handled = true;
+        }
 
         EndPan();
 
@@ -337,18 +343,16 @@ public partial class FlybyTimelineControl
         _dragStartPoint = mousePosition;
         _dragMouseOffsetSeconds = PixelToTime((float)mousePosition.X, (float)ActualWidth) - _markers[hitIndex].TimeSeconds;
         CaptureMouse();
-
-        MarkerClicked?.Invoke(hitIndex);
     }
 
     /// <summary>
-    /// Begins marquee selection on empty track space.
+    /// Begins a pending track click that becomes marquee selection only after a real drag.
     /// </summary>
-    private void BeginRangeSelection(float mouseX)
+    private void BeginRangeSelection(Point mousePosition)
     {
         _interactionMode = InteractionMode.RangeSelecting;
-        _rangeStartX = mouseX;
-        _rangeEndX = mouseX;
+        _rangeStartPoint = mousePosition;
+        _rangeEndPoint = mousePosition;
         CaptureMouse();
         InvalidateVisual();
     }
@@ -356,60 +360,113 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Starts viewport panning from the given mouse position.
     /// </summary>
-    private void BeginPan(Point startPosition)
+    private void BeginPan(Point startPosition, bool requireThreshold)
     {
         if (HasActiveLeftMouseInteraction())
             return;
 
-        SnapViewportToInteractiveState();
-        float start = _visibleStartSeconds;
-        float end = _visibleEndSeconds;
-
         _interactionMode = InteractionMode.Panning;
-        _panStartPixelX = (float)startPosition.X;
-        _panStartViewSeconds = start;
-        _panStartViewRange = end - start;
+        _panThresholdStartPoint = startPosition;
+        _panAnchorPixelX = (float)startPosition.X;
+        _panAnchorViewRange = 0.0f;
+        _panThresholdPending = requireThreshold;
 
-        Cursor = Cursors.SizeWE;
+        if (!requireThreshold)
+            StartPanDrag(_panAnchorPixelX);
+
         CaptureMouse();
         Focus();
     }
 
     /// <summary>
+    /// Initializes active viewport panning once any required drag threshold has been crossed.
+    /// </summary>
+    private void StartPanDrag(float currentPixelX)
+    {
+        SnapViewportToInteractiveState();
+
+        _panThresholdPending = false;
+        _panWarpPending = false;
+
+        Cursor = Cursors.SizeWE;
+        ResetPanAnchor(currentPixelX);
+    }
+
+    /// <summary>
     /// Updates the viewport while a pan drag is in progress.
     /// </summary>
-    private void UpdatePan(float currentPixelX)
+    private void UpdatePan(Point currentPosition)
     {
+        if (_panThresholdPending)
+        {
+            if (!HasExceededDragThreshold(_panThresholdStartPoint, currentPosition))
+                return;
+
+            StartPanDrag((float)currentPosition.X);
+            _rightButtonPanned = true;
+            return;
+        }
+
         float w = (float)ActualWidth;
 
-        if (w <= 0 || _panStartViewRange <= 0)
+        if (w <= 0)
             return;
 
-        float deltaPixels = currentPixelX - _panStartPixelX;
-        float deltaSeconds = -(deltaPixels / w) * _panStartViewRange;
-        float newStart = ClampVisibleStart(_panStartViewSeconds + deltaSeconds, _panStartViewRange);
+        float currentPixelX = (float)currentPosition.X;
 
-        SetViewport(newStart, newStart + _panStartViewRange, false);
+        if (TryConsumePendingPanWarp(currentPixelX, w))
+            return;
 
-        if (MathF.Abs(deltaPixels) >= SystemParameters.MinimumHorizontalDragDistance)
-            _rightButtonPanned = true;
+        if (_panAnchorViewRange <= 0)
+            return;
+
+        float deltaPixels = currentPixelX - _panAnchorPixelX;
+        float deltaSeconds = -(deltaPixels / w) * _panAnchorViewRange;
+        float newStart = ClampVisibleStart(_panAnchorViewSeconds + deltaSeconds, _panAnchorViewRange);
+
+        SetViewport(newStart, newStart + _panAnchorViewRange, false);
 
         if (TryWarpPanCursor(currentPixelX, newStart, w, out float warpedPixelX))
         {
             UpdateMouseTracking(warpedPixelX);
             ResetPanAnchor(warpedPixelX);
+
+            _panWarpPending = true;
+            _panWarpTargetPixelX = warpedPixelX;
+            return;
         }
+
+        ResetPanAnchor(currentPixelX);
     }
 
     /// <summary>
-    /// Re-anchors the pan drag origin to the current cursor position and viewport state after a cursor warp.
+    /// Re-anchors the pan drag origin to the current cursor position and viewport state.
     /// </summary>
     private void ResetPanAnchor(float currentPixelX)
     {
         GetInteractiveViewport(out float startSeconds, out float endSeconds);
-        _panStartPixelX = currentPixelX;
-        _panStartViewSeconds = startSeconds;
-        _panStartViewRange = endSeconds - startSeconds;
+
+        _panAnchorPixelX = currentPixelX;
+        _panAnchorViewSeconds = startSeconds;
+        _panAnchorViewRange = endSeconds - startSeconds;
+    }
+
+    /// <summary>
+    /// Ignores stale opposite-edge mouse-move events until the post-warp cursor position is observed.
+    /// </summary>
+    private bool TryConsumePendingPanWarp(float currentPixelX, float width)
+    {
+        if (!_panWarpPending)
+            return false;
+
+        bool targetOnLeftHalf = _panWarpTargetPixelX <= width * 0.5f;
+        bool currentOnLeftHalf = currentPixelX <= width * 0.5f;
+
+        if (targetOnLeftHalf != currentOnLeftHalf)
+            return true;
+
+        _panWarpPending = false;
+        return false;
     }
 
     /// <summary>
@@ -428,7 +485,7 @@ public partial class FlybyTimelineControl
 
         if (currentPixelX <= edgeThreshold)
         {
-            if (newStart >= GetMaxViewportStart(_panStartViewRange))
+            if (newStart >= GetMaxViewportStart(_panAnchorViewRange))
                 return false;
 
             warpedPixelX = width - edgeInset;
@@ -469,8 +526,11 @@ public partial class FlybyTimelineControl
     /// </summary>
     private void UpdateMarkerDrag(Point mousePosition)
     {
-        if (!_isDragging && HasExceededDragThreshold(mousePosition))
+        if (!_isDragging && HasExceededDragThreshold(_dragStartPoint, mousePosition))
+        {
             _isDragging = true;
+            MarkerClicked?.Invoke(_dragIndex);
+        }
 
         if (!_isDragging)
             return;
@@ -489,9 +549,9 @@ public partial class FlybyTimelineControl
     }
 
     /// <summary>
-    /// Updates marquee selection visuals during drag.
+    /// Updates pending track click or marquee selection visuals during drag.
     /// </summary>
-    private void UpdateRangeSelection(float mouseX) => _rangeEndX = mouseX;
+    private void UpdateRangeSelection(Point mousePosition) => _rangeEndPoint = mousePosition;
 
     /// <summary>
     /// Ends the current viewport pan operation.
@@ -499,6 +559,9 @@ public partial class FlybyTimelineControl
     private void EndPan()
     {
         _interactionMode = InteractionMode.None;
+        _panThresholdPending = false;
+        _panWarpPending = false;
+
         Cursor = null;
         ReleaseMouseCapture();
     }
@@ -506,8 +569,10 @@ public partial class FlybyTimelineControl
     /// <summary>
     /// Ends any active left-button interaction and clears temporary state.
     /// </summary>
-    private void EndLeftMouseInteraction()
+    private void EndLeftMouseInteraction(Point mousePosition)
     {
+        int clickedMarkerIndex = _interactionMode == InteractionMode.MarkerDrag && !_isDragging ? _dragIndex : -1;
+
         if (_interactionMode == InteractionMode.Repositioning)
         {
             _interactionMode = InteractionMode.None;
@@ -516,11 +581,13 @@ public partial class FlybyTimelineControl
         else if (_interactionMode == InteractionMode.RangeSelecting)
         {
             _interactionMode = InteractionMode.None;
-            CommitRangeSelection();
+            CommitRangeSelection(mousePosition);
         }
 
         if (_isDragging && _dragIndex >= 0)
             MarkerDragCompleted?.Invoke(_dragIndex);
+        else if (clickedMarkerIndex >= 0)
+            MarkerClicked?.Invoke(clickedMarkerIndex);
 
         if (_interactionMode != InteractionMode.Panning)
             _interactionMode = InteractionMode.None;
@@ -536,17 +603,29 @@ public partial class FlybyTimelineControl
     }
 
     /// <summary>
-    /// Finalizes marquee selection and handles click-to-clear behavior.
+    /// Finalizes marquee selection or commits a track click to the released playhead position.
     /// </summary>
-    private void CommitRangeSelection()
+    private void CommitRangeSelection(Point mousePosition)
     {
-        if (!HasExceededSelectionThreshold(_rangeStartX, _rangeEndX))
+        _rangeEndPoint = mousePosition;
+
+        if (!HasExceededSelectionThreshold(_rangeEndPoint))
         {
             RangeSelected?.Invoke([]);
+            CommitTrackClick((float)_rangeEndPoint.X);
             return;
         }
 
         RangeSelected?.Invoke(GetRangeSelection());
+    }
+
+    /// <summary>
+    /// Moves the playhead to the clicked track position without entering continuous scrub mode.
+    /// </summary>
+    private void CommitTrackClick(float mouseX)
+    {
+        float clickTime = PixelToTime(mouseX, (float)ActualWidth);
+        PlayheadRequested?.Invoke(Math.Max(0.0f, clickTime));
     }
 
     /// <summary>
@@ -572,8 +651,7 @@ public partial class FlybyTimelineControl
     /// </summary>
     private IReadOnlyList<int> GetRangeSelection()
     {
-        float leftX = Math.Min(_rangeStartX, _rangeEndX);
-        float rightX = Math.Max(_rangeStartX, _rangeEndX);
+        GetRangeSelectionBounds(out float leftX, out float rightX);
 
         List<int> selected = [];
 
@@ -587,6 +665,18 @@ public partial class FlybyTimelineControl
         }
 
         return selected;
+    }
+
+    /// <summary>
+    /// Returns the current marquee selection bounds in local pixel coordinates.
+    /// </summary>
+    private void GetRangeSelectionBounds(out float leftX, out float rightX)
+    {
+        float startX = (float)_rangeStartPoint.X;
+        float endX = (float)_rangeEndPoint.X;
+
+        leftX = Math.Min(startX, endX);
+        rightX = Math.Max(startX, endX);
     }
 
     /// <summary>
@@ -650,17 +740,17 @@ public partial class FlybyTimelineControl
     }
 
     /// <summary>
-    /// Returns whether marker dragging has exceeded the system drag threshold.
+    /// Returns whether a pointer drag has exceeded the system drag threshold.
     /// </summary>
-    private bool HasExceededDragThreshold(Point currentPoint)
-        => Math.Abs(currentPoint.X - _dragStartPoint.X) >= SystemParameters.MinimumHorizontalDragDistance
-        || Math.Abs(currentPoint.Y - _dragStartPoint.Y) >= SystemParameters.MinimumVerticalDragDistance;
+    private static bool HasExceededDragThreshold(Point startPoint, Point currentPoint)
+        => Math.Abs(currentPoint.X - startPoint.X) >= SystemParameters.MinimumHorizontalDragDistance
+        || Math.Abs(currentPoint.Y - startPoint.Y) >= SystemParameters.MinimumVerticalDragDistance;
 
     /// <summary>
     /// Returns whether a marquee selection drag is large enough to count.
     /// </summary>
-    private static bool HasExceededSelectionThreshold(float startX, float endX)
-        => Math.Abs(endX - startX) >= FlybyConstants.TimelineSelectionThresholdPixels;
+    private bool HasExceededSelectionThreshold(Point currentPoint)
+        => Math.Abs(currentPoint.X - _rangeStartPoint.X) >= SystemParameters.MinimumHorizontalDragDistance;
 
     /// <summary>
     /// Returns whether a left-button-driven interaction is currently active or pending.
