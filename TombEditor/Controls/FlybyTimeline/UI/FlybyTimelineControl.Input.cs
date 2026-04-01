@@ -169,7 +169,7 @@ public partial class FlybyTimelineControl
     }
 
     /// <summary>
-    /// Ends right-button panning and suppresses the context menu after a drag.
+    /// Ends right-button panning, moving the playhead on a click and suppressing the context menu for both click and drag.
     /// </summary>
     protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
     {
