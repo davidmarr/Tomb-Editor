@@ -126,6 +126,7 @@ public partial class FlybyTimelineControl : Control
     public event Action<float>? ScrubRequested;
     public event Action? PlayStopRequested;
     public event Action? DeleteRequested;
+    public event Action? SelectAllRequested;
     public event Action<int, int>? MarkerReordered;
 
     static FlybyTimelineControl()

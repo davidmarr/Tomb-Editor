@@ -204,35 +204,68 @@ public partial class FlybyTimelineControl
     }
 
     /// <summary>
-    /// Handles keyboard shortcuts for playback, deletion, and panning.
+    /// Handles keyboard shortcuts for the timeline.
     /// </summary>
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        e.Handled = HandleKeyShortcut(Keyboard.Modifiers, e.Key);
+    }
 
-        switch (e.Key)
+    /// <summary>
+    /// Handles keyboard shortcuts with modifiers (e.g. Ctrl+A) and without (e.g. Space for Play/Stop).
+    /// Shortcut handling is separated to avoid conflicts between timeline-specific shortcuts and global ones.
+    /// </summary>
+    /// <returns><see langword="true"/> if the key was handled; otherwise, <see langword="false"/>.</returns>
+    private bool HandleKeyShortcut(ModifierKeys modifiers, Key key) => modifiers switch
+    {
+        ModifierKeys.None => TryHandleTimelineShortcut(key),
+        ModifierKeys.Control => TryHandleCtrlShortcut(key),
+        _ => false,
+    };
+
+    /// <summary>
+    /// Handles Ctrl+ shortcuts for the timeline, such as Select All.
+    /// </summary>
+    private bool TryHandleCtrlShortcut(Key key)
+    {
+        switch (key)
+        {
+            case Key.A:
+                SelectAllRequested?.Invoke();
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Handles shortcuts without modifiers, such as Play/Stop and Delete.
+    /// </summary>
+    private bool TryHandleTimelineShortcut(Key key)
+    {
+        switch (key)
         {
             case Key.Space:
                 PlayStopRequested?.Invoke();
-                break;
+                return true;
 
             case Key.Delete or Key.Back:
                 DeleteRequested?.Invoke();
-                break;
+                return true;
 
             case Key.Left:
                 PanLeft();
-                break;
+                return true;
 
             case Key.Right:
                 PanRight();
-                break;
+                return true;
 
             default:
-                return;
+                return false;
         }
-
-        e.Handled = true;
     }
 
     /// <summary>

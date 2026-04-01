@@ -539,6 +539,12 @@ public partial class FlybyTimelineViewModel
     }
 
     /// <summary>
+    /// Selects every camera currently visible in the active sequence.
+    /// </summary>
+    public void SelectAllCameras()
+        => SetSelectedCameras(CameraList.Select(item => item.Camera));
+
+    /// <summary>
     /// Returns indices of all currently selected cameras.
     /// </summary>
     public IReadOnlySet<int> GetSelectedIndices()

@@ -96,6 +96,7 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.ScrubRequested += OnTimelineScrubRequested;
         timelineControl.PlayStopRequested += OnTimelinePlayStopRequested;
         timelineControl.DeleteRequested += OnTimelineDeleteRequested;
+        timelineControl.SelectAllRequested += OnTimelineSelectAllRequested;
         timelineControl.MarkerReordered += OnTimelineMarkerReordered;
     }
 
@@ -112,6 +113,7 @@ public partial class FlybyTimelineView : UserControl
         timelineControl.ScrubRequested -= OnTimelineScrubRequested;
         timelineControl.PlayStopRequested -= OnTimelinePlayStopRequested;
         timelineControl.DeleteRequested -= OnTimelineDeleteRequested;
+        timelineControl.SelectAllRequested -= OnTimelineSelectAllRequested;
         timelineControl.MarkerReordered -= OnTimelineMarkerReordered;
     }
 
@@ -249,6 +251,12 @@ public partial class FlybyTimelineView : UserControl
     /// </summary>
     private void OnTimelineDeleteRequested()
         => _viewModel?.DeleteSelectedCameras();
+
+    /// <summary>
+    /// Selects all cameras visible in the current timeline sequence.
+    /// </summary>
+    private void OnTimelineSelectAllRequested()
+        => _viewModel?.SelectAllCameras();
 
     /// <summary>
     /// Reorders a camera after an Alt-drag reposition operation.
