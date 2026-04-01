@@ -118,7 +118,12 @@ public partial class FlybyTimelineViewModel
             InvalidateVisibleCameraState();
 
         if (!_isApplyingProperty)
+        {
             RefreshAfterDataChange();
+
+            if (changeEvent.ChangeType == ObjectChangeType.Add && !_suppressNextAddedCameraZoomToFit)
+                RequestZoomToFit();
+        }
     }
 
     /// <summary>

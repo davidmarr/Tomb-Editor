@@ -40,6 +40,7 @@ public partial class FlybyTimelineViewModel : ObservableObject
     private bool _isUpdating;
     private bool _isApplyingProperty;
     private bool _isSyncingSelection;
+    private bool _suppressNextAddedCameraZoomToFit;
     private bool _isDisposed;
     private bool _isTimelineRefreshQueued;
     private bool _queuedTimelineRefreshCameraList;

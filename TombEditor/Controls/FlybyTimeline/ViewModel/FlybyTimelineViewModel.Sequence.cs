@@ -243,8 +243,7 @@ public partial class FlybyTimelineViewModel
         if (cameras.Any(camera => camera.Number == cam.Number))
             PrepareCamerasForInsertion(cameras, cam.Number);
 
-        room.AddObject(_editor.Level, cam);
-        _editor.ObjectChange(cam, ObjectChangeType.Add);
+        AddCameraToRoom(room, cam, suppressExternalZoomToFit: true);
         undoList.Add(new AddRemoveObjectUndoInstance(_editor.UndoManager, cam, true));
 
         PushUndoIfAny(undoList);
@@ -278,8 +277,7 @@ public partial class FlybyTimelineViewModel
         cameras[^1].Speed = newSpeed;
         _editor.ObjectChange(cameras[^1], ObjectChangeType.Change);
 
-        room.AddObject(_editor.Level, cam);
-        _editor.ObjectChange(cam, ObjectChangeType.Add);
+        AddCameraToRoom(room, cam, suppressExternalZoomToFit: true);
         undoList.Add(new AddRemoveObjectUndoInstance(_editor.UndoManager, cam, true));
 
         PushUndoIfAny(undoList);
@@ -337,8 +335,7 @@ public partial class FlybyTimelineViewModel
 
         _editor.ObjectChange(cameras[prevIndex], ObjectChangeType.Change);
 
-        room.AddObject(_editor.Level, cam);
-        _editor.ObjectChange(cam, ObjectChangeType.Add);
+        AddCameraToRoom(room, cam, suppressExternalZoomToFit: true);
         undoList.Add(new AddRemoveObjectUndoInstance(_editor.UndoManager, cam, true));
 
         PushUndoIfAny(undoList);
@@ -354,11 +351,30 @@ public partial class FlybyTimelineViewModel
 
         ApplyEditorCameraPosition(cam, room);
 
-        room.AddObject(_editor.Level, cam);
+        AddCameraToRoom(room, cam, suppressExternalZoomToFit: true);
         _editor.UndoManager.PushObjectCreated(cam);
-        _editor.ObjectChange(cam, ObjectChangeType.Add);
 
         FinalizeAddedCamera(cam, zoomToFit: true);
+    }
+
+    /// <summary>
+    /// Adds a flyby camera to the level and optionally suppresses the generic external add zoom path.
+    /// </summary>
+    private void AddCameraToRoom(Room room, FlybyCameraInstance camera, bool suppressExternalZoomToFit)
+    {
+        room.AddObject(_editor.Level, camera);
+
+        bool previousSuppressZoomToFit = _suppressNextAddedCameraZoomToFit;
+        _suppressNextAddedCameraZoomToFit = suppressExternalZoomToFit;
+
+        try
+        {
+            _editor.ObjectChange(camera, ObjectChangeType.Add);
+        }
+        finally
+        {
+            _suppressNextAddedCameraZoomToFit = previousSuppressZoomToFit;
+        }
     }
 
     /// <summary>
