@@ -14,7 +14,7 @@ namespace TombLib.LevelData
     public class ObjectGroup : PositionBasedObjectInstance, IRotateableY, IColorable, IEnumerable<PositionBasedObjectInstance>
     {
         private readonly HashSet<PositionBasedObjectInstance> _objects = new();
-        private PositionBasedObjectInstance _rootObject;
+        private PositionBasedObjectInstance? _rootObject;
 
         public ObjectGroup(PositionBasedObjectInstance initialObject)
         {
@@ -71,11 +71,7 @@ namespace TombLib.LevelData
                     clonedRootObject = clonedObject;
             }
 
-            // Ensure we always pass a non-null root to the private ctor: fall back to the first cloned object.
-            if (clonedObjects.Count == 0)
-                throw new InvalidOperationException("Cannot clone an empty ObjectGroup.");
-
-            var rootToUse = clonedRootObject ?? clonedObjects[0];
+            var rootToUse = clonedRootObject ?? clonedObjects.FirstOrDefault();
             return new ObjectGroup(clonedObjects, rootToUse, _rotationY);
         }
 
@@ -91,17 +87,12 @@ namespace TombLib.LevelData
                 return;
 
             if (_rootObject == objectInstance)
-            {
-                if (_objects.Count == 0)
-                    throw new InvalidOperationException("ObjectGroup cannot be left empty.");
-
-                _rootObject = _objects.First();
-            }
+                _rootObject = _objects.FirstOrDefault();
         }
 
         public bool Contains(PositionBasedObjectInstance obInstance) => _objects.Contains(obInstance);
         public bool Any() => _objects.Any();
-        public PositionBasedObjectInstance RootObject => _rootObject;
+        public PositionBasedObjectInstance? RootObject => _rootObject;
 
         public void AddOrRemove(PositionBasedObjectInstance objectInstance)
         {
@@ -140,7 +131,7 @@ namespace TombLib.LevelData
         {
             get
             {
-                if (RootObject.CanBeColored())
+                if (RootObject?.CanBeColored() == true)
                     return ((IColorable)RootObject).Color; // Prioritize root object for picking color
 
                 var coloredObject = this.FirstOrDefault(o => o.CanBeColored());
