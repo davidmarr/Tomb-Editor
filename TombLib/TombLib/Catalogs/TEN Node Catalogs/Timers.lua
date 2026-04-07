@@ -31,15 +31,15 @@ end
 -- !Arguments "Boolean, 25, {true}, Minutes"
 -- !Arguments "Boolean , 25, {true}, Seconds"
 -- !Arguments "Boolean, 25, {true}, Centiseconds"
--- !Arguments "NewLine, Boolean , 47, {false}, Debug messages in console"
--- !Arguments "Enumeration, 18, {1}, [ Left | Center | Right ], Horizontal alignment"
--- !Arguments "Enumeration, 35, {1}, [ Flat | Shadow | Blinking | Shadow + Blinking ], Effects"
 -- !Arguments "NewLine, Color, 20, {TEN.Color(255, 255, 255)}, Timer's color"
 -- !Arguments "Color, 20, {TEN.Color(255, 255, 0)}, Timer's paused color"
--- !Arguments "Numerical, 20, {50}, [ 0 | 100 | 2 ], Position X (%)\nRange [0 to 100]"
--- !Arguments "Numerical, 20, {90}, [ 0 | 100 | 2 ], Position Y (%)\nRange [0 to 100]"
--- !Arguments "Numerical, 20, {1}, [ 0.1 | 100 | 2 | 0.1 ], Scale\nRange [0.1 to 100]"
-LevelFuncs.Engine.Node.CreateTimer = function(name, time, loop, hours, minutes, seconds, deciseconds, debug, alignment, effects, color, pColor, x, y, scale)
+-- !Arguments "Numerical, 20, {50}, [ -1000 | 1000 | 2 ], Position X (%)\nRange [-1000 to 1000]\nVisible range [0 to 100]"
+-- !Arguments "Numerical, 20, {90}, [ -1000 | 1000 | 2 ], Position Y (%)\nRange [-1000 to 1000]\nVisible range [0 to 100]"
+-- !Arguments "Enumeration, 20, {1}, [ Left | Center | Right ], Horizontal alignment"
+-- !Arguments "NewLine, Enumeration, 35, {1}, [ Flat | Shadow | Blinking | Shadow + Blinking ], Effects"
+-- !Arguments "Numerical, 16, {1}, [ 0.1 | 100 | 2 | 0.1 ], Scale\nRange [0.1 to 100]"
+-- !Arguments "Boolean , 47, {false}, Debug messages in console"
+LevelFuncs.Engine.Node.CreateTimer = function(name, time, loop, hours, minutes, seconds, deciseconds, color, pColor, x, y, alignment, effects, scale, debug)
     if name ~= '' then
         local nodeTimerFormat = {hours = hours, minutes = minutes, seconds = seconds, deciseconds = deciseconds }
         Timer.Create(name, time, loop, nodeTimerFormat)
@@ -98,18 +98,18 @@ end
 -- !Arguments "Boolean, 25, {true}, Minutes"
 -- !Arguments "Boolean , 25, {true}, Seconds"
 -- !Arguments "Boolean, 25, {true}, Centiseconds"
--- !Arguments "NewLine, Boolean , 47, {false}, Debug messages in console"
--- !Arguments "Enumeration, 18, {1}, [ Left | Center | Right ], Horizontal alignment"
--- !Arguments "Enumeration, 35, {1}, [ Flat | Shadow | Blinking | Shadow + Blinking ], Effects"
 -- !Arguments "NewLine, Color, 20, {TEN.Color(255, 255, 255)}, Timer's color"
 -- !Arguments "Color, 20, {TEN.Color(255, 255, 0)}, Timer's paused color"
--- !Arguments "Numerical, 20, {50}, [ 0 | 100 | 2 ], Position X (%)\nRange [0 to 100]"
--- !Arguments "Numerical, 20, {90}, [ 0 | 100 | 2 ], Position Y (%)\nRange [0 to 100]"
--- !Arguments "Numerical, 20, {1}, [ 0.1 | 100 | 2 | 0.1 ], Scale\nRange [0.1 to 100]"
+-- !Arguments "Numerical, 20, {50}, [ -1000 | 1000 | 2 ], Position X (%)\nRange [-1000 to 1000]\nVisible range [0 to 100]"
+-- !Arguments "Numerical, 20, {90}, [ -1000 | 1000 | 2 ], Position Y (%)\nRange [-1000 to 1000]\nVisible range [0 to 100]"
+-- !Arguments "Enumeration, 20, {1}, [ Left | Center | Right ], Horizontal alignment"
+-- !Arguments "NewLine, Enumeration, 35, {1}, [ Flat | Shadow | Blinking | Shadow + Blinking ], Effects"
+-- !Arguments "Numerical, 16, {1}, [ 0.1 | 100 | 2 | 0.1 ], Scale\nRange [0.1 to 100]"
+-- !Arguments "Boolean , 47, {false}, Debug messages in console"
 -- !Arguments "NewLine, 66, VolumeEventSets, The event set to be called when the time is up"
 -- !Arguments "VolumeEvents, 34, Event to run"
 -- !Arguments "NewLine, Moveables, Activator for the event (when necessary)"
-LevelFuncs.Engine.Node.CreateTimerWithEventSet = function(name, time, loop, hours, minutes, seconds, deciseconds, debug, alignment, effects, color, pColor, x, y, scale, setName, eventType, activator)
+LevelFuncs.Engine.Node.CreateTimerWithEventSet = function(name, time, loop, hours, minutes, seconds, deciseconds, color, pColor, x, y, alignment, effects, scale, debug, setName, eventType, activator)
     if name ~= '' then
         local nodeTimerFormat = {hours = hours, minutes = minutes, seconds = seconds, deciseconds = deciseconds }
         Timer.Create(name, time, loop, nodeTimerFormat, LevelFuncs.Engine.Node.RunEventSet, setName, eventType, activator)
@@ -133,18 +133,18 @@ end
 -- !Arguments "Boolean, 25, {true}, Minutes"
 -- !Arguments "Boolean , 25, {true}, Seconds"
 -- !Arguments "Boolean, 25, {true}, Centiseconds"
--- !Arguments "NewLine, Boolean , 47, {false}, Debug messages in console"
--- !Arguments "Enumeration, 18, {1}, [ Left | Center | Right ], Horizontal alignment"
--- !Arguments "Enumeration, 35, {1}, [ Flat | Shadow | Blinking | Shadow + Blinking ], Effects"
 -- !Arguments "NewLine, Color, 20, {TEN.Color(255, 255, 255)}, Timer's color"
 -- !Arguments "Color, 20, {TEN.Color(255, 255, 0)}, Timer's paused color"
--- !Arguments "Numerical, 20, {50}, [ 0 | 100 | 2 ], Position X (%)\nRange [0 to 100]"
--- !Arguments "Numerical, 20, {90}, [ 0 | 100 | 2 ], Position Y (%)\nRange [0 to 100]"
--- !Arguments "Numerical, 20, {1}, [ 0.1 | 100 | 2 | 0.1 ], Scale\nRange [0.1 to 100]"
+-- !Arguments "Numerical, 20, {50}, [ -1000 | 1000 | 2 ], Position X (%)\nRange [-1000 to 1000]\nVisible range [0 to 100]"
+-- !Arguments "Numerical, 20, {90}, [ -1000 | 1000 | 2 ], Position Y (%)\nRange [-1000 to 1000]\nVisible range [0 to 100]"
+-- !Arguments "Enumeration, 20, {1}, [ Left | Center | Right ], Horizontal alignment"
+-- !Arguments "NewLine, Enumeration, 35, {1}, [ Flat | Shadow | Blinking | Shadow + Blinking ], Effects"
+-- !Arguments "Numerical, 16, {1}, [ 0.1 | 100 | 2 | 0.1 ], Scale\nRange [0.1 to 100]"
+-- !Arguments "Boolean , 47, {false}, Debug messages in console"
 -- !Arguments "NewLine, 70, GlobalEventSets, The event set to be called when the time is up"
 -- !Arguments "GlobalEvents, 30, Event to run"
 -- !Arguments "NewLine, Moveables, Activator for the event (when necessary)"
-LevelFuncs.Engine.Node.CreateTimerWithGEventSet = function(name, time, loop, hours, minutes, seconds, deciseconds, debug, alignment, effects, color, pColor, x, y, scale, setName, eventType, activator)
+LevelFuncs.Engine.Node.CreateTimerWithGEventSet = function(name, time, loop, hours, minutes, seconds, deciseconds, color, pColor, x, y, alignment, effects, scale, debug, setName, eventType, activator)
     if name ~= '' then
         local nodeTimerFormat = {hours = hours, minutes = minutes, seconds = seconds, deciseconds = deciseconds }
         Timer.Create(name, time, loop, nodeTimerFormat, LevelFuncs.Engine.Node.RunGlobalEventSet, setName, eventType, activator)
