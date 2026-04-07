@@ -3,13 +3,13 @@ local textOp = {[0] = "+", [1] = "-", [2] = "*", [3] = "/", [4] = "=", }
 local textCompareOp = {[0] = "equal to", [1] = "greater than", [2] = "less than", [3] = "greater than or equal to", [4] = "less than or equal to", [5] = "not equal to", }
 LevelVars.nodeTimers = {}
 
-local SetTimer = function (name, show_debug, alignment, effects, color, pColor, x, y, scale)
+local SetTimer = function (name, debug, alignment, effects, color, pColor, x, y, scale)
     Timer.Get(name):SetUnpausedColor(color)
     Timer.Get(name):SetPausedColor(pColor)
     Timer.Get(name):SetPosition(x,y)
     Timer.Get(name):SetScale(scale)
     Timer.Get(name):SetTextOption(LevelFuncs.Engine.Node.GeneratesTextOption(alignment, effects))
-    LevelVars.nodeTimers[name] = {debug = show_debug}
+    LevelVars.nodeTimers[name] = {debug = debug}
     LevelVars.nodeTimers[name].alignment = alignment
     LevelVars.nodeTimers[name].effects = effects
 end
@@ -39,11 +39,11 @@ end
 -- !Arguments "NewLine, Enumeration, 35, {1}, [ Flat | Shadow | Blinking | Shadow + Blinking ], Effects"
 -- !Arguments "Numerical, 16, {1}, [ 0.1 | 100 | 2 | 0.1 ], Scale\nRange [0.1 to 100]"
 -- !Arguments "Boolean , 47, {false}, Debug messages in console"
-LevelFuncs.Engine.Node.CreateTimer = function(name, time, loop, hours, minutes, seconds, deciseconds, color, pColor, x, y, alignment, effects, scale, show_debug)
+LevelFuncs.Engine.Node.CreateTimer = function(name, time, loop, hours, minutes, seconds, deciseconds, color, pColor, x, y, alignment, effects, scale, debug)
     if name ~= '' then
         local nodeTimerFormat = {hours = hours, minutes = minutes, seconds = seconds, deciseconds = deciseconds }
         Timer.Create(name, time, loop, nodeTimerFormat)
-        SetTimer(name, show_debug, alignment, effects, color, pColor, x, y, scale)
+        SetTimer(name, debug, alignment, effects, color, pColor, x, y, scale)
         if LevelVars.nodeTimers[name].debug then
             TEN.Util.PrintLog("Timer '" .. name .. "' created successfully!", TEN.Util.LogLevel.INFO)
         end
@@ -73,12 +73,12 @@ end
 -- !Arguments "Numerical, 20, {1}, [ 0.1 | 100 | 2 | 0.1 ], Scale\nRange [0.1 to 100]"
 -- !Arguments "NewLine, LuaScript, The function to call when the time is up"
 -- !Arguments "NewLine, String, Arguments"
-LevelFuncs.Engine.Node.CreateTimerWithFunction = function(name, time, loop, hours, minutes, seconds, deciseconds, show_debug, alignment, effects, color, pColor, x, y, scale, luaFunction, args)
+LevelFuncs.Engine.Node.CreateTimerWithFunction = function(name, time, loop, hours, minutes, seconds, deciseconds, debug, alignment, effects, color, pColor, x, y, scale, luaFunction, args)
     if name ~= '' then
         local nodeTimerFormat = {hours = hours, minutes = minutes, seconds = seconds, deciseconds = deciseconds }
         local argsTable = args ~= '' and table.unpack(LevelFuncs.Engine.Node.SplitString(args, ",")) or nil
         Timer.Create(name, time, loop, nodeTimerFormat, luaFunction, argsTable)
-        SetTimer(name, show_debug, alignment, effects, color, pColor, x, y, scale)
+        SetTimer(name, debug, alignment, effects, color, pColor, x, y, scale)
         if LevelVars.nodeTimers[name].debug then
             TEN.Util.PrintLog("Timer with Function '" .. name .. "' created successfully!", TEN.Util.LogLevel.INFO)
         end
@@ -109,11 +109,11 @@ end
 -- !Arguments "NewLine, 66, VolumeEventSets, The event set to be called when the time is up"
 -- !Arguments "VolumeEvents, 34, Event to run"
 -- !Arguments "NewLine, Moveables, Activator for the event (when necessary)"
-LevelFuncs.Engine.Node.CreateTimerWithEventSet = function(name, time, loop, hours, minutes, seconds, deciseconds, color, pColor, x, y, alignment, effects, scale, show_debug, setName, eventType, activator)
+LevelFuncs.Engine.Node.CreateTimerWithEventSet = function(name, time, loop, hours, minutes, seconds, deciseconds, color, pColor, x, y, alignment, effects, scale, debug, setName, eventType, activator)
     if name ~= '' then
         local nodeTimerFormat = {hours = hours, minutes = minutes, seconds = seconds, deciseconds = deciseconds }
         Timer.Create(name, time, loop, nodeTimerFormat, LevelFuncs.Engine.Node.RunEventSet, setName, eventType, activator)
-        SetTimer(name, show_debug, alignment, effects, color, pColor, x, y, scale)
+        SetTimer(name, debug, alignment, effects, color, pColor, x, y, scale)
         if LevelVars.nodeTimers[name].debug then
             TEN.Util.PrintLog("Timer with volume event set '" .. name .. "' created successfully", TEN.Util.LogLevel.INFO)
         end
@@ -144,11 +144,11 @@ end
 -- !Arguments "NewLine, 70, GlobalEventSets, The event set to be called when the time is up"
 -- !Arguments "GlobalEvents, 30, Event to run"
 -- !Arguments "NewLine, Moveables, Activator for the event (when necessary)"
-LevelFuncs.Engine.Node.CreateTimerWithGEventSet = function(name, time, loop, hours, minutes, seconds, deciseconds, color, pColor, x, y, alignment, effects, scale, show_debug, setName, eventType, activator)
+LevelFuncs.Engine.Node.CreateTimerWithGEventSet = function(name, time, loop, hours, minutes, seconds, deciseconds, color, pColor, x, y, alignment, effects, scale, debug, setName, eventType, activator)
     if name ~= '' then
         local nodeTimerFormat = {hours = hours, minutes = minutes, seconds = seconds, deciseconds = deciseconds }
         Timer.Create(name, time, loop, nodeTimerFormat, LevelFuncs.Engine.Node.RunGlobalEventSet, setName, eventType, activator)
-        SetTimer(name, show_debug, alignment, effects, color, pColor, x, y, scale)
+        SetTimer(name, debug, alignment, effects, color, pColor, x, y, scale)
         if LevelVars.nodeTimers[name].debug then
             TEN.Util.PrintLog("Timer with global event set '" .. name .. "' created successfully", TEN.Util.LogLevel.INFO)
         end
@@ -450,11 +450,11 @@ end
 -- !Section "Timer"
 -- !Arguments "NewLine, String, 80, [ NoMultiline ], Timer name"
 -- !Arguments "Enumeration, 20, {1}, [ Enable | Disable ], Debug messages in console"
-LevelFuncs.Engine.Node.SetDebugMessages = function(name, show_debug)
+LevelFuncs.Engine.Node.SetDebugMessages = function(name, debug)
     if name ~= '' then
         if Timer.IfExists(name) then
             CreateStruct(name)
-            LevelVars.nodeTimers[name].debug = (show_debug == 1) and true or false
+            LevelVars.nodeTimers[name].debug = (debug == 1) and true or false
             if LevelVars.nodeTimers[name].debug then
                 TEN.Util.PrintLog("Timer '" .. name .. "' debug messages in console: " .. tostring(LevelVars.nodeTimers[name].debug), TEN.Util.LogLevel.INFO)
             end
